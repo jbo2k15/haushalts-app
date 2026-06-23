@@ -19,7 +19,8 @@
     "nodemailer": "^6.9.13",
     "node-ical": "^0.18.0",
     "uuid": "^10.0.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "prisma": "^5.14.0"
