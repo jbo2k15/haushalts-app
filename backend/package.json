@@ -1,0 +1,27 @@
+{
+  "name": "haushalts-app-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "db:migrate": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.13",
+    "node-ical": "^0.18.0",
+    "uuid": "^10.0.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "prisma": "^5.14.0"
+  }
+}
