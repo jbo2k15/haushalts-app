@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL
+  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase()
   if (!adminEmail) {
     console.log('ADMIN_EMAIL not set, skipping seed.')
     return

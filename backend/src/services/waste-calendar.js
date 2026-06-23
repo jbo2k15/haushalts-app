@@ -35,7 +35,7 @@ export async function syncWasteCalendar() {
 
     for (const event of Object.values(events)) {
       if (event.type !== 'VEVENT') continue
-      const summary = (event.summary || '').toLowerCase()
+      const summary = (typeof event.summary === 'object' ? event.summary?.val : event.summary || '').toLowerCase()
       const wasteType = WASTE_TYPES.find(w => summary.includes(w.match))
       if (!wasteType) continue
 
