@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { api } from '../api/client.js'
 
 const WEEKDAY_LABELS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0] // Mo–So
 const PRIORITY_LABELS = { high: 'Hoch', normal: 'Normal', low: 'Niedrig' }
 const TYPE_LABELS = { daily: 'Täglich', weekly: 'Wöchentlich', monthly: 'Monatlich' }
 
@@ -145,7 +146,7 @@ export default function Admin() {
       <div className="max-w-lg mx-auto px-4 pb-8">
         <div className="flex items-center gap-3 py-4">
           <button onClick={() => navigate('/')} className="text-purple-600 text-sm">← Zurück</button>
-          <h1 className="text-xl font-semibold">Aufgabenverwaltung</h1>
+          <h1 className="text-xl font-semibold">Verwaltung</h1>
         </div>
 
         <div className="flex gap-2 mb-4">
@@ -194,11 +195,11 @@ export default function Admin() {
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Wochentage (leer = täglich)</label>
                     <div className="flex gap-1 flex-wrap">
-                      {WEEKDAY_LABELS.map((d, i) => (
+                      {WEEKDAY_ORDER.map(i => (
                         <button type="button" key={i}
                           onClick={() => toggleWeekday(i)}
                           className={`px-2.5 py-1 rounded-lg text-xs font-medium ${form.weekdays.includes(i) ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-                        >{d}</button>
+                        >{WEEKDAY_LABELS[i]}</button>
                       ))}
                     </div>
                   </div>
@@ -236,16 +237,24 @@ export default function Admin() {
               </form>
             )}
 
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  {tasks.length === 0 && <p className="text-sm text-gray-400 p-4 text-center">Noch keine Aufgaben</p>}
-                  {tasks.map(task => (
-                    <SortableTask key={task.id} task={task} onEdit={startEdit} onDelete={deleteTask} />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              {['daily', 'weekly', 'monthly'].map(type => {
+                const group = tasks.filter(t => t.type === type)
+                return (
+                  <div key={type} className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-3">
+                    <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{TYPE_LABELS[type]}</span>
+                    </div>
+                    <SortableContext items={group.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                      {group.length === 0 && <p className="text-sm text-gray-400 p-4 text-center">Keine Aufgaben</p>}
+                      {group.map(task => (
+                        <SortableTask key={task.id} task={task} onEdit={startEdit} onDelete={deleteTask} />
+                      ))}
+                    </SortableContext>
+                  </div>
+                )
+              })}
+            </DndContext>
           </div>
         )}
 

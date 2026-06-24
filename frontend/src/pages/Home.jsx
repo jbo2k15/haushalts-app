@@ -80,7 +80,7 @@ export default function Home() {
                 </button>
                 {user?.role === 'admin' && (
                   <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/admin') }}>
-                    <span>🛠️</span> Aufgabenverwaltung
+                    <span>🛠️</span> Verwaltung
                   </button>
                 )}
                 <button className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-gray-50 border-t border-gray-100 flex items-center gap-2.5" onClick={logout}>
