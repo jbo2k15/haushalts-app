@@ -2,6 +2,19 @@
 
 Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 
+## Funktionen
+
+- **Aufgaben** — Tägliche, wöchentliche und monatliche Aufgaben; Drag & Drop zum Sortieren
+- **Aufgabenlog** — Protokoll aller erledigten und abgelaufenen Aufgaben
+- **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, diese Woche, letzte Woche, diesen und letzten Monat
+- **Ruhmeshalle** — Gesamtranking mit Trophäen: 🥉 Tagessieger, 🥈 Wochensieger, 🥇 Monatssieger
+- **Push-Benachrichtigungen** — Tägliche und wöchentliche Erinnerungen an offene Aufgaben
+- **Abfallkalender** — Anzeige kommender Abholtermine via iCal-Feed
+- **Nutzerverwaltung** — Registrierung mit Admin-Freischaltung, Rollenverwaltung
+- **Passwort-Reset** — Per E-Mail-Link
+
+---
+
 ## Voraussetzungen
 
 - Docker + Docker Compose installiert
@@ -41,14 +54,15 @@ Alle Werte in `.env` ausfüllen:
 | Variable | Beschreibung |
 |---|---|
 | `JWT_SECRET` | Langer zufälliger String (z.B. `openssl rand -hex 32`) |
-| `ADMIN_EMAIL` | Deine E-Mail-Adresse |
+| `ADMIN_EMAIL` | E-Mail-Adresse des ersten Admin-Accounts |
+| `ADMIN_PASSWORD` | Initiales Admin-Passwort (min. 10 Zeichen, Groß-/Kleinbuchstaben, Zahl, Sonderzeichen) |
 | `FRONTEND_URL` | Deine Domain (z.B. `https://haushalt.meinedomain.de`) |
 | `SMTP_USER` | Gmail-Adresse |
 | `SMTP_PASS` | Gmail App-Passwort (siehe unten) |
 | `VAPID_PUBLIC_KEY` | Aus Schritt 2 |
 | `VAPID_PRIVATE_KEY` | Aus Schritt 2 |
 | `VAPID_EMAIL` | `mailto:deine@gmail.com` |
-| `WASTE_ICAL_URL` | iCal-URL von EDG Dortmund |
+| `WASTE_ICAL_URL` | iCal-URL des Abfallkalenders |
 
 ### 4. App starten
 
@@ -56,9 +70,7 @@ Alle Werte in `.env` ausfüllen:
 docker compose up --build -d
 ```
 
-Der erste Admin-Account wird automatisch angelegt:
-- **E-Mail:** Wert aus `ADMIN_EMAIL`
-- **Passwort:** `Haushalt2024!` (muss beim ersten Login geändert werden)
+Der erste Admin-Account wird automatisch mit den Werten aus `ADMIN_EMAIL` und `ADMIN_PASSWORD` angelegt. Das Passwort muss beim ersten Login geändert werden.
 
 ---
 
