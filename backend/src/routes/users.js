@@ -8,6 +8,7 @@ const router = Router()
 router.put('/me', requireAuth, async (req, res) => {
   const { name } = req.body
   if (!name?.trim()) return res.status(400).json({ error: 'Name darf nicht leer sein' })
+  if (name.trim().length > 100) return res.status(400).json({ error: 'Name darf maximal 100 Zeichen haben' })
   const updated = await prisma.user.update({
     where: { id: req.user.id },
     data: { name: name.trim() },
@@ -100,6 +101,12 @@ router.put('/notifications/global', requireAuth, requireAdmin, async (req, res) 
 
 router.post('/push-subscription', requireAuth, async (req, res) => {
   const { endpoint, p256dh, auth } = req.body
+  if (typeof endpoint !== 'string' || !endpoint.startsWith('https://') || endpoint.length > 500)
+    return res.status(400).json({ error: 'Ungültiger Endpoint' })
+  if (typeof p256dh !== 'string' || p256dh.length > 200)
+    return res.status(400).json({ error: 'Ungültiger p256dh-Schlüssel' })
+  if (typeof auth !== 'string' || auth.length > 100)
+    return res.status(400).json({ error: 'Ungültiger Auth-Schlüssel' })
   await prisma.pushSubscription.upsert({
     where: { endpoint },
     update: { p256dh, auth, userId: req.user.id },

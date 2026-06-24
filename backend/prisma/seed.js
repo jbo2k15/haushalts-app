@@ -28,7 +28,8 @@ async function main() {
     },
   })
 
-  await prisma.notificationSettings.create({ data: {} })
+  const existingSettings = await prisma.notificationSettings.findFirst({ where: { userId: null } })
+  if (!existingSettings) await prisma.notificationSettings.create({ data: {} })
 
   console.log(`Admin account created: ${adminEmail}`)
 }
