@@ -18,7 +18,7 @@ function validatePassword(pw) {
 }
 
 function signToken(userId) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '30d' })
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' })
 }
 
 router.post('/register', async (req, res) => {
