@@ -1,7 +1,11 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import { randomUUID } from 'crypto'
+import { randomUUID, createHash } from 'crypto'
+
+function hashToken(token) {
+  return createHash('sha256').update(token).digest('hex')
+}
 import prisma from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
 import { sendPasswordResetEmail } from '../services/email.js'
@@ -34,7 +38,7 @@ async function issueRefreshToken(userId, res) {
   await prisma.refreshToken.deleteMany({ where: { userId } })
   const token = randomUUID()
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  await prisma.refreshToken.create({ data: { userId, token, expiresAt } })
+  await prisma.refreshToken.create({ data: { userId, token: hashToken(token), expiresAt } })
   res.cookie(COOKIE_NAME, token, COOKIE_OPTS)
 }
 
@@ -78,7 +82,7 @@ router.post('/refresh', async (req, res) => {
   const token = req.cookies?.[COOKIE_NAME]
   if (!token) return res.status(401).json({ error: 'Kein Refresh-Token' })
 
-  const stored = await prisma.refreshToken.findUnique({ where: { token } })
+  const stored = await prisma.refreshToken.findUnique({ where: { token: hashToken(token) } })
   if (!stored || new Date() > stored.expiresAt) {
     res.clearCookie(COOKIE_NAME, { path: '/api/auth' })
     return res.status(401).json({ error: 'Session abgelaufen' })
@@ -102,7 +106,7 @@ router.post('/refresh', async (req, res) => {
 router.post('/logout', async (req, res) => {
   const token = req.cookies?.[COOKIE_NAME]
   if (token) {
-    await prisma.refreshToken.deleteMany({ where: { token } })
+    await prisma.refreshToken.deleteMany({ where: { token: hashToken(token) } })
   }
   res.clearCookie(COOKIE_NAME, { path: '/api/auth' })
   res.json({ message: 'Abgemeldet' })
@@ -135,7 +139,7 @@ router.post('/forgot-password', async (req, res) => {
   await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } })
   const token = randomUUID()
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
-  await prisma.passwordResetToken.create({ data: { userId: user.id, token, expiresAt } })
+  await prisma.passwordResetToken.create({ data: { userId: user.id, token: hashToken(token), expiresAt } })
 
   const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`
   await sendPasswordResetEmail(user.email, user.name, resetLink)
@@ -148,14 +152,14 @@ router.post('/reset-password', async (req, res) => {
   const pwErr = validatePassword(newPassword)
   if (pwErr) return res.status(400).json({ error: pwErr })
 
-  const resetToken = await prisma.passwordResetToken.findUnique({ where: { token } })
+  const resetToken = await prisma.passwordResetToken.findUnique({ where: { token: hashToken(token) } })
   if (!resetToken || resetToken.used || new Date() > resetToken.expiresAt) {
     return res.status(400).json({ error: 'Link ungültig oder abgelaufen' })
   }
 
   const passwordHash = await bcrypt.hash(newPassword, 12)
   await prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash, mustChangePassword: false } })
-  await prisma.passwordResetToken.update({ where: { token }, data: { used: true } })
+  await prisma.passwordResetToken.update({ where: { token: hashToken(token) }, data: { used: true } })
 
   res.json({ message: 'Passwort erfolgreich geändert' })
 })
