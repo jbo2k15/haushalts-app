@@ -13,6 +13,9 @@ export default function Settings() {
   const [settings, setSettings] = useState({ dailyTime: '21:00', weeklyDay: 6, weeklyTime: '09:00' })
   const [globalSettings, setGlobalSettings] = useState(null)
   const [saved, setSaved] = useState(false)
+  const [name, setName] = useState(user?.name || '')
+  const [nameSaved, setNameSaved] = useState(false)
+  const [nameError, setNameError] = useState('')
 
   useEffect(() => {
     setPushSupported('serviceWorker' in navigator && 'PushManager' in window)
@@ -50,11 +53,23 @@ export default function Settings() {
     }
   }
 
+  async function saveName() {
+    setNameError('')
+    try {
+      const updated = await api.put('/users/me', { name })
+      setUser(updated)
+      setNameSaved(true)
+      setTimeout(() => setNameSaved(false), 2000)
+    } catch (err) {
+      setNameError(err.message)
+    }
+  }
+
   async function saveSettings() {
     await api.put('/users/notifications', settings)
     if (user.role === 'admin') await api.put('/users/notifications/global', settings)
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setTimeout(() => navigate('/'), 1000)
   }
 
   return (
@@ -66,6 +81,27 @@ export default function Settings() {
         </div>
 
         <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4">
+            <h2 className="font-medium text-gray-800">Mein Profil</h2>
+            {nameError && <p className="text-sm text-red-600">{nameError}</p>}
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">E-Mail</label>
+              <p className="text-sm text-gray-500 px-3 py-2 bg-gray-50 rounded-xl border border-gray-200">{user?.email}</p>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Anzeigename</label>
+              <input
+                type="text"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                value={name}
+                onChange={e => setName(e.target.value)}
+              />
+            </div>
+            <button onClick={saveName} className="bg-purple-600 text-white rounded-xl px-4 py-2 text-sm font-medium">
+              {nameSaved ? 'Gespeichert ✓' : 'Name speichern'}
+            </button>
+          </div>
+
           <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4">
             <h2 className="font-medium text-gray-800">Push-Benachrichtigungen</h2>
             {!pushSupported ? (

@@ -1,4 +1,4 @@
-import * as ical from 'node-ical'
+import ical from 'node-ical'
 import prisma from '../lib/prisma.js'
 
 const WASTE_TYPES = [

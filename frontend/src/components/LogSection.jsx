@@ -5,13 +5,13 @@ function formatDate(str) {
   return new Date(str).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-export default function LogSection() {
+export default function LogSection({ refreshKey }) {
   const [logs, setLogs] = useState([])
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
 
   useEffect(() => {
     api.get('/tasks/log').then(setLogs).catch(() => {})
-  }, [])
+  }, [refreshKey])
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">

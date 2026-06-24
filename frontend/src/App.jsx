@@ -8,6 +8,7 @@ import Home from './pages/Home.jsx'
 import Admin from './pages/Admin.jsx'
 import Settings from './pages/Settings.jsx'
 import ChangePassword from './pages/ChangePassword.jsx'
+import HallOfFame from './pages/HallOfFame.jsx'
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth()
@@ -31,6 +32,7 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/hall-of-fame" element={<ProtectedRoute><HallOfFame /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

@@ -58,6 +58,7 @@ async function expireWeeklyTasks() {
       await prisma.taskLog.create({
         data: { taskId: task.id, taskTitle: task.title, status: 'expired', forDate: weekStart },
       })
+      await pruneLog()
     }
   }
 }
@@ -78,6 +79,7 @@ async function expireMonthlyTasks() {
       await prisma.taskLog.create({
         data: { taskId: task.id, taskTitle: task.title, status: 'expired', forDate: monthStr },
       })
+      await pruneLog()
     }
   }
 }
