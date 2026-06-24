@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 
 export default function Settings() {
-  const { user } = useAuth()
+  const { user, setUser } = useAuth()
   const navigate = useNavigate()
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushSupported, setPushSupported] = useState(false)
