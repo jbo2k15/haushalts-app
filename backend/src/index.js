@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser'
 import authRoutes from './routes/auth.js'
 import taskRoutes from './routes/tasks.js'
 import userRoutes from './routes/users.js'
+import { requireAuth } from './middleware/auth.js'
 import { startScheduler } from './services/scheduler.js'
 
 const app = express()
@@ -46,7 +47,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/tasks', taskRoutes)
 app.use('/api/users', userRoutes)
 
-app.get('/api/vapid-public-key', (req, res) => {
+app.get('/api/vapid-public-key', requireAuth, (req, res) => {
   res.json({ key: process.env.VAPID_PUBLIC_KEY })
 })
 

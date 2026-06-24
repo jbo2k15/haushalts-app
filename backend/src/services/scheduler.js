@@ -147,16 +147,24 @@ async function sendWeeklyReminders() {
 
 export function startScheduler() {
   cron.schedule('* * * * *', async () => {
-    await sendDailyReminders()
-    await sendWeeklyReminders()
+    try {
+      await sendDailyReminders()
+      await sendWeeklyReminders()
+    } catch (err) {
+      console.error('[Scheduler] Fehler in Minuten-Job:', err)
+    }
   }, { timezone: 'Europe/Berlin' })
 
   cron.schedule('0 0 * * *', async () => {
-    await expireDailyTasks()
-    await expireWeeklyTasks()
-    await expireMonthlyTasks()
-    await syncWasteCalendar()
+    try {
+      await expireDailyTasks()
+      await expireWeeklyTasks()
+      await expireMonthlyTasks()
+      await syncWasteCalendar()
+    } catch (err) {
+      console.error('[Scheduler] Fehler in Mitternachts-Job:', err)
+    }
   }, { timezone: 'Europe/Berlin' })
 
-  syncWasteCalendar()
+  syncWasteCalendar().catch(err => console.error('[Scheduler] Fehler bei initialem Kalender-Sync:', err))
 }
