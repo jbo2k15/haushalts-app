@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'crypto'
 import prisma from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
 import { sendPasswordResetEmail } from '../services/email.js'
@@ -67,7 +67,7 @@ router.post('/forgot-password', async (req, res) => {
   const user = await prisma.user.findUnique({ where: { email: email?.toLowerCase() } })
   if (!user) return res.json({ message: 'Falls die E-Mail existiert, wurde ein Link gesendet.' })
 
-  const token = uuidv4()
+  const token = randomUUID()
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
   await prisma.passwordResetToken.create({ data: { userId: user.id, token, expiresAt } })
 
