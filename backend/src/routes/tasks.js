@@ -61,20 +61,27 @@ router.get('/', requireAuth, async (req, res) => {
         where: { taskId_forDate: { taskId: task.id, forDate: today } },
         include: { user: true },
       })
-      const completionYesterday = await prisma.taskCompletion.findUnique({
+
+      const yesterdayWeekday = new Date(yesterday).getDay()
+      const twoDaysAgoWeekday = new Date(twoDaysAgo).getDay()
+      const wasDueYesterday = !weekdays || weekdays.length === 0 || weekdays.includes(yesterdayWeekday)
+      const wasDueTwoDaysAgo = !weekdays || weekdays.length === 0 || weekdays.includes(twoDaysAgoWeekday)
+
+      const completionYesterday = wasDueYesterday ? await prisma.taskCompletion.findUnique({
         where: { taskId_forDate: { taskId: task.id, forDate: yesterday } },
-      })
-      const completionTwoDaysAgo = await prisma.taskCompletion.findUnique({
+      }) : { id: 'not-due' }
+
+      const completionTwoDaysAgo = wasDueTwoDaysAgo ? await prisma.taskCompletion.findUnique({
         where: { taskId_forDate: { taskId: task.id, forDate: twoDaysAgo } },
-      })
+      }) : { id: 'not-due' }
 
       result.daily.push({
         ...task,
         weekdays: weekdays,
         completed: !!completionToday,
         completedBy: completionToday?.user?.name || null,
-        overdueDay1: !completionYesterday,
-        overdueDay2: !completionTwoDaysAgo,
+        overdueDay1: wasDueYesterday && !completionYesterday,
+        overdueDay2: wasDueTwoDaysAgo && !completionTwoDaysAgo,
       })
     }
 

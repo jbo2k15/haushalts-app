@@ -103,6 +103,10 @@ export default function Admin() {
   }
 
   async function toggleUser(id) {
+    const user = users.find(u => u.id === id)
+    if (user?.approved) {
+      if (!confirm(`Möchtest du "${user.name}" wirklich sperren? Der Nutzer verliert sofort den Zugriff.`)) return
+    }
     await api.post(`/users/${id}/approve`)
     loadUsers()
   }
