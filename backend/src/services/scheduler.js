@@ -22,9 +22,20 @@ function twoDaysAgoString() {
 
 async function expireDailyTasks() {
   const twoDaysAgo = twoDaysAgoString()
+  const twoDaysAgoDate = new Date()
+  twoDaysAgoDate.setDate(twoDaysAgoDate.getDate() - 2)
+  const twoDaysAgoWeekday = twoDaysAgoDate.getDay()
+
   const tasks = await prisma.task.findMany({ where: { type: 'daily', isActive: true } })
 
   for (const task of tasks) {
+    // Aufgabe existierte an dem Tag noch nicht
+    if (task.createdAt > twoDaysAgoDate) continue
+
+    // Aufgabe war an dem Wochentag nicht fällig
+    const weekdays = task.weekdays ? JSON.parse(task.weekdays) : null
+    if (weekdays && weekdays.length > 0 && !weekdays.includes(twoDaysAgoWeekday)) continue
+
     const completion = await prisma.taskCompletion.findUnique({
       where: { taskId_forDate: { taskId: task.id, forDate: twoDaysAgo } },
     })
