@@ -16,7 +16,8 @@ async function main() {
     return
   }
 
-  const passwordHash = await bcrypt.hash('Haushalt2024!', 12)
+  const adminPassword = process.env.ADMIN_PASSWORD || 'Haushalt2024!'
+  const passwordHash = await bcrypt.hash(adminPassword, 12)
   await prisma.user.create({
     data: {
       email: adminEmail,

@@ -127,6 +127,8 @@ router.post('/change-password', requireAuth, async (req, res) => {
 
   const passwordHash = await bcrypt.hash(newPassword, 12)
   await prisma.user.update({ where: { id: req.user.id }, data: { passwordHash, mustChangePassword: false } })
+  await prisma.refreshToken.deleteMany({ where: { userId: req.user.id } })
+  res.clearCookie(COOKIE_NAME, { path: '/api/auth' })
 
   res.json({ message: 'Passwort geändert' })
 })
