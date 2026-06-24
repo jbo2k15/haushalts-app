@@ -8,6 +8,15 @@ import { sendPasswordResetEmail } from '../services/email.js'
 
 const router = Router()
 
+function validatePassword(pw) {
+  if (!pw || pw.length < 10) return 'Passwort muss mindestens 10 Zeichen haben'
+  if (!/[A-Z]/.test(pw)) return 'Passwort muss mindestens einen Großbuchstaben enthalten'
+  if (!/[a-z]/.test(pw)) return 'Passwort muss mindestens einen Kleinbuchstaben enthalten'
+  if (!/[0-9]/.test(pw)) return 'Passwort muss mindestens eine Zahl enthalten'
+  if (!/[^A-Za-z0-9]/.test(pw)) return 'Passwort muss mindestens ein Sonderzeichen enthalten'
+  return null
+}
+
 function signToken(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '30d' })
 }
@@ -15,7 +24,8 @@ function signToken(userId) {
 router.post('/register', async (req, res) => {
   const { email, password, name } = req.body
   if (!email || !password || !name) return res.status(400).json({ error: 'Alle Felder sind erforderlich' })
-  if (password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' })
+  const pwError = validatePassword(password)
+  if (pwError) return res.status(400).json({ error: pwError })
 
   const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
   if (existing) return res.status(409).json({ error: 'E-Mail bereits registriert' })
@@ -52,7 +62,8 @@ router.get('/me', requireAuth, async (req, res) => {
 
 router.post('/change-password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body
-  if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Neues Passwort muss mindestens 6 Zeichen haben' })
+  const pwError = validatePassword(newPassword)
+  if (pwError) return res.status(400).json({ error: pwError })
 
   const valid = await bcrypt.compare(currentPassword, req.user.passwordHash)
   if (!valid) return res.status(401).json({ error: 'Aktuelles Passwort ist falsch' })
@@ -80,7 +91,8 @@ router.post('/forgot-password', async (req, res) => {
 
 router.post('/reset-password', async (req, res) => {
   const { token, newPassword } = req.body
-  if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' })
+  const pwErr = validatePassword(newPassword)
+  if (pwErr) return res.status(400).json({ error: pwErr })
 
   const resetToken = await prisma.passwordResetToken.findUnique({ where: { token } })
   if (!resetToken || resetToken.used || new Date() > resetToken.expiresAt) {

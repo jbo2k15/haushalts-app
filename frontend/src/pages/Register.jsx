@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client.js'
+import PasswordStrength, { validatePassword } from '../components/PasswordStrength.jsx'
 
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '' })
@@ -8,8 +9,11 @@ export default function Register() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  const passwordOk = validatePassword(form.password)
+
   async function handleSubmit(e) {
     e.preventDefault()
+    if (!passwordOk) return
     setError('')
     setLoading(true)
     try {
@@ -63,15 +67,16 @@ export default function Register() {
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Passwort (min. 6 Zeichen)</label>
+            <label className="block text-sm text-gray-600 mb-1">Passwort</label>
             <input
-              type="password" required minLength={6}
+              type="password" required
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
               value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
             />
+            <PasswordStrength password={form.password} />
           </div>
           <button
-            type="submit" disabled={loading}
+            type="submit" disabled={loading || !passwordOk}
             className="w-full bg-purple-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
           >
             {loading ? 'Registrieren…' : 'Registrieren'}

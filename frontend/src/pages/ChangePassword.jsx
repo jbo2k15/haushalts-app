@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import PasswordStrength, { validatePassword } from '../components/PasswordStrength.jsx'
 
 export default function ChangePassword() {
   const { setUser } = useAuth()
@@ -10,8 +11,11 @@ export default function ChangePassword() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const passwordOk = validatePassword(form.newPassword)
+
   async function handleSubmit(e) {
     e.preventDefault()
+    if (!passwordOk) return
     setError('')
     setLoading(true)
     try {
@@ -34,6 +38,11 @@ export default function ChangePassword() {
         </div>
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">{error}</div>}
+
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
+            Das Passwort muss mindestens 10 Zeichen lang sein und Groß- und Kleinbuchstaben, eine Zahl sowie ein Sonderzeichen enthalten.
+          </div>
+
           <div>
             <label className="block text-sm text-gray-600 mb-1">Aktuelles Passwort</label>
             <input
@@ -43,14 +52,19 @@ export default function ChangePassword() {
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Neues Passwort (min. 6 Zeichen)</label>
+            <label className="block text-sm text-gray-600 mb-1">Neues Passwort</label>
             <input
-              type="password" required minLength={6}
+              type="password" required
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
               value={form.newPassword} onChange={e => setForm(f => ({ ...f, newPassword: e.target.value }))}
             />
+            <PasswordStrength password={form.newPassword} />
           </div>
-          <button type="submit" disabled={loading} className="w-full bg-purple-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={loading || !passwordOk}
+            className="w-full bg-purple-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
+          >
             {loading ? 'Speichern…' : 'Passwort speichern'}
           </button>
         </form>
