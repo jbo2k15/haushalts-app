@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { api } from '../api/client.js'
+import { api, setAccessToken, clearAccessToken, refreshSession } from '../api/client.js'
 
 const AuthContext = createContext(null)
 
@@ -8,21 +8,25 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) { setLoading(false); return }
-    api.get('/auth/me')
-      .then(setUser)
-      .catch(() => localStorage.removeItem('token'))
+    // Beim App-Start: Refresh-Cookie nutzen um neuen Access-Token zu holen
+    refreshSession()
+      .then(data => {
+        if (data) {
+          setAccessToken(data.token)
+          setUser(data.user)
+        }
+      })
       .finally(() => setLoading(false))
   }, [])
 
   function login(token, userData) {
-    localStorage.setItem('token', token)
+    setAccessToken(token)
     setUser(userData)
   }
 
-  function logout() {
-    localStorage.removeItem('token')
+  async function logout() {
+    try { await api.post('/auth/logout') } catch {}
+    clearAccessToken()
     setUser(null)
   }
 

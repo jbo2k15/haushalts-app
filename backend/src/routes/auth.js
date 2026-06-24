@@ -8,6 +8,15 @@ import { sendPasswordResetEmail } from '../services/email.js'
 
 const router = Router()
 
+const COOKIE_NAME = 'refresh_token'
+const COOKIE_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage in ms
+  path: '/api/auth',
+}
+
 function validatePassword(pw) {
   if (!pw || pw.length < 10) return 'Passwort muss mindestens 10 Zeichen haben'
   if (!/[A-Z]/.test(pw)) return 'Passwort muss mindestens einen Großbuchstaben enthalten'
@@ -17,8 +26,16 @@ function validatePassword(pw) {
   return null
 }
 
-function signToken(userId) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' })
+function signAccessToken(userId) {
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '15m' })
+}
+
+async function issueRefreshToken(userId, res) {
+  await prisma.refreshToken.deleteMany({ where: { userId } })
+  const token = randomUUID()
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  await prisma.refreshToken.create({ data: { userId, token, expiresAt } })
+  res.cookie(COOKIE_NAME, token, COOKIE_OPTS)
 }
 
 router.post('/register', async (req, res) => {
@@ -48,11 +65,47 @@ router.post('/login', async (req, res) => {
   if (!valid) return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
 
   await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } })
-  const token = signToken(user.id)
+  await issueRefreshToken(user.id, res)
+  const accessToken = signAccessToken(user.id)
+
   res.json({
-    token,
+    token: accessToken,
     user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword },
   })
+})
+
+router.post('/refresh', async (req, res) => {
+  const token = req.cookies?.[COOKIE_NAME]
+  if (!token) return res.status(401).json({ error: 'Kein Refresh-Token' })
+
+  const stored = await prisma.refreshToken.findUnique({ where: { token } })
+  if (!stored || new Date() > stored.expiresAt) {
+    res.clearCookie(COOKIE_NAME, { path: '/api/auth' })
+    return res.status(401).json({ error: 'Session abgelaufen' })
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: stored.userId } })
+  if (!user || !user.approved) {
+    res.clearCookie(COOKIE_NAME, { path: '/api/auth' })
+    return res.status(401).json({ error: 'Nicht autorisiert' })
+  }
+
+  await issueRefreshToken(user.id, res)
+  const accessToken = signAccessToken(user.id)
+
+  res.json({
+    token: accessToken,
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword },
+  })
+})
+
+router.post('/logout', async (req, res) => {
+  const token = req.cookies?.[COOKIE_NAME]
+  if (token) {
+    await prisma.refreshToken.deleteMany({ where: { token } })
+  }
+  res.clearCookie(COOKIE_NAME, { path: '/api/auth' })
+  res.json({ message: 'Abgemeldet' })
 })
 
 router.get('/me', requireAuth, async (req, res) => {

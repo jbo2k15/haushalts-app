@@ -1,19 +1,49 @@
 const BASE = '/api'
 
-function getToken() {
-  return localStorage.getItem('token')
+let accessToken = null
+let refreshPromise = null
+
+export function setAccessToken(token) {
+  accessToken = token
 }
 
-async function request(method, path, body) {
+export function clearAccessToken() {
+  accessToken = null
+}
+
+async function doRefresh() {
+  const res = await fetch(`${BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
+  if (!res.ok) { accessToken = null; return false }
+  const data = await res.json()
+  accessToken = data.token
+  return data
+}
+
+// Verhindert parallele Refresh-Requests
+export async function refreshSession() {
+  if (!refreshPromise) refreshPromise = doRefresh().finally(() => { refreshPromise = null })
+  return refreshPromise
+}
+
+async function request(method, path, body, retry = true) {
   const headers = { 'Content-Type': 'application/json' }
-  const token = getToken()
-  if (token) headers['Authorization'] = `Bearer ${token}`
+  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`
 
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers,
+    credentials: 'include',
     body: body ? JSON.stringify(body) : undefined,
   })
+
+  // Access-Token abgelaufen → einmal refreshen und wiederholen
+  if (res.status === 401 && retry && !path.includes('/auth/')) {
+    const refreshed = await refreshSession()
+    if (refreshed) return request(method, path, body, false)
+    accessToken = null
+    window.location.href = '/login'
+    return
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Serverfehler' }))
