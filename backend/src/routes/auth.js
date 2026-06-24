@@ -79,6 +79,7 @@ router.post('/forgot-password', async (req, res) => {
   const user = await prisma.user.findUnique({ where: { email: email?.toLowerCase() } })
   if (!user) return res.json({ message: 'Falls die E-Mail existiert, wurde ein Link gesendet.' })
 
+  await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } })
   const token = randomUUID()
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
   await prisma.passwordResetToken.create({ data: { userId: user.id, token, expiresAt } })
