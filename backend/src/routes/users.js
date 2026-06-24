@@ -68,8 +68,17 @@ router.get('/notifications', requireAuth, async (req, res) => {
   res.json({ user: settings, global })
 })
 
+function validateNotificationSettings({ dailyTime, weeklyDay, weeklyTime }) {
+  if (typeof dailyTime !== 'string' || !/^\d{2}:\d{2}$/.test(dailyTime)) return 'Ungültige tägliche Uhrzeit'
+  if (!Number.isInteger(weeklyDay) || weeklyDay < 0 || weeklyDay > 6) return 'Ungültiger Wochentag'
+  if (typeof weeklyTime !== 'string' || !/^\d{2}:\d{2}$/.test(weeklyTime)) return 'Ungültige wöchentliche Uhrzeit'
+  return null
+}
+
 router.put('/notifications', requireAuth, async (req, res) => {
   const { dailyTime, weeklyDay, weeklyTime } = req.body
+  const err = validateNotificationSettings({ dailyTime, weeklyDay, weeklyTime })
+  if (err) return res.status(400).json({ error: err })
   const settings = await prisma.notificationSettings.upsert({
     where: { userId: req.user.id },
     update: { dailyTime, weeklyDay, weeklyTime },
@@ -80,6 +89,8 @@ router.put('/notifications', requireAuth, async (req, res) => {
 
 router.put('/notifications/global', requireAuth, requireAdmin, async (req, res) => {
   const { dailyTime, weeklyDay, weeklyTime } = req.body
+  const err = validateNotificationSettings({ dailyTime, weeklyDay, weeklyTime })
+  if (err) return res.status(400).json({ error: err })
   const existing = await prisma.notificationSettings.findFirst({ where: { userId: null } })
   const settings = existing
     ? await prisma.notificationSettings.update({ where: { id: existing.id }, data: { dailyTime, weeklyDay, weeklyTime } })
