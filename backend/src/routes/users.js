@@ -5,9 +5,40 @@ import { sendApprovalEmail } from '../services/email.js'
 
 const router = Router()
 
+router.put('/me', requireAuth, async (req, res) => {
+  const { name } = req.body
+  if (!name?.trim()) return res.status(400).json({ error: 'Name darf nicht leer sein' })
+  const updated = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { name: name.trim() },
+    select: { id: true, email: true, name: true, role: true, mustChangePassword: true },
+  })
+  res.json(updated)
+})
+
+router.post('/:id/role', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params
+  if (id === req.user.id) return res.status(400).json({ error: 'Du kannst deinen eigenen Admin-Status nicht ändern' })
+
+  const target = await prisma.user.findUnique({ where: { id } })
+  if (!target) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+
+  if (target.role === 'admin') {
+    const adminCount = await prisma.user.count({ where: { role: 'admin' } })
+    if (adminCount <= 1) return res.status(400).json({ error: 'Es muss mindestens ein Admin vorhanden sein' })
+  }
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: { role: target.role === 'admin' ? 'user' : 'admin' },
+    select: { id: true, name: true, role: true },
+  })
+  res.json(updated)
+})
+
 router.get('/', requireAuth, requireAdmin, async (req, res) => {
   const users = await prisma.user.findMany({
-    select: { id: true, email: true, name: true, role: true, approved: true, createdAt: true },
+    select: { id: true, email: true, name: true, role: true, approved: true, createdAt: true, lastActiveAt: true },
     orderBy: { createdAt: 'asc' },
   })
   res.json(users)
@@ -49,11 +80,10 @@ router.put('/notifications', requireAuth, async (req, res) => {
 
 router.put('/notifications/global', requireAuth, requireAdmin, async (req, res) => {
   const { dailyTime, weeklyDay, weeklyTime } = req.body
-  const settings = await prisma.notificationSettings.upsert({
-    where: { userId: null },
-    update: { dailyTime, weeklyDay, weeklyTime },
-    create: { dailyTime, weeklyDay, weeklyTime },
-  })
+  const existing = await prisma.notificationSettings.findFirst({ where: { userId: null } })
+  const settings = existing
+    ? await prisma.notificationSettings.update({ where: { id: existing.id }, data: { dailyTime, weeklyDay, weeklyTime } })
+    : await prisma.notificationSettings.create({ data: { dailyTime, weeklyDay, weeklyTime } })
   res.json(settings)
 })
 

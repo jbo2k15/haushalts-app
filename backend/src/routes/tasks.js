@@ -62,10 +62,11 @@ router.get('/', requireAuth, async (req, res) => {
         include: { user: true },
       })
 
+      const taskCreatedDate = task.createdAt.toISOString().slice(0, 10)
       const yesterdayWeekday = new Date(yesterday).getDay()
       const twoDaysAgoWeekday = new Date(twoDaysAgo).getDay()
-      const wasDueYesterday = !weekdays || weekdays.length === 0 || weekdays.includes(yesterdayWeekday)
-      const wasDueTwoDaysAgo = !weekdays || weekdays.length === 0 || weekdays.includes(twoDaysAgoWeekday)
+      const wasDueYesterday = taskCreatedDate <= yesterday && (!weekdays || weekdays.length === 0 || weekdays.includes(yesterdayWeekday))
+      const wasDueTwoDaysAgo = taskCreatedDate <= twoDaysAgo && (!weekdays || weekdays.length === 0 || weekdays.includes(twoDaysAgoWeekday))
 
       const completionYesterday = wasDueYesterday ? await prisma.taskCompletion.findUnique({
         where: { taskId_forDate: { taskId: task.id, forDate: yesterday } },
@@ -139,6 +140,7 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
   await prisma.taskCompletion.create({
     data: { taskId: id, completedBy: req.user.id, forDate },
   })
+  await prisma.user.update({ where: { id: req.user.id }, data: { lastActiveAt: new Date() } })
   await prisma.taskLog.create({
     data: {
       taskId: id,
@@ -156,25 +158,130 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
 router.get('/log', requireAuth, async (req, res) => {
   const logs = await prisma.taskLog.findMany({
     orderBy: { loggedAt: 'desc' },
-    take: 200,
+    take: 100,
   })
   res.json(logs)
 })
 
 router.get('/stats', requireAuth, async (req, res) => {
-  const monthStart = currentMonthStart()
+  const now = new Date()
+
+  // Aktuelle Woche (Mo–So)
+  const curWeekStart = currentWeekStart()
+  const curWeekEnd = (() => {
+    const d = new Date(curWeekStart)
+    d.setDate(d.getDate() + 6)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+
+  // Letzte Woche
+  const lastWeekStart = (() => {
+    const d = new Date(curWeekStart)
+    d.setDate(d.getDate() - 7)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+  const lastWeekEnd = (() => {
+    const d = new Date(curWeekStart)
+    d.setDate(d.getDate() - 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+
+  // Aktueller Monat
+  const curMonthStart = currentMonthStart()
+  const curMonthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-31`
+
+  // Letzter Monat
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lastMonthStart = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}-01`
+  const lastMonthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+
   const users = await prisma.user.findMany({ where: { approved: true } })
 
-  const stats = await Promise.all(
-    users.map(async (user) => {
-      const count = await prisma.taskLog.count({
-        where: { completedBy: user.id, status: 'completed', forDate: { gte: monthStart } },
-      })
-      return { name: user.name, count }
+  async function countFor(userId, from, to) {
+    return prisma.taskLog.count({
+      where: { completedBy: userId, status: 'completed', forDate: { gte: from, lte: to } },
     })
-  )
+  }
 
-  res.json(stats.sort((a, b) => b.count - a.count))
+  const today = todayString()
+
+  const userStats = await Promise.all(users.map(async (u) => ({
+    id: u.id,
+    name: u.name,
+    curDay: await countFor(u.id, today, today),
+    curWeek: await countFor(u.id, curWeekStart, curWeekEnd),
+    lastWeek: await countFor(u.id, lastWeekStart, lastWeekEnd),
+    curMonth: await countFor(u.id, curMonthStart, curMonthEnd),
+    lastMonth: await countFor(u.id, lastMonthStart, lastMonthEnd),
+  })))
+
+  // Trophäen aus allen abgeschlossenen Perioden berechnen
+  const allLogs = await prisma.taskLog.findMany({
+    where: { status: 'completed', completedBy: { not: null } },
+    select: { completedBy: true, forDate: true },
+  })
+
+  const dayTrophies = {}
+  const weekTrophies = {}
+  const monthTrophies = {}
+  users.forEach(u => { dayTrophies[u.id] = 0; weekTrophies[u.id] = 0; monthTrophies[u.id] = 0 })
+
+  // Tage gruppieren (ohne heute)
+  const byDay = {}
+  for (const log of allLogs) {
+    if (log.forDate >= today) continue
+    if (!byDay[log.forDate]) byDay[log.forDate] = {}
+    byDay[log.forDate][log.completedBy] = (byDay[log.forDate][log.completedBy] || 0) + 1
+  }
+  for (const counts of Object.values(byDay)) {
+    const max = Math.max(...Object.values(counts))
+    if (max === 0) continue
+    const winners = Object.entries(counts).filter(([, v]) => v === max)
+    if (winners.length === 1) dayTrophies[winners[0][0]] = (dayTrophies[winners[0][0]] || 0) + 1
+  }
+
+  // Wochen gruppieren (ohne laufende Woche)
+  const byWeek = {}
+  for (const log of allLogs) {
+    const d = new Date(log.forDate)
+    const diff = (d.getDay() + 6) % 7
+    const mon = new Date(d)
+    mon.setDate(d.getDate() - diff)
+    const wk = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, '0')}-${String(mon.getDate()).padStart(2, '0')}`
+    if (wk >= curWeekStart) continue
+    if (!byWeek[wk]) byWeek[wk] = {}
+    byWeek[wk][log.completedBy] = (byWeek[wk][log.completedBy] || 0) + 1
+  }
+  for (const counts of Object.values(byWeek)) {
+    const max = Math.max(...Object.values(counts))
+    if (max === 0) continue
+    const winners = Object.entries(counts).filter(([, v]) => v === max)
+    if (winners.length === 1) weekTrophies[winners[0][0]] = (weekTrophies[winners[0][0]] || 0) + 1
+  }
+
+  // Monate gruppieren (ohne laufenden Monat)
+  const byMonth = {}
+  for (const log of allLogs) {
+    const mo = log.forDate.slice(0, 7)
+    if (mo >= curMonthStart.slice(0, 7)) continue
+    if (!byMonth[mo]) byMonth[mo] = {}
+    byMonth[mo][log.completedBy] = (byMonth[mo][log.completedBy] || 0) + 1
+  }
+  for (const counts of Object.values(byMonth)) {
+    const max = Math.max(...Object.values(counts))
+    if (max === 0) continue
+    const winners = Object.entries(counts).filter(([, v]) => v === max)
+    if (winners.length === 1) monthTrophies[winners[0][0]] = (monthTrophies[winners[0][0]] || 0) + 1
+  }
+
+  const result = userStats.map(u => ({
+    ...u,
+    dayTrophies: dayTrophies[u.id] || 0,
+    weekTrophies: weekTrophies[u.id] || 0,
+    monthTrophies: monthTrophies[u.id] || 0,
+  }))
+
+  res.json(result)
 })
 
 router.get('/admin', requireAuth, requireAdmin, async (req, res) => {

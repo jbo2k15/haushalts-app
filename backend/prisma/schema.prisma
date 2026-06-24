@@ -15,6 +15,7 @@ model User {
   role               String               @default("user")
   approved           Boolean              @default(false)
   mustChangePassword Boolean              @default(false)
+  lastActiveAt       DateTime?
   createdAt          DateTime             @default(now())
   pushSubscriptions  PushSubscription[]
   notificationSettings NotificationSettings?

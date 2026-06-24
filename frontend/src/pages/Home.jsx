@@ -33,6 +33,7 @@ export default function Home() {
   const [tasks, setTasks] = useState({ daily: [], weekly: [], monthly: [] })
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [logRefreshKey, setLogRefreshKey] = useState(0)
 
   const now = new Date()
   const dateLabel = `${WEEKDAYS[now.getDay()]}, ${now.getDate()}. ${MONTHS[now.getMonth()]} ${now.getFullYear()}`
@@ -41,6 +42,7 @@ export default function Home() {
     try {
       const data = await api.get('/tasks')
       setTasks(data)
+      setLogRefreshKey(k => k + 1)
     } catch {
       setError('Keine Verbindung zum Server. Bitte überprüfe deine Internetverbindung.')
     }
@@ -69,17 +71,20 @@ export default function Home() {
               {user?.name?.[0]?.toUpperCase()}
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-11 bg-white border border-gray-200 rounded-xl shadow-sm w-44 z-10 overflow-hidden">
-                <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setMenuOpen(false); navigate('/settings') }}>
-                  Einstellungen
+              <div className="absolute right-0 top-11 bg-white border border-gray-200 rounded-xl shadow-sm w-48 z-10 overflow-hidden">
+                <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/settings') }}>
+                  <span>⚙️</span> Einstellungen
+                </button>
+                <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/hall-of-fame') }}>
+                  <span>🏆</span> Ruhmeshalle
                 </button>
                 {user?.role === 'admin' && (
-                  <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100" onClick={() => { setMenuOpen(false); navigate('/admin') }}>
-                    Verwaltung
+                  <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/admin') }}>
+                    <span>🛠️</span> Aufgabenverwaltung
                   </button>
                 )}
-                <button className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-gray-50 border-t border-gray-100" onClick={logout}>
-                  Abmelden
+                <button className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-gray-50 border-t border-gray-100 flex items-center gap-2.5" onClick={logout}>
+                  <span>🚪</span> Abmelden
                 </button>
               </div>
             )}
@@ -98,8 +103,8 @@ export default function Home() {
           <TaskBlock type="daily" tasks={tasks.daily} onToggle={loadTasks} />
           <TaskBlock type="weekly" tasks={tasks.weekly} onToggle={loadTasks} />
           <TaskBlock type="monthly" tasks={tasks.monthly} onToggle={loadTasks} />
-          <StatsSection />
-          <LogSection />
+          <StatsSection refreshKey={logRefreshKey} />
+          <LogSection refreshKey={logRefreshKey} />
         </div>
       </div>
     </div>
