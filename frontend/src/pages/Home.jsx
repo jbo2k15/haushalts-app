@@ -9,6 +9,24 @@ import LogSection from '../components/LogSection.jsx'
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h >= 5 && h < 11) return 'Guten Morgen'
+  if (h >= 11 && h < 14) return 'Mahlzeit'
+  if (h >= 14 && h < 18) return 'Schönen Nachmittag'
+  if (h >= 18 && h < 22) return 'Guten Abend'
+  return 'Gute Nacht'
+}
+
+function getGreetingMessage(firstName, dailyTasks) {
+  const completed = dailyTasks.filter(t => t.completed).length
+  const open = dailyTasks.filter(t => !t.completed).length
+  if (dailyTasks.length === 0) return `${getGreeting()}, ${firstName}!`
+  if (open === 0) return `${getGreeting()}, ${firstName} — heute gibt es nichts mehr zu tun! 🎉`
+  if (completed === 0) return `${getGreeting()}, ${firstName} — heute liegen noch ${open} Aufgabe${open === 1 ? '' : 'n'} vor dir.`
+  return `${getGreeting()}, ${firstName} — heute hast du schon ${completed} Aufgabe${completed === 1 ? '' : 'n'} erledigt.`
+}
+
 export default function Home() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -69,6 +87,12 @@ export default function Home() {
         </div>
 
         {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm mb-4">{error}</div>}
+
+        <div className="bg-purple-50 border border-purple-100 rounded-2xl px-4 py-3 mb-2">
+          <p className="text-sm text-purple-800 font-medium">
+            {getGreetingMessage(user?.name?.split(' ')[0] || '', tasks.daily)}
+          </p>
+        </div>
 
         <div className="space-y-4">
           <TaskBlock type="daily" tasks={tasks.daily} onToggle={loadTasks} />
