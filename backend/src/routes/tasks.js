@@ -4,43 +4,37 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
-function todayString() {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+const TZ = 'Europe/Berlin'
+
+function dateStringInBerlin(offsetDays = 0) {
+  const d = new Date()
+  d.setDate(d.getDate() + offsetDays)
+  return d.toLocaleDateString('sv-SE', { timeZone: TZ })
 }
 
-function yesterdayString() {
-  const d = new Date()
-  d.setDate(d.getDate() - 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function twoDaysAgoString() {
-  const d = new Date()
-  d.setDate(d.getDate() - 2)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+function todayString() { return dateStringInBerlin(0) }
+function yesterdayString() { return dateStringInBerlin(-1) }
+function twoDaysAgoString() { return dateStringInBerlin(-2) }
 
 function currentWeekStart() {
-  const now = new Date()
-  const day = now.getDay()
+  const today = new Date(dateStringInBerlin(0))
+  const day = today.getDay()
   const diff = (day + 6) % 7
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - diff)
-  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
+  today.setDate(today.getDate() - diff)
+  return today.toISOString().slice(0, 10)
 }
 
 function currentMonthStart() {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  return dateStringInBerlin(0).slice(0, 7) + '-01'
 }
 
 router.get('/', requireAuth, async (req, res) => {
   const today = todayString()
   const yesterday = yesterdayString()
   const twoDaysAgo = twoDaysAgoString()
-  const todayWeekday = new Date().getDay()
-  const todayDayOfMonth = new Date().getDate()
+  const todayBerlin = new Date(dateStringInBerlin(0))
+  const todayWeekday = todayBerlin.getDay()
+  const todayDayOfMonth = todayBerlin.getDate()
   const weekStart = currentWeekStart()
   const monthStart = currentMonthStart()
 

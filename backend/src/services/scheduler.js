@@ -3,22 +3,17 @@ import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
 import { syncWasteCalendar } from './waste-calendar.js'
 
-function todayString() {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+const TZ = 'Europe/Berlin'
+
+function dateStringInBerlin(offsetDays = 0) {
+  const d = new Date()
+  d.setDate(d.getDate() + offsetDays)
+  return d.toLocaleDateString('sv-SE', { timeZone: TZ })
 }
 
-function yesterdayString() {
-  const d = new Date()
-  d.setDate(d.getDate() - 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function twoDaysAgoString() {
-  const d = new Date()
-  d.setDate(d.getDate() - 2)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+function todayString() { return dateStringInBerlin(0) }
+function yesterdayString() { return dateStringInBerlin(-1) }
+function twoDaysAgoString() { return dateStringInBerlin(-2) }
 
 async function expireDailyTasks() {
   const twoDaysAgo = twoDaysAgoString()
