@@ -52,11 +52,21 @@ app.get('/api/vapid-public-key', requireAuth, (req, res) => {
   res.json({ key: process.env.VAPID_PUBLIC_KEY })
 })
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }))
+app.get('/api/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    res.json({ status: 'ok' })
+  } catch {
+    res.status(503).json({ status: 'error', reason: 'database unavailable' })
+  }
+})
 
 app.use((err, req, res, next) => {
-  console.error(err)
-  res.status(500).json({ error: 'Interner Serverfehler' })
+  const status = err.status || err.statusCode || 500
+  if (status >= 500) {
+    console.error(`[${new Date().toISOString()}] ${req.method} ${req.path} →`, err.message)
+  }
+  res.status(status).json({ error: status >= 500 ? 'Interner Serverfehler' : err.message })
 })
 
 startScheduler()
