@@ -65,7 +65,7 @@ export default function Home() {
           </div>
           <div className="relative">
             <button
-              className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-medium text-sm"
+              className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-medium text-sm"
               onClick={() => setMenuOpen(o => !o)}
             >
               {user?.name?.[0]?.toUpperCase()}
@@ -93,8 +93,8 @@ export default function Home() {
 
         {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm mb-4">{error}</div>}
 
-        <div className="bg-purple-50 border border-purple-100 rounded-2xl px-4 py-3 mb-2">
-          <p className="text-sm text-purple-800 font-medium">
+        <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3 mb-2">
+          <p className="text-sm text-orange-800 font-medium">
             {getGreetingMessage(user?.name?.split(' ')[0] || '', tasks.daily)}
           </p>
         </div>

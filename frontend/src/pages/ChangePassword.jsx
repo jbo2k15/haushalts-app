@@ -47,7 +47,7 @@ export default function ChangePassword() {
             <label className="block text-sm text-gray-600 mb-1">Aktuelles Passwort</label>
             <input
               type="password" required
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               value={form.currentPassword} onChange={e => setForm(f => ({ ...f, currentPassword: e.target.value }))}
             />
           </div>
@@ -55,7 +55,7 @@ export default function ChangePassword() {
             <label className="block text-sm text-gray-600 mb-1">Neues Passwort</label>
             <input
               type="password" required
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               value={form.newPassword} onChange={e => setForm(f => ({ ...f, newPassword: e.target.value }))}
             />
             <PasswordStrength password={form.newPassword} />
@@ -63,7 +63,7 @@ export default function ChangePassword() {
           <button
             type="submit"
             disabled={loading || !passwordOk}
-            className="w-full bg-purple-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
+            className="w-full bg-orange-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
           >
             {loading ? 'Speichern…' : 'Passwort speichern'}
           </button>

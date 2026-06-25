@@ -76,7 +76,7 @@ export default function Settings() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 pb-8">
         <div className="flex items-center gap-3 py-4">
-          <button onClick={() => navigate('/')} className="text-purple-600 text-sm">← Zurück</button>
+          <button onClick={() => navigate('/')} className="text-orange-600 text-sm">← Zurück</button>
           <h1 className="text-xl font-semibold">Einstellungen</h1>
         </div>
 
@@ -92,12 +92,12 @@ export default function Settings() {
               <label className="block text-sm text-gray-600 mb-1">Anzeigename</label>
               <input
                 type="text"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
                 value={name}
                 onChange={e => setName(e.target.value)}
               />
             </div>
-            <button onClick={saveName} className="bg-purple-600 text-white rounded-xl px-4 py-2 text-sm font-medium">
+            <button onClick={saveName} className="bg-orange-600 text-white rounded-xl px-4 py-2 text-sm font-medium">
               {nameSaved ? 'Gespeichert ✓' : 'Name speichern'}
             </button>
           </div>
@@ -111,7 +111,7 @@ export default function Settings() {
                 <span className="text-sm text-gray-600">Auf diesem Gerät aktivieren</span>
                 <button
                   onClick={togglePush}
-                  className={`w-11 h-6 rounded-full transition-colors ${pushEnabled ? 'bg-purple-600' : 'bg-gray-300'}`}
+                  className={`w-11 h-6 rounded-full transition-colors ${pushEnabled ? 'bg-orange-600' : 'bg-gray-300'}`}
                 >
                   <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${pushEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
@@ -125,7 +125,7 @@ export default function Settings() {
               <label className="block text-sm text-gray-600 mb-1">Tägliche Erinnerung um</label>
               <input
                 type="time"
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
                 value={settings.dailyTime}
                 onChange={e => setSettings(s => ({ ...s, dailyTime: e.target.value }))}
               />
@@ -134,7 +134,7 @@ export default function Settings() {
               <label className="block text-sm text-gray-600 mb-1">Wöchentliche Erinnerung am</label>
               <div className="flex gap-2">
                 <select
-                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
                   value={settings.weeklyDay}
                   onChange={e => setSettings(s => ({ ...s, weeklyDay: Number(e.target.value) }))}
                 >
@@ -142,7 +142,7 @@ export default function Settings() {
                 </select>
                 <input
                   type="time"
-                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
                   value={settings.weeklyTime}
                   onChange={e => setSettings(s => ({ ...s, weeklyTime: e.target.value }))}
                 />
@@ -150,7 +150,7 @@ export default function Settings() {
             </div>
             <button
               onClick={saveSettings}
-              className="bg-purple-600 text-white rounded-xl px-4 py-2 text-sm font-medium"
+              className="bg-orange-600 text-white rounded-xl px-4 py-2 text-sm font-medium"
             >
               {saved ? 'Gespeichert ✓' : 'Speichern'}
             </button>

@@ -38,7 +38,7 @@ export default function Login() {
             <label className="block text-sm text-gray-600 mb-1">E-Mail</label>
             <input
               type="email" required autoComplete="email"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
             />
           </div>
@@ -46,19 +46,19 @@ export default function Login() {
             <label className="block text-sm text-gray-600 mb-1">Passwort</label>
             <input
               type="password" required autoComplete="current-password"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
             />
           </div>
           <button
             type="submit" disabled={loading}
-            className="w-full bg-purple-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
+            className="w-full bg-orange-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50"
           >
             {loading ? 'Anmelden…' : 'Anmelden'}
           </button>
           <div className="text-center text-sm text-gray-500 space-y-1 pt-1">
-            <div><Link to="/forgot-password" className="text-purple-600">Passwort vergessen?</Link></div>
-            <div>Noch kein Account? <Link to="/register" className="text-purple-600">Registrieren</Link></div>
+            <div><Link to="/forgot-password" className="text-orange-600">Passwort vergessen?</Link></div>
+            <div>Noch kein Account? <Link to="/register" className="text-orange-600">Registrieren</Link></div>
           </div>
         </form>
       </div>
