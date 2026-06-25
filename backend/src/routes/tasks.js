@@ -171,10 +171,6 @@ router.get('/log', requireAuth, async (req, res) => {
   res.json(logs)
 })
 
-function formatDateISO(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 function getUTCRangeForBerlinDay(dateStr) {
   const noon = new Date(`${dateStr}T12:00:00Z`)
   const berlinHour = parseInt(noon.toLocaleString('en-US', { timeZone: 'Europe/Berlin', hour: 'numeric', hour12: false }))
@@ -194,69 +190,28 @@ async function countCompletedTaskLogsOnDate(userId, date) {
   })
 }
 
-async function countCompletedTaskLogs(userId, from, to) {
+async function countCompletedTaskLogs(userId, from) {
   return prisma.taskLog.count({
-    where: { completedBy: userId, status: 'completed', forDate: { gte: from, lte: to }, ...EXCLUDE_ONCE },
+    where: { completedBy: userId, status: 'completed', forDate: { gte: from }, ...EXCLUDE_ONCE },
   })
 }
 
 router.get('/stats', requireAuth, async (req, res) => {
   const curWeekStart = currentWeekStart()
-  const curWeekEnd = (() => {
-    const d = new Date(curWeekStart)
-    d.setDate(d.getDate() + 6)
-    return formatDateISO(d)
-  })()
-
-  const lastWeekStart = (() => {
-    const d = new Date(curWeekStart)
-    d.setDate(d.getDate() - 7)
-    return formatDateISO(d)
-  })()
-  const lastWeekEnd = (() => {
-    const d = new Date(curWeekStart)
-    d.setDate(d.getDate() - 1)
-    return formatDateISO(d)
-  })()
-
   const curMonthStart = currentMonthStart()
-  const curMonthEnd = (() => {
-    const todayBerlin = new Date(dateStringInBerlin(0))
-    const lastDay = new Date(todayBerlin.getFullYear(), todayBerlin.getMonth() + 1, 0).getDate()
-    return `${todayBerlin.getFullYear()}-${String(todayBerlin.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-  })()
-
-  const lastMonthEnd = (() => {
-    const todayBerlin = new Date(dateStringInBerlin(0))
-    const lastDay = new Date(todayBerlin.getFullYear(), todayBerlin.getMonth(), 0).getDate()
-    return `${todayBerlin.getFullYear()}-${String(todayBerlin.getMonth()).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-  })()
-  const lastMonthStart = (() => {
-    const todayBerlin = new Date(dateStringInBerlin(0))
-    const d = new Date(todayBerlin.getFullYear(), todayBerlin.getMonth() - 1, 1)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-  })()
-
+  const today = todayString()
   const users = await prisma.user.findMany({ where: { approved: true } })
 
-  const today = todayString()
-
-  const userStats = await Promise.all(users.map(async (userRecord) => ({
+  res.json(await Promise.all(users.map(async (userRecord) => ({
     id: userRecord.id,
     name: userRecord.name,
     curDay: await countCompletedTaskLogsOnDate(userRecord.id, today),
-    curWeek: await countCompletedTaskLogs(userRecord.id, curWeekStart, curWeekEnd),
-    lastWeek: await countCompletedTaskLogs(userRecord.id, lastWeekStart, lastWeekEnd),
-    curMonth: await countCompletedTaskLogs(userRecord.id, curMonthStart, curMonthEnd),
-    lastMonth: await countCompletedTaskLogs(userRecord.id, lastMonthStart, lastMonthEnd),
+    curWeek: await countCompletedTaskLogs(userRecord.id, curWeekStart),
+    curMonth: await countCompletedTaskLogs(userRecord.id, curMonthStart),
     dayTrophies: userRecord.dayTrophies,
     weekTrophies: userRecord.weekTrophies,
     monthTrophies: userRecord.monthTrophies,
-  })))
-
-  const result = userStats
-
-  res.json(result)
+  }))))
 })
 
 router.get('/admin', requireAuth, requireAdmin, async (req, res) => {

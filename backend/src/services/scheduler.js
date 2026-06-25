@@ -2,7 +2,7 @@ import cron from 'node-cron'
 import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
 import { syncWasteCalendar } from './waste-calendar.js'
-import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart } from '../lib/dates.js'
+import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
 
 async function expireDailyTasks() {
@@ -41,7 +41,7 @@ async function expireWeeklyTasks() {
 
   const lastMonday = new Date(now)
   lastMonday.setDate(now.getDate() - 7)
-  const weekStart = `${lastMonday.getFullYear()}-${String(lastMonday.getMonth() + 1).padStart(2, '0')}-${String(lastMonday.getDate()).padStart(2, '0')}`
+  const weekStart = dateToISO(lastMonday)
 
   const tasks = await prisma.task.findMany({ where: { type: 'weekly', isActive: true } })
   for (const task of tasks) {
@@ -61,7 +61,7 @@ async function expireMonthlyTasks() {
   if (now.getDate() !== 1) return
 
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const monthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}-01`
+  const monthStr = dateToISO(lastMonth)
 
   const tasks = await prisma.task.findMany({ where: { type: 'monthly', isActive: true } })
   for (const task of tasks) {
