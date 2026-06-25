@@ -41,6 +41,8 @@ const limiter = (max, windowMs, message) => rateLimit({
 app.use('/api/auth/login',           limiter(10, 15 * 60 * 1000, 'Zu viele Anmeldeversuche. Bitte warte 15 Minuten.'))
 app.use('/api/auth/register',        limiter(5,  60 * 60 * 1000, 'Zu viele Registrierungsversuche. Bitte warte eine Stunde.'))
 app.use('/api/auth/forgot-password', limiter(5,  60 * 60 * 1000, 'Zu viele Anfragen. Bitte warte eine Stunde.'))
+app.use('/api/auth/reset-password',  limiter(5,  15 * 60 * 1000, 'Zu viele Anfragen. Bitte warte 15 Minuten.'))
+app.use('/api/auth/change-password', limiter(5,  15 * 60 * 1000, 'Zu viele Anfragen. Bitte warte 15 Minuten.'))
 app.use('/api/auth/refresh',         limiter(30, 15 * 60 * 1000, 'Zu viele Anfragen. Bitte warte 15 Minuten.'))
 app.use('/api/auth/logout',          limiter(20, 15 * 60 * 1000, 'Zu viele Anfragen. Bitte warte 15 Minuten.'))
 
