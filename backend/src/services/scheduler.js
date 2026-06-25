@@ -2,7 +2,8 @@ import cron from 'node-cron'
 import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
 import { syncWasteCalendar } from './waste-calendar.js'
-import { todayString, twoDaysAgoString } from '../lib/dates.js'
+import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart } from '../lib/dates.js'
+import { calculateTrophies } from '../lib/trophies.js'
 
 async function expireDailyTasks() {
   const twoDaysAgo = twoDaysAgoString()
@@ -158,6 +159,31 @@ async function sendWeeklyReminders() {
   }
 }
 
+async function updateTrophyCache() {
+  const users = await prisma.user.findMany({ where: { approved: true } })
+  const allLogs = await prisma.taskLog.findMany({
+    where: { status: 'completed', completedBy: { not: null } },
+    select: { completedBy: true, forDate: true },
+  })
+
+  const today = todayString()
+  const curWeekStart = currentWeekStart()
+  const curMonthStart = currentMonthStart()
+
+  const { dayTrophies, weekTrophies, monthTrophies } = calculateTrophies(allLogs, users, { today, curWeekStart, curMonthStart })
+
+  for (const user of users) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        dayTrophies: dayTrophies[user.id] || 0,
+        weekTrophies: weekTrophies[user.id] || 0,
+        monthTrophies: monthTrophies[user.id] || 0,
+      },
+    })
+  }
+}
+
 export function startScheduler() {
   cron.schedule('* * * * *', async () => {
     try {
@@ -174,6 +200,7 @@ export function startScheduler() {
       await expireWeeklyTasks()
       await expireMonthlyTasks()
       await expireOnce()
+      await updateTrophyCache()
       await syncWasteCalendar()
     } catch (err) {
       console.error('[Scheduler] Fehler in Mitternachts-Job:', err)
