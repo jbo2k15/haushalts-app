@@ -45,17 +45,41 @@ router.get('/', requireAuth, async (req, res) => {
     orderBy: [{ sortOrder: 'asc' }],
   })
 
+  // Batch-fetch all completions in one query
+  const taskIds = tasks.map(t => t.id)
+  const onceDueDates = tasks.filter(t => t.type === 'once' && t.dueDate).map(t => t.dueDate)
+  const rangeStart = monthStart < twoDaysAgo ? monthStart : twoDaysAgo
+
+  const allCompletions = taskIds.length === 0 ? [] : await prisma.taskCompletion.findMany({
+    where: {
+      taskId: { in: taskIds },
+      OR: [
+        { forDate: { gte: rangeStart } },
+        ...(onceDueDates.length ? [{ forDate: { in: onceDueDates } }] : []),
+      ],
+    },
+    include: { user: true },
+  })
+
+  // O(1) lookup maps
+  const byKey = new Map(allCompletions.map(c => [`${c.taskId}-${c.forDate}`, c]))
+  const byTask = new Map()
+  for (const c of allCompletions) {
+    if (!byTask.has(c.taskId)) byTask.set(c.taskId, [])
+    byTask.get(c.taskId).push(c)
+  }
+
   const result = { once: [], daily: [], weekly: [], monthly: [] }
+
+  const yesterdayWeekday = new Date(yesterday).getDay()
+  const twoDaysAgoWeekday = new Date(twoDaysAgo).getDay()
 
   for (const task of tasks) {
     const weekdays = task.weekdays ? JSON.parse(task.weekdays) : null
 
     if (task.type === 'once') {
       if (!task.dueDate) continue
-      const completion = await prisma.taskCompletion.findUnique({
-        where: { taskId_forDate: { taskId: task.id, forDate: task.dueDate } },
-        include: { user: true },
-      })
+      const completion = byKey.get(`${task.id}-${task.dueDate}`) || null
       result.once.push({
         ...task,
         completed: !!completion,
@@ -69,40 +93,23 @@ router.get('/', requireAuth, async (req, res) => {
     if (task.type === 'daily') {
       if (weekdays && weekdays.length > 0 && !weekdays.includes(todayWeekday)) continue
 
-      const completionToday = await prisma.taskCompletion.findUnique({
-        where: { taskId_forDate: { taskId: task.id, forDate: today } },
-        include: { user: true },
-      })
-
+      const completionToday = byKey.get(`${task.id}-${today}`) || null
       const taskCreatedDate = task.createdAt.toISOString().slice(0, 10)
-      const yesterdayWeekday = new Date(yesterday).getDay()
-      const twoDaysAgoWeekday = new Date(twoDaysAgo).getDay()
       const wasDueYesterday = taskCreatedDate <= yesterday && (!weekdays || weekdays.length === 0 || weekdays.includes(yesterdayWeekday))
       const wasDueTwoDaysAgo = taskCreatedDate <= twoDaysAgo && (!weekdays || weekdays.length === 0 || weekdays.includes(twoDaysAgoWeekday))
 
-      const completionYesterday = wasDueYesterday ? await prisma.taskCompletion.findUnique({
-        where: { taskId_forDate: { taskId: task.id, forDate: yesterday } },
-      }) : { id: 'not-due' }
-
-      const completionTwoDaysAgo = wasDueTwoDaysAgo ? await prisma.taskCompletion.findUnique({
-        where: { taskId_forDate: { taskId: task.id, forDate: twoDaysAgo } },
-      }) : { id: 'not-due' }
-
       result.daily.push({
         ...task,
-        weekdays: weekdays,
+        weekdays,
         completed: !!completionToday,
         completedBy: completionToday?.user?.name || null,
-        overdueDay1: wasDueYesterday && !completionYesterday,
-        overdueDay2: wasDueTwoDaysAgo && !completionTwoDaysAgo,
+        overdueDay1: wasDueYesterday && !byKey.has(`${task.id}-${yesterday}`),
+        overdueDay2: wasDueTwoDaysAgo && !byKey.has(`${task.id}-${twoDaysAgo}`),
       })
     }
 
     if (task.type === 'weekly') {
-      const completion = await prisma.taskCompletion.findFirst({
-        where: { taskId: task.id, forDate: { gte: weekStart } },
-        include: { user: true },
-      })
+      const completion = byTask.get(task.id)?.find(c => c.forDate >= weekStart) || null
       result.weekly.push({
         ...task,
         completed: !!completion,
@@ -111,10 +118,7 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     if (task.type === 'monthly') {
-      const completion = await prisma.taskCompletion.findFirst({
-        where: { taskId: task.id, forDate: { gte: monthStart } },
-        include: { user: true },
-      })
+      const completion = byTask.get(task.id)?.find(c => c.forDate >= monthStart) || null
       result.monthly.push({
         ...task,
         completed: !!completion,
