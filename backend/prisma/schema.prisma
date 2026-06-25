@@ -58,12 +58,14 @@ model PushSubscription {
 }
 
 model NotificationSettings {
-  id         String  @id @default(uuid())
-  userId     String? @unique
-  dailyTime  String  @default("21:00")
-  weeklyDay  Int     @default(6)
-  weeklyTime String  @default("09:00")
-  user       User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String  @id @default(uuid())
+  userId                String? @unique
+  dailyTime             String  @default("21:00")
+  weeklyDay             Int     @default(6)
+  weeklyTime            String  @default("09:00")
+  lastDailyNotifiedDate String?
+  lastWeeklyNotifiedDate String?
+  user                  User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Task {

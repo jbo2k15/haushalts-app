@@ -98,11 +98,13 @@ async function sendDailyReminders() {
   if (now.getHours() !== Number(hours) || now.getMinutes() !== Number(minutes)) return
 
   const today = todayString()
-  const todayWeekday = now.getDay()
+  if (globalSettings?.lastDailyNotifiedDate === today) return
 
+  const todayWeekday = now.getDay()
+  const tasks = await prisma.task.findMany({ where: { type: 'daily', isActive: true } })
   const users = await prisma.user.findMany({ where: { approved: true, vacationMode: false } })
+
   for (const user of users) {
-    const tasks = await prisma.task.findMany({ where: { type: 'daily', isActive: true } })
     const openTasks = []
     for (const task of tasks) {
       const weekdays = task.weekdays ? JSON.parse(task.weekdays) : null
@@ -119,6 +121,12 @@ async function sendDailyReminders() {
       })
     }
   }
+
+  await prisma.notificationSettings.upsert({
+    where: { userId: null },
+    update: { lastDailyNotifiedDate: today },
+    create: { lastDailyNotifiedDate: today },
+  })
 }
 
 async function sendWeeklyReminders() {
@@ -128,11 +136,10 @@ async function sendWeeklyReminders() {
   const now = new Date()
   if (now.getDay() !== weeklyDay || now.getHours() !== Number(hours) || now.getMinutes() !== Number(minutes)) return
 
-  const tasks = await prisma.task.findMany({ where: { type: 'weekly', isActive: true } })
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7))
-  const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
+  const weekStart = currentWeekStart()
+  if (globalSettings?.lastWeeklyNotifiedDate === weekStart) return
 
+  const tasks = await prisma.task.findMany({ where: { type: 'weekly', isActive: true } })
   const openTasks = []
   for (const task of tasks) {
     const completion = await prisma.taskCompletion.findFirst({
@@ -150,6 +157,12 @@ async function sendWeeklyReminders() {
       })
     }
   }
+
+  await prisma.notificationSettings.upsert({
+    where: { userId: null },
+    update: { lastWeeklyNotifiedDate: weekStart },
+    create: { lastWeeklyNotifiedDate: weekStart },
+  })
 }
 
 async function updateTrophyCache() {
