@@ -21,8 +21,10 @@ export default defineConfig({
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
         ],
         screenshots: [
-          { src: '/screenshots/mobile.png', type: 'image/png', form_factor: 'narrow', label: 'Aufgaben-Übersicht' },
-          { src: '/screenshots/desktop.png', type: 'image/png', form_factor: 'wide', label: 'Aufgaben-Übersicht Desktop' },
+          { src: '/screenshots/login.png',     type: 'image/png', form_factor: 'narrow', label: 'Anmeldung' },
+          { src: '/screenshots/home.png',      type: 'image/png', form_factor: 'narrow', label: 'Aufgaben-Übersicht' },
+          { src: '/screenshots/admin.png',     type: 'image/png', form_factor: 'narrow', label: 'Verwaltung' },
+          { src: '/screenshots/halloffame.png',type: 'image/png', form_factor: 'narrow', label: 'Ruhmeshalle' },
         ],
       },
       workbox: {
