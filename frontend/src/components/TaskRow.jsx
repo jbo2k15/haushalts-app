@@ -48,7 +48,7 @@ export default function TaskRow({ task, onToggle }) {
         {task.title}
         {task.isOnce && task.dueDate && (
           <span className="ml-1.5 text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
-            {task.dueDate}
+            {task.dueDate.split('-').reverse().join('.')}
           </span>
         )}
       </span>
