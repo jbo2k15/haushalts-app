@@ -179,8 +179,6 @@ function formatDateISO(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-// Compute the UTC timestamps for start and end of a Berlin calendar day.
-// This handles both MEZ (UTC+1) and MESZ (UTC+2) correctly.
 function getUTCRangeForBerlinDay(dateStr) {
   const noon = new Date(`${dateStr}T12:00:00Z`)
   const berlinHour = parseInt(noon.toLocaleString('en-US', { timeZone: 'Europe/Berlin', hour: 'numeric', hour12: false }))
@@ -202,60 +200,6 @@ async function countCompletedTaskLogs(userId, from, to) {
   return prisma.taskLog.count({
     where: { completedBy: userId, status: 'completed', forDate: { gte: from, lte: to } },
   })
-}
-
-function calculateTrophies(allLogs, users, { today, curWeekStart, curMonthStart }) {
-  const dayTrophies = {}
-  const weekTrophies = {}
-  const monthTrophies = {}
-  users.forEach(u => { dayTrophies[u.id] = 0; weekTrophies[u.id] = 0; monthTrophies[u.id] = 0 })
-
-  const completionsByDay = {}
-  for (const log of allLogs) {
-    if (log.forDate >= today) continue
-    if (!completionsByDay[log.forDate]) completionsByDay[log.forDate] = {}
-    completionsByDay[log.forDate][log.completedBy] = (completionsByDay[log.forDate][log.completedBy] || 0) + 1
-  }
-  for (const counts of Object.values(completionsByDay)) {
-    const max = Math.max(...Object.values(counts))
-    if (max === 0) continue
-    const winners = Object.entries(counts).filter(([, v]) => v === max)
-    if (winners.length === 1) dayTrophies[winners[0][0]] = (dayTrophies[winners[0][0]] || 0) + 1
-  }
-
-  const completionsByWeek = {}
-  for (const log of allLogs) {
-    const d = new Date(log.forDate)
-    const diff = (d.getDay() + 6) % 7
-    const mon = new Date(d)
-    mon.setDate(d.getDate() - diff)
-    const weekKey = formatDateISO(mon)
-    if (weekKey >= curWeekStart) continue
-    if (!completionsByWeek[weekKey]) completionsByWeek[weekKey] = {}
-    completionsByWeek[weekKey][log.completedBy] = (completionsByWeek[weekKey][log.completedBy] || 0) + 1
-  }
-  for (const counts of Object.values(completionsByWeek)) {
-    const max = Math.max(...Object.values(counts))
-    if (max === 0) continue
-    const winners = Object.entries(counts).filter(([, v]) => v === max)
-    if (winners.length === 1) weekTrophies[winners[0][0]] = (weekTrophies[winners[0][0]] || 0) + 1
-  }
-
-  const completionsByMonth = {}
-  for (const log of allLogs) {
-    const monthKey = log.forDate.slice(0, 7)
-    if (monthKey >= curMonthStart.slice(0, 7)) continue
-    if (!completionsByMonth[monthKey]) completionsByMonth[monthKey] = {}
-    completionsByMonth[monthKey][log.completedBy] = (completionsByMonth[monthKey][log.completedBy] || 0) + 1
-  }
-  for (const counts of Object.values(completionsByMonth)) {
-    const max = Math.max(...Object.values(counts))
-    if (max === 0) continue
-    const winners = Object.entries(counts).filter(([, v]) => v === max)
-    if (winners.length === 1) monthTrophies[winners[0][0]] = (monthTrophies[winners[0][0]] || 0) + 1
-  }
-
-  return { dayTrophies, weekTrophies, monthTrophies }
 }
 
 router.get('/stats', requireAuth, async (req, res) => {
@@ -307,21 +251,12 @@ router.get('/stats', requireAuth, async (req, res) => {
     lastWeek: await countCompletedTaskLogs(userRecord.id, lastWeekStart, lastWeekEnd),
     curMonth: await countCompletedTaskLogs(userRecord.id, curMonthStart, curMonthEnd),
     lastMonth: await countCompletedTaskLogs(userRecord.id, lastMonthStart, lastMonthEnd),
+    dayTrophies: userRecord.dayTrophies,
+    weekTrophies: userRecord.weekTrophies,
+    monthTrophies: userRecord.monthTrophies,
   })))
 
-  const allLogs = await prisma.taskLog.findMany({
-    where: { status: 'completed', completedBy: { not: null } },
-    select: { completedBy: true, forDate: true },
-  })
-
-  const { dayTrophies, weekTrophies, monthTrophies } = calculateTrophies(allLogs, users, { today, curWeekStart, curMonthStart })
-
-  const result = userStats.map(userStat => ({
-    ...userStat,
-    dayTrophies: dayTrophies[userStat.id] || 0,
-    weekTrophies: weekTrophies[userStat.id] || 0,
-    monthTrophies: monthTrophies[userStat.id] || 0,
-  }))
+  const result = userStats
 
   res.json(result)
 })

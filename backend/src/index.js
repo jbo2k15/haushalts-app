@@ -10,6 +10,7 @@ import taskRoutes from './routes/tasks.js'
 import userRoutes from './routes/users.js'
 import { requireAuth } from './middleware/auth.js'
 import { startScheduler } from './services/scheduler.js'
+import prisma from './lib/prisma.js'
 
 const app = express()
 
@@ -31,7 +32,7 @@ app.use(helmet({
 }))
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }))
 app.use(cookieParser())
-app.use(express.json())
+app.use(express.json({ limit: '100kb' }))
 
 const limiter = (max, windowMs, message) => rateLimit({
   windowMs, max, message: { error: message }, standardHeaders: true, legacyHeaders: false,
@@ -62,3 +63,10 @@ startScheduler()
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => console.log(`Backend läuft auf Port ${PORT}`))
+
+async function shutdown() {
+  await prisma.$disconnect()
+  process.exit(0)
+}
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)

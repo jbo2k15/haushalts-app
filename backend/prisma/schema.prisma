@@ -17,6 +17,9 @@ model User {
   mustChangePassword Boolean              @default(false)
   vacationMode       Boolean              @default(false)
   lastActiveAt       DateTime?
+  dayTrophies        Int                  @default(0)
+  weekTrophies       Int                  @default(0)
+  monthTrophies      Int                  @default(0)
   createdAt          DateTime             @default(now())
   pushSubscriptions  PushSubscription[]
   notificationSettings NotificationSettings?
