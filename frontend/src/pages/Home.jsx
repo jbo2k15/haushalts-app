@@ -103,6 +103,7 @@ export default function Home() {
         <PushPromptBanner />
 
         <div className="space-y-4">
+          <TaskBlock type="once" tasks={tasks.once} onToggle={loadTasks} />
           <TaskBlock type="daily" tasks={tasks.daily} onToggle={loadTasks} />
           <TaskBlock type="weekly" tasks={tasks.weekly} onToggle={loadTasks} />
           <TaskBlock type="monthly" tasks={tasks.monthly} onToggle={loadTasks} />

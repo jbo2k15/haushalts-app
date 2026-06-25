@@ -2,7 +2,7 @@ import cron from 'node-cron'
 import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
 import { syncWasteCalendar } from './waste-calendar.js'
-import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart } from '../lib/dates.js'
+import { todayString, currentWeekStart, currentMonthStart } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
 
 async function expireDailyTasks() {
@@ -77,22 +77,15 @@ async function expireMonthlyTasks() {
 }
 
 async function expireOnce() {
-  const twoDaysAgo = twoDaysAgoString()
+  // Deactivate completed once tasks so they disappear the next day.
+  // Uncompleted once tasks stay visible (shown as overdue in the UI) until manually done or deleted.
   const tasks = await prisma.task.findMany({ where: { type: 'once', isActive: true } })
   for (const task of tasks) {
-    if (!task.dueDate || task.dueDate >= twoDaysAgo) continue
+    if (!task.dueDate) continue
     const completion = await prisma.taskCompletion.findUnique({
       where: { taskId_forDate: { taskId: task.id, forDate: task.dueDate } },
     })
-    if (!completion) {
-      const alreadyLogged = await prisma.taskLog.findFirst({
-        where: { taskId: task.id, forDate: task.dueDate, status: 'expired' },
-      })
-      if (!alreadyLogged) {
-        await prisma.taskLog.create({
-          data: { taskId: task.id, taskTitle: task.title, status: 'expired', forDate: task.dueDate },
-        })
-      }
+    if (completion) {
       await prisma.task.update({ where: { id: task.id }, data: { isActive: false } })
     }
   }
@@ -162,7 +155,11 @@ async function sendWeeklyReminders() {
 async function updateTrophyCache() {
   const users = await prisma.user.findMany({ where: { approved: true } })
   const allLogs = await prisma.taskLog.findMany({
-    where: { status: 'completed', completedBy: { not: null } },
+    where: {
+      status: 'completed',
+      completedBy: { not: null },
+      OR: [{ taskId: null }, { task: { type: { not: 'once' } } }],
+    },
     select: { completedBy: true, loggedAt: true },
   })
 

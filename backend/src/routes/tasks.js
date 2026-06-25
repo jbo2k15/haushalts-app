@@ -45,22 +45,23 @@ router.get('/', requireAuth, async (req, res) => {
     orderBy: [{ sortOrder: 'asc' }],
   })
 
-  const result = { daily: [], weekly: [], monthly: [] }
+  const result = { once: [], daily: [], weekly: [], monthly: [] }
 
   for (const task of tasks) {
     const weekdays = task.weekdays ? JSON.parse(task.weekdays) : null
 
     if (task.type === 'once') {
-      if (!task.dueDate || task.dueDate !== today) continue
+      if (!task.dueDate) continue
       const completion = await prisma.taskCompletion.findUnique({
         where: { taskId_forDate: { taskId: task.id, forDate: task.dueDate } },
         include: { user: true },
       })
-      result.daily.push({
+      result.once.push({
         ...task,
         completed: !!completion,
         completedBy: completion?.user?.name || null,
         isOnce: true,
+        isOverdue: !completion && task.dueDate < today,
       })
       continue
     }
@@ -190,15 +191,17 @@ function getUTCRangeForBerlinDay(dateStr) {
   return { gte: dayStart, lt: dayEnd }
 }
 
+const EXCLUDE_ONCE = { OR: [{ taskId: null }, { task: { type: { not: 'once' } } }] }
+
 async function countCompletedTaskLogsOnDate(userId, date) {
   return prisma.taskLog.count({
-    where: { completedBy: userId, status: 'completed', loggedAt: getUTCRangeForBerlinDay(date) },
+    where: { completedBy: userId, status: 'completed', loggedAt: getUTCRangeForBerlinDay(date), ...EXCLUDE_ONCE },
   })
 }
 
 async function countCompletedTaskLogs(userId, from, to) {
   return prisma.taskLog.count({
-    where: { completedBy: userId, status: 'completed', forDate: { gte: from, lte: to } },
+    where: { completedBy: userId, status: 'completed', forDate: { gte: from, lte: to }, ...EXCLUDE_ONCE },
   })
 }
 

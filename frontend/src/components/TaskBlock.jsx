@@ -1,6 +1,7 @@
 import TaskRow from './TaskRow.jsx'
 
 const BLOCK_CONFIG = {
+  once: { label: 'Einmalig', icon: '📌' },
   daily: { label: 'Täglich', icon: '☀️' },
   weekly: { label: 'Wöchentlich', icon: '📅' },
   monthly: { label: 'Monatlich', icon: '🗓️' },
@@ -24,7 +25,7 @@ export default function TaskBlock({ type, tasks, onToggle }) {
   const config = BLOCK_CONFIG[type]
   if (!tasks || tasks.length === 0) return null
 
-  const overdue = tasks.filter(t => (t.overdueDay1 || t.overdueDay2) && !t.completed && type === 'daily')
+  const overdue = tasks.filter(t => ((t.overdueDay1 || t.overdueDay2) && type === 'daily' || t.isOverdue) && !t.completed)
   const rest = tasks.filter(t => !overdue.includes(t))
   const sortedOverdue = sortTasks(overdue)
   const sortedRest = sortTasks(rest)

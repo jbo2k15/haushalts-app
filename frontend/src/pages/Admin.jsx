@@ -231,7 +231,11 @@ export default function Admin() {
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Typ</label>
                     <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+                      value={form.type} onChange={e => {
+                        const type = e.target.value
+                        const today = new Date().toISOString().slice(0, 10)
+                        setForm(f => ({ ...f, type, dueDate: type === 'once' && !f.dueDate ? today : f.dueDate }))
+                      }}>
                       <option value="daily">Täglich</option>
                       <option value="weekly">Wöchentlich</option>
                       <option value="monthly">Monatlich</option>
@@ -306,7 +310,7 @@ export default function Admin() {
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               {['daily', 'weekly', 'monthly', 'once'].map(type => {
-                const group = tasks.filter(t => t.type === type)
+                const group = tasks.filter(t => t.type === type && (type !== 'once' || t.isActive))
                 return (
                   <div key={type} className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-3">
                     <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
