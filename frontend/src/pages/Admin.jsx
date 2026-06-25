@@ -204,7 +204,7 @@ export default function Admin() {
               onClick={() => { setForm(EMPTY_FORM); setEditId(null); setShowForm(s => !s) }}
               className="w-full bg-orange-600 text-white rounded-xl py-2.5 text-sm font-medium"
             >
-              {showForm ? 'Formular schließen' : '+ Neue Aufgabe'}
+              {showForm ? 'Abbrechen' : '+ Neue Aufgabe'}
             </button>
 
             <div className="flex gap-2">
