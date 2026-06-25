@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import TaskBlock from '../components/TaskBlock.jsx'
 import StatsSection from '../components/StatsSection.jsx'
 import LogSection from '../components/LogSection.jsx'
+import PushPromptBanner from '../components/PushPromptBanner.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
@@ -98,6 +99,8 @@ export default function Home() {
             {getGreetingMessage(user?.name?.split(' ')[0] || '', tasks.daily)}
           </p>
         </div>
+
+        <PushPromptBanner />
 
         <div className="space-y-4">
           <TaskBlock type="daily" tasks={tasks.daily} onToggle={loadTasks} />
