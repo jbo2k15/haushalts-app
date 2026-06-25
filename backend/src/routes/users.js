@@ -118,11 +118,10 @@ router.post('/push-subscription', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Ungültiger p256dh-Schlüssel' })
   if (typeof auth !== 'string' || auth.length > 100)
     return res.status(400).json({ error: 'Ungültiger Auth-Schlüssel' })
-  await prisma.pushSubscription.upsert({
-    where: { endpoint },
-    update: { p256dh, auth, userId: req.user.id },
-    create: { userId: req.user.id, endpoint, p256dh, auth },
-  })
+  await prisma.$transaction([
+    prisma.pushSubscription.deleteMany({ where: { endpoint } }),
+    prisma.pushSubscription.create({ data: { userId: req.user.id, endpoint, p256dh, auth } }),
+  ])
   res.json({ message: 'Subscription gespeichert' })
 })
 

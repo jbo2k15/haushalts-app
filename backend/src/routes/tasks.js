@@ -150,20 +150,11 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
     return res.json({ completed: false })
   }
 
-  await prisma.taskCompletion.create({
-    data: { taskId: id, completedBy: req.user.id, forDate },
-  })
-  await prisma.user.update({ where: { id: req.user.id }, data: { lastActiveAt: new Date() } })
-  await prisma.taskLog.create({
-    data: {
-      taskId: id,
-      taskTitle: task.title,
-      status: 'completed',
-      completedBy: req.user.id,
-      userName: req.user.name,
-      forDate,
-    },
-  })
+  await prisma.$transaction([
+    prisma.taskCompletion.create({ data: { taskId: id, completedBy: req.user.id, forDate } }),
+    prisma.taskLog.create({ data: { taskId: id, taskTitle: task.title, status: 'completed', completedBy: req.user.id, userName: req.user.name, forDate } }),
+    prisma.user.update({ where: { id: req.user.id }, data: { lastActiveAt: new Date() } }),
+  ])
 
   return res.json({ completed: true })
 })
