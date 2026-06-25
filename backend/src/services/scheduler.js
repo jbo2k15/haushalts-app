@@ -64,7 +64,6 @@ async function expireWeeklyTasks() {
       await prisma.taskLog.create({
         data: { taskId: task.id, taskTitle: task.title, status: 'expired', forDate: weekStart },
       })
-      await pruneLog()
     }
   }
 }
@@ -85,7 +84,20 @@ async function expireMonthlyTasks() {
       await prisma.taskLog.create({
         data: { taskId: task.id, taskTitle: task.title, status: 'expired', forDate: monthStr },
       })
-      await pruneLog()
+    }
+  }
+}
+
+async function expireOnce() {
+  const twoDaysAgo = twoDaysAgoString()
+  const tasks = await prisma.task.findMany({ where: { type: 'once', isActive: true } })
+  for (const task of tasks) {
+    if (!task.dueDate || task.dueDate >= twoDaysAgo) continue
+    const completion = await prisma.taskCompletion.findUnique({
+      where: { taskId_forDate: { taskId: task.id, forDate: task.dueDate } },
+    })
+    if (!completion) {
+      console.log(`[Scheduler] Einmalaufgabe abgelaufen: "${task.title}" (fällig: ${task.dueDate})`)
     }
   }
 }
@@ -99,7 +111,7 @@ async function sendDailyReminders() {
   const today = todayString()
   const todayWeekday = now.getDay()
 
-  const users = await prisma.user.findMany({ where: { approved: true } })
+  const users = await prisma.user.findMany({ where: { approved: true, vacationMode: false } })
   for (const user of users) {
     const tasks = await prisma.task.findMany({ where: { type: 'daily', isActive: true } })
     const openTasks = []
@@ -141,7 +153,7 @@ async function sendWeeklyReminders() {
   }
 
   if (openCount.length > 0) {
-    const users = await prisma.user.findMany({ where: { approved: true } })
+    const users = await prisma.user.findMany({ where: { approved: true, vacationMode: false } })
     for (const user of users) {
       await sendPushToUser(user.id, {
         title: 'Haushalt',
@@ -166,6 +178,7 @@ export function startScheduler() {
       await expireDailyTasks()
       await expireWeeklyTasks()
       await expireMonthlyTasks()
+      await expireOnce()
       await syncWasteCalendar()
     } catch (err) {
       console.error('[Scheduler] Fehler in Mitternachts-Job:', err)

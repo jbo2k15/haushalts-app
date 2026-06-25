@@ -74,7 +74,7 @@ router.post('/login', async (req, res) => {
 
   res.json({
     token: accessToken,
-    user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword, vacationMode: user.vacationMode },
   })
 })
 
@@ -99,7 +99,7 @@ router.post('/refresh', async (req, res) => {
 
   res.json({
     token: accessToken,
-    user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword, vacationMode: user.vacationMode },
   })
 })
 
