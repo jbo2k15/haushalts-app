@@ -30,9 +30,9 @@ export default function ResetPassword() {
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">{error}</div>}
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Neues Passwort (min. 6 Zeichen)</label>
+            <label className="block text-sm text-gray-600 mb-1">Neues Passwort (min. 10 Zeichen)</label>
             <input
-              type="password" required minLength={6}
+              type="password" required minLength={10}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               value={password} onChange={e => setPassword(e.target.value)}
             />

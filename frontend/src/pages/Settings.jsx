@@ -55,9 +55,11 @@ export default function Settings() {
   }
 
   async function toggleVacation() {
-    const updated = await api.put('/users/me/vacation', { vacationMode: !vacationMode })
-    setVacationMode(updated.vacationMode)
-    setUser(updated)
+    try {
+      const updated = await api.put('/users/me/vacation', { vacationMode: !vacationMode })
+      setVacationMode(updated.vacationMode)
+      setUser(updated)
+    } catch {}
   }
 
   async function saveName() {
@@ -73,10 +75,12 @@ export default function Settings() {
   }
 
   async function saveSettings() {
-    await api.put('/users/notifications', settings)
-    if (user.role === 'admin') await api.put('/users/notifications/global', settings)
-    setSaved(true)
-    setTimeout(() => navigate('/'), 1000)
+    try {
+      await api.put('/users/notifications', settings)
+      if (user.role === 'admin') await api.put('/users/notifications/global', settings)
+      setSaved(true)
+      setTimeout(() => navigate('/'), 1000)
+    } catch {}
   }
 
   return (

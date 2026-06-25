@@ -2,23 +2,26 @@ import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { randomUUID, createHash } from 'crypto'
-
-function hashToken(token) {
-  return createHash('sha256').update(token).digest('hex')
-}
 import prisma from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
 import { sendPasswordResetEmail } from '../services/email.js'
 
 const router = Router()
 
+const BCRYPT_ROUNDS = 12
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+
 const COOKIE_NAME = 'refresh_token'
 const COOKIE_OPTS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage in ms
+  maxAge: SEVEN_DAYS_MS,
   path: '/api/auth',
+}
+
+function hashToken(token) {
+  return createHash('sha256').update(token).digest('hex')
 }
 
 function validatePassword(pw) {
@@ -37,7 +40,7 @@ function signAccessToken(userId) {
 async function issueRefreshToken(userId, res) {
   await prisma.refreshToken.deleteMany({ where: { userId } })
   const token = randomUUID()
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const expiresAt = new Date(Date.now() + SEVEN_DAYS_MS)
   await prisma.refreshToken.create({ data: { userId, token: hashToken(token), expiresAt } })
   res.cookie(COOKIE_NAME, token, COOKIE_OPTS)
 }
@@ -51,7 +54,7 @@ router.post('/register', async (req, res) => {
   const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
   if (existing) return res.status(409).json({ error: 'E-Mail bereits registriert' })
 
-  const passwordHash = await bcrypt.hash(password, 12)
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
   await prisma.user.create({
     data: { email: email.toLowerCase(), passwordHash, name, role: 'user', approved: false },
   })
@@ -125,7 +128,7 @@ router.post('/change-password', requireAuth, async (req, res) => {
   const valid = await bcrypt.compare(currentPassword, req.user.passwordHash)
   if (!valid) return res.status(401).json({ error: 'Aktuelles Passwort ist falsch' })
 
-  const passwordHash = await bcrypt.hash(newPassword, 12)
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
   await prisma.user.update({ where: { id: req.user.id }, data: { passwordHash, mustChangePassword: false } })
   await prisma.refreshToken.deleteMany({ where: { userId: req.user.id } })
   res.clearCookie(COOKIE_NAME, { path: '/api/auth' })
@@ -159,7 +162,7 @@ router.post('/reset-password', async (req, res) => {
     return res.status(400).json({ error: 'Link ungültig oder abgelaufen' })
   }
 
-  const passwordHash = await bcrypt.hash(newPassword, 12)
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
   await prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash, mustChangePassword: false } })
   await prisma.passwordResetToken.update({ where: { token: hashToken(token) }, data: { used: true } })
 

@@ -12,9 +12,9 @@ export default function StatsSection({ refreshKey }) {
 
   if (stats.length === 0) return null
 
-  const maxDay = Math.max(...stats.map(u => u.curDay))
-  const maxWeek = Math.max(...stats.map(u => u.curWeek))
-  const maxMonth = Math.max(...stats.map(u => u.curMonth))
+  const maxDay = Math.max(...stats.map(userStat => userStat.curDay))
+  const maxWeek = Math.max(...stats.map(userStat => userStat.curWeek))
+  const maxMonth = Math.max(...stats.map(userStat => userStat.curMonth))
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -39,21 +39,21 @@ export default function StatsSection({ refreshKey }) {
           <span className="w-14 text-center text-xs text-gray-400 font-medium">Monat</span>
         </div>
 
-        {stats.map(u => {
-          const dayLeader = maxDay > 0 && u.curDay === maxDay
-          const weekLeader = maxWeek > 0 && u.curWeek === maxWeek
-          const monthLeader = maxMonth > 0 && u.curMonth === maxMonth
+        {stats.map(userStat => {
+          const dayLeader = maxDay > 0 && userStat.curDay === maxDay
+          const weekLeader = maxWeek > 0 && userStat.curWeek === maxWeek
+          const monthLeader = maxMonth > 0 && userStat.curMonth === maxMonth
           return (
-            <div key={u.id} className="flex items-center gap-2 px-4 py-2.5">
-              <span className="flex-1 text-sm text-gray-700 truncate">{u.name}</span>
+            <div key={userStat.id} className="flex items-center gap-2 px-4 py-2.5">
+              <span className="flex-1 text-sm text-gray-700 truncate">{userStat.name}</span>
               <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${dayLeader ? 'text-orange-600 bg-orange-50' : 'text-gray-400'}`}>
-                {u.curDay}
+                {userStat.curDay}
               </span>
               <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${weekLeader ? 'text-orange-600 bg-orange-50' : 'text-gray-400'}`}>
-                {u.curWeek}
+                {userStat.curWeek}
               </span>
               <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${monthLeader ? 'text-orange-600 bg-orange-50' : 'text-gray-400'}`}>
-                {u.curMonth}
+                {userStat.curMonth}
               </span>
             </div>
           )

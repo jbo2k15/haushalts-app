@@ -56,13 +56,17 @@ export default function Admin() {
   )
 
   async function loadTasks() {
-    const data = await api.get('/tasks/admin')
-    setTasks(data)
+    try {
+      const data = await api.get('/tasks/admin')
+      setTasks(data)
+    } catch {}
   }
 
   async function loadUsers() {
-    const data = await api.get('/users')
-    setUsers(data)
+    try {
+      const data = await api.get('/users')
+      setUsers(data)
+    } catch {}
   }
 
   useEffect(() => { loadTasks(); loadUsers() }, [])
@@ -99,15 +103,19 @@ export default function Admin() {
       fixedDayOfMonth: form.type === 'monthly' && form.fixedDayOfMonth !== '' ? Number(form.fixedDayOfMonth) : null,
       dueDate: form.type === 'once' ? form.dueDate : null,
     }
-    if (editId) {
-      await api.put(`/tasks/admin/${editId}`, payload)
-    } else {
-      await api.post('/tasks/admin', payload)
+    try {
+      if (editId) {
+        await api.put(`/tasks/admin/${editId}`, payload)
+      } else {
+        await api.post('/tasks/admin', payload)
+      }
+      setForm(EMPTY_FORM)
+      setEditId(null)
+      setShowForm(false)
+      loadTasks()
+    } catch (err) {
+      alert(err.message)
     }
-    setForm(EMPTY_FORM)
-    setEditId(null)
-    setShowForm(false)
-    loadTasks()
   }
 
   function startEdit(task) {
@@ -127,23 +135,31 @@ export default function Admin() {
 
   async function deleteTask(id) {
     if (!confirm('Aufgabe wirklich löschen?')) return
-    await api.delete(`/tasks/admin/${id}`)
-    loadTasks()
+    try {
+      await api.delete(`/tasks/admin/${id}`)
+      loadTasks()
+    } catch (err) {
+      alert(err.message)
+    }
   }
 
   async function toggleUser(id) {
-    const user = users.find(u => u.id === id)
-    if (user?.approved) {
-      if (!confirm(`Möchtest du "${user.name}" wirklich sperren? Der Nutzer verliert sofort den Zugriff.`)) return
+    const userRecord = users.find(u => u.id === id)
+    if (userRecord?.approved) {
+      if (!confirm(`Möchtest du "${userRecord.name}" wirklich sperren? Der Nutzer verliert sofort den Zugriff.`)) return
     }
-    await api.post(`/users/${id}/approve`)
-    loadUsers()
+    try {
+      await api.post(`/users/${id}/approve`)
+      loadUsers()
+    } catch (err) {
+      alert(err.message)
+    }
   }
 
   async function toggleRole(id) {
-    const user = users.find(u => u.id === id)
-    const action = user?.role === 'admin' ? 'zum normalen Nutzer machen' : 'zum Admin machen'
-    if (!confirm(`Möchtest du "${user.name}" wirklich ${action}?`)) return
+    const userRecord = users.find(u => u.id === id)
+    const action = userRecord?.role === 'admin' ? 'zum normalen Nutzer machen' : 'zum Admin machen'
+    if (!confirm(`Möchtest du "${userRecord.name}" wirklich ${action}?`)) return
     try {
       await api.post(`/users/${id}/role`)
       loadUsers()
@@ -311,35 +327,35 @@ export default function Admin() {
 
         {tab === 'users' && (
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            {users.map(u => (
-              <div key={u.id} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-b-0">
+            {users.map(userRecord => (
+              <div key={userRecord.id} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-b-0">
                 <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-medium text-sm flex-shrink-0 mt-0.5">
-                  {u.name[0].toUpperCase()}
+                  {userRecord.name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{u.name}</p>
-                  <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                  <p className="text-sm font-medium text-gray-800 truncate">{userRecord.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{userRecord.email}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {u.lastActiveAt
-                      ? `Zuletzt aktiv: ${new Date(u.lastActiveAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} Uhr`
+                    {userRecord.lastActiveAt
+                      ? `Zuletzt aktiv: ${new Date(userRecord.lastActiveAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} Uhr`
                       : 'Noch nie aktiv'}
                   </p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  {u.role === 'admin' && (
+                  {userRecord.role === 'admin' && (
                     <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1.5 rounded-lg font-medium">Admin</span>
                   )}
                   <button
-                    onClick={() => toggleRole(u.id)}
+                    onClick={() => toggleRole(userRecord.id)}
                     className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg font-medium"
                   >
-                    {u.role === 'admin' ? '↓ Nutzer' : '↑ Admin'}
+                    {userRecord.role === 'admin' ? '↓ Nutzer' : '↑ Admin'}
                   </button>
                   <button
-                    onClick={() => toggleUser(u.id)}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-medium ${u.approved ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}
+                    onClick={() => toggleUser(userRecord.id)}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium ${userRecord.approved ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}
                   >
-                    {u.approved ? 'Sperren' : 'Freischalten'}
+                    {userRecord.approved ? 'Sperren' : 'Freischalten'}
                   </button>
                 </div>
               </div>

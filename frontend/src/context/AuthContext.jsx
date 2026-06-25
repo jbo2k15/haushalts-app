@@ -8,7 +8,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Beim App-Start: Refresh-Cookie nutzen um neuen Access-Token zu holen
     refreshSession()
       .then(data => {
         if (data) {

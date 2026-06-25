@@ -34,7 +34,7 @@ export default function HallOfFame() {
   }, [])
 
   const ranked = [...stats]
-    .filter(u => u.dayTrophies > 0 || u.weekTrophies > 0 || u.monthTrophies > 0)
+    .filter(userStat => userStat.dayTrophies > 0 || userStat.weekTrophies > 0 || userStat.monthTrophies > 0)
     .sort((a, b) =>
       (b.monthTrophies * 4 + b.weekTrophies * 2 + b.dayTrophies) -
       (a.monthTrophies * 4 + a.weekTrophies * 2 + a.dayTrophies)
@@ -50,7 +50,6 @@ export default function HallOfFame() {
           <h1 className="text-xl font-semibold">Ruhmeshalle</h1>
         </div>
 
-        {/* Legende */}
         <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Legende</p>
           <div className="space-y-3">
@@ -75,7 +74,6 @@ export default function HallOfFame() {
           </p>
         </div>
 
-        {/* Rangliste */}
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
             <span className="text-base">🏆</span>
@@ -86,21 +84,21 @@ export default function HallOfFame() {
             <p className="text-sm text-gray-400 p-6 text-center">Noch keine Pokale vergeben.</p>
           ) : (
             <div className="divide-y divide-gray-100">
-              {ranked.map((u, i) => (
-                <div key={u.id} className="flex items-center gap-3 px-4 py-3.5">
+              {ranked.map((userStat, i) => (
+                <div key={userStat.id} className="flex items-center gap-3 px-4 py-3.5">
                   <span className="text-xl w-7 text-center flex-shrink-0">
                     {podium[i] ?? <span className="text-sm text-gray-400">{i + 1}.</span>}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800">{u.name}</p>
+                    <p className="text-sm font-medium text-gray-800">{userStat.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {u.dayTrophies + u.weekTrophies + u.monthTrophies} Pokal{u.dayTrophies + u.weekTrophies + u.monthTrophies !== 1 ? 'e' : ''} gesamt
+                      {userStat.dayTrophies + userStat.weekTrophies + userStat.monthTrophies} Pokal{userStat.dayTrophies + userStat.weekTrophies + userStat.monthTrophies !== 1 ? 'e' : ''} gesamt
                     </p>
                   </div>
                   <div className="flex gap-1.5 flex-shrink-0">
-                    <TrophyBadge icon="🥉" count={u.dayTrophies} />
-                    <TrophyBadge icon="🥈" count={u.weekTrophies} />
-                    <TrophyBadge icon="🥇" count={u.monthTrophies} />
+                    <TrophyBadge icon="🥉" count={userStat.dayTrophies} />
+                    <TrophyBadge icon="🥈" count={userStat.weekTrophies} />
+                    <TrophyBadge icon="🥇" count={userStat.monthTrophies} />
                   </div>
                 </div>
               ))}
@@ -108,17 +106,16 @@ export default function HallOfFame() {
           )}
         </div>
 
-        {/* Nutzer ohne Pokale */}
-        {stats.filter(u => u.dayTrophies === 0 && u.weekTrophies === 0 && u.monthTrophies === 0).length > 0 && (
+        {stats.filter(userStat => userStat.dayTrophies === 0 && userStat.weekTrophies === 0 && userStat.monthTrophies === 0).length > 0 && (
           <div className="mt-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Noch keine Pokale</span>
             </div>
             <div className="divide-y divide-gray-100">
-              {stats.filter(u => u.dayTrophies === 0 && u.weekTrophies === 0 && u.monthTrophies === 0).map(u => (
-                <div key={u.id} className="flex items-center gap-3 px-4 py-3">
+              {stats.filter(userStat => userStat.dayTrophies === 0 && userStat.weekTrophies === 0 && userStat.monthTrophies === 0).map(userStat => (
+                <div key={userStat.id} className="flex items-center gap-3 px-4 py-3">
                   <span className="text-xl w-7 text-center flex-shrink-0 text-gray-300">—</span>
-                  <span className="text-sm text-gray-500">{u.name}</span>
+                  <span className="text-sm text-gray-500">{userStat.name}</span>
                 </div>
               ))}
             </div>
