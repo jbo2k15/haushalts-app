@@ -2,7 +2,7 @@ import cron from 'node-cron'
 import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
 import { syncWasteCalendar } from './waste-calendar.js'
-import { todayString, currentWeekStart, currentMonthStart } from '../lib/dates.js'
+import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
 
 async function expireDailyTasks() {
