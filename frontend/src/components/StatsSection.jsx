@@ -12,10 +12,9 @@ export default function StatsSection({ refreshKey }) {
 
   if (stats.length === 0) return null
 
-  const byDay = [...stats].sort((a, b) => b.curDay - a.curDay)
-  const byWeek = [...stats].sort((a, b) => b.curWeek - a.curWeek)
-  const maxDay = byDay[0]?.curDay ?? 0
-  const maxWeek = byWeek[0]?.curWeek ?? 0
+  const maxDay = Math.max(...stats.map(u => u.curDay))
+  const maxWeek = Math.max(...stats.map(u => u.curWeek))
+  const maxMonth = Math.max(...stats.map(u => u.curMonth))
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -33,24 +32,28 @@ export default function StatsSection({ refreshKey }) {
       </div>
 
       <div className="divide-y divide-gray-100">
-        {/* Spaltenköpfe */}
         <div className="flex items-center gap-2 px-4 py-1.5">
           <span className="flex-1" />
-          <span className="w-16 text-center text-xs text-gray-400 font-medium">Heute</span>
-          <span className="w-16 text-center text-xs text-gray-400 font-medium">Woche</span>
+          <span className="w-14 text-center text-xs text-gray-400 font-medium">Heute</span>
+          <span className="w-14 text-center text-xs text-gray-400 font-medium">Woche</span>
+          <span className="w-14 text-center text-xs text-gray-400 font-medium">Monat</span>
         </div>
 
         {stats.map(u => {
           const dayLeader = maxDay > 0 && u.curDay === maxDay
           const weekLeader = maxWeek > 0 && u.curWeek === maxWeek
+          const monthLeader = maxMonth > 0 && u.curMonth === maxMonth
           return (
             <div key={u.id} className="flex items-center gap-2 px-4 py-2.5">
               <span className="flex-1 text-sm text-gray-700 truncate">{u.name}</span>
-              <span className={`w-16 text-center text-sm font-semibold rounded-lg py-0.5 ${dayLeader ? 'text-purple-600 bg-purple-50' : 'text-gray-400'}`}>
+              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${dayLeader ? 'text-purple-600 bg-purple-50' : 'text-gray-400'}`}>
                 {u.curDay}
               </span>
-              <span className={`w-16 text-center text-sm font-semibold rounded-lg py-0.5 ${weekLeader ? 'text-purple-600 bg-purple-50' : 'text-gray-400'}`}>
+              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${weekLeader ? 'text-purple-600 bg-purple-50' : 'text-gray-400'}`}>
                 {u.curWeek}
+              </span>
+              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${monthLeader ? 'text-purple-600 bg-purple-50' : 'text-gray-400'}`}>
+                {u.curMonth}
               </span>
             </div>
           )

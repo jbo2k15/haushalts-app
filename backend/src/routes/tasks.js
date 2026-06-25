@@ -182,14 +182,46 @@ router.get('/stats', requireAuth, async (req, res) => {
 
   // Aktueller Monat
   const curMonthStart = currentMonthStart()
-  const curMonthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-31`
+  const curMonthEnd = (() => {
+    const todayBerlin = new Date(dateStringInBerlin(0))
+    const lastDay = new Date(todayBerlin.getFullYear(), todayBerlin.getMonth() + 1, 0).getDate()
+    return `${todayBerlin.getFullYear()}-${String(todayBerlin.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+  })()
 
   // Letzter Monat
-  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const lastMonthStart = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}-01`
-  const lastMonthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const lastMonthEnd = (() => {
+    const todayBerlin = new Date(dateStringInBerlin(0))
+    const lastDay = new Date(todayBerlin.getFullYear(), todayBerlin.getMonth(), 0).getDate()
+    return `${todayBerlin.getFullYear()}-${String(todayBerlin.getMonth()).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+  })()
+  const lastMonthStart = (() => {
+    const todayBerlin = new Date(dateStringInBerlin(0))
+    const d = new Date(todayBerlin.getFullYear(), todayBerlin.getMonth() - 1, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+  })()
 
   const users = await prisma.user.findMany({ where: { approved: true } })
+
+  const today = todayString()
+
+  function berlinDayUTCRange(dateStr) {
+    // Compute the UTC timestamps for start and end of a Berlin calendar day
+    // This handles both MEZ (UTC+1) and MESZ (UTC+2) correctly
+    const noon = new Date(`${dateStr}T12:00:00Z`)
+    const berlinHour = parseInt(noon.toLocaleString('en-US', { timeZone: 'Europe/Berlin', hour: 'numeric', hour12: false }))
+    const offsetHours = berlinHour - 12
+    const dayStart = new Date(`${dateStr}T00:00:00Z`)
+    dayStart.setHours(dayStart.getHours() - offsetHours)
+    const dayEnd = new Date(dayStart)
+    dayEnd.setHours(dayEnd.getHours() + 24)
+    return { gte: dayStart, lt: dayEnd }
+  }
+
+  async function countCompletedOn(userId, date) {
+    return prisma.taskLog.count({
+      where: { completedBy: userId, status: 'completed', loggedAt: berlinDayUTCRange(date) },
+    })
+  }
 
   async function countFor(userId, from, to) {
     return prisma.taskLog.count({
@@ -197,12 +229,10 @@ router.get('/stats', requireAuth, async (req, res) => {
     })
   }
 
-  const today = todayString()
-
   const userStats = await Promise.all(users.map(async (u) => ({
     id: u.id,
     name: u.name,
-    curDay: await countFor(u.id, today, today),
+    curDay: await countCompletedOn(u.id, today),
     curWeek: await countFor(u.id, curWeekStart, curWeekEnd),
     lastWeek: await countFor(u.id, lastWeekStart, lastWeekEnd),
     curMonth: await countFor(u.id, curMonthStart, curMonthEnd),
