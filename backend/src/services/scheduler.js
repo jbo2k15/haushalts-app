@@ -84,7 +84,15 @@ async function expireOnce() {
       where: { taskId_forDate: { taskId: task.id, forDate: task.dueDate } },
     })
     if (!completion) {
-      console.log(`[Scheduler] Einmalaufgabe abgelaufen: "${task.title}" (fällig: ${task.dueDate})`)
+      const alreadyLogged = await prisma.taskLog.findFirst({
+        where: { taskId: task.id, forDate: task.dueDate, status: 'expired' },
+      })
+      if (!alreadyLogged) {
+        await prisma.taskLog.create({
+          data: { taskId: task.id, taskTitle: task.title, status: 'expired', forDate: task.dueDate },
+        })
+      }
+      await prisma.task.update({ where: { id: task.id }, data: { isActive: false } })
     }
   }
 }
