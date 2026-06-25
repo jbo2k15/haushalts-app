@@ -282,9 +282,7 @@ router.post('/admin/import', requireAuth, requireAdmin, async (req, res) => {
   let count = 0
 
   for (const t of tasks) {
-    if (!t.title || typeof t.title !== 'string' || t.title.trim().length === 0 || t.title.length > 200) continue
-    if (!VALID_TYPES.includes(t.type)) continue
-    if (t.priority && !VALID_PRIORITIES.includes(t.priority)) continue
+    if (validateTaskInput(t)) continue
     await prisma.task.create({
       data: {
         title: t.title.trim(),
