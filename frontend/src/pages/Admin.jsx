@@ -8,9 +8,9 @@ import { api } from '../api/client.js'
 const WEEKDAY_LABELS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0] // Mo–So
 const PRIORITY_LABELS = { high: 'Hoch', normal: 'Normal', low: 'Niedrig' }
-const TYPE_LABELS = { daily: 'Täglich', weekly: 'Wöchentlich', monthly: 'Monatlich' }
+const TYPE_LABELS = { daily: 'Täglich', weekly: 'Wöchentlich', monthly: 'Monatlich', once: 'Einmalig' }
 
-const EMPTY_FORM = { title: '', type: 'daily', priority: 'normal', weekdays: [], fixedWeekday: '', fixedDayOfMonth: '', isActive: true }
+const EMPTY_FORM = { title: '', type: 'daily', priority: 'normal', weekdays: [], fixedWeekday: '', fixedDayOfMonth: '', dueDate: '', isActive: true }
 
 function SortableTask({ task, onEdit, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
@@ -67,6 +67,29 @@ export default function Admin() {
 
   useEffect(() => { loadTasks(); loadUsers() }, [])
 
+  async function handleExport() {
+    const data = await api.get('/tasks/admin/export')
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'aufgaben.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleImport(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    const text = await file.text()
+    let data
+    try { data = JSON.parse(text) } catch { alert('Ungültige JSON-Datei'); return }
+    const result = await api.post('/tasks/admin/import', data)
+    alert(result.message)
+    loadTasks()
+    e.target.value = ''
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     const payload = {
@@ -74,6 +97,7 @@ export default function Admin() {
       weekdays: form.type === 'daily' ? form.weekdays : [],
       fixedWeekday: form.type === 'weekly' && form.fixedWeekday !== '' ? Number(form.fixedWeekday) : null,
       fixedDayOfMonth: form.type === 'monthly' && form.fixedDayOfMonth !== '' ? Number(form.fixedDayOfMonth) : null,
+      dueDate: form.type === 'once' ? form.dueDate : null,
     }
     if (editId) {
       await api.put(`/tasks/admin/${editId}`, payload)
@@ -94,6 +118,7 @@ export default function Admin() {
       weekdays: task.weekdays || [],
       fixedWeekday: task.fixedWeekday ?? '',
       fixedDayOfMonth: task.fixedDayOfMonth ?? '',
+      dueDate: task.dueDate || '',
       isActive: task.isActive,
     })
     setEditId(task.id)
@@ -166,6 +191,19 @@ export default function Admin() {
               {showForm ? 'Formular schließen' : '+ Neue Aufgabe'}
             </button>
 
+            <div className="flex gap-2">
+              <button
+                onClick={handleExport}
+                className="flex-1 bg-white border border-gray-200 text-gray-600 rounded-xl py-2 text-sm font-medium"
+              >
+                ↓ Exportieren
+              </button>
+              <label className="flex-1 bg-white border border-gray-200 text-gray-600 rounded-xl py-2 text-sm font-medium text-center cursor-pointer">
+                ↑ Importieren
+                <input type="file" accept=".json" className="hidden" onChange={handleImport} />
+              </label>
+            </div>
+
             {showForm && (
               <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
                 <div>
@@ -181,6 +219,7 @@ export default function Admin() {
                       <option value="daily">Täglich</option>
                       <option value="weekly">Wöchentlich</option>
                       <option value="monthly">Monatlich</option>
+                      <option value="once">Einmalig</option>
                     </select>
                   </div>
                   <div>
@@ -228,6 +267,15 @@ export default function Admin() {
                   </div>
                 )}
 
+                {form.type === 'once' && (
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Fälligkeitsdatum</label>
+                    <input type="date" required
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2">
                   <input type="checkbox" id="isActive" checked={form.isActive}
                     onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="accent-orange-600" />
@@ -241,7 +289,7 @@ export default function Admin() {
             )}
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              {['daily', 'weekly', 'monthly'].map(type => {
+              {['daily', 'weekly', 'monthly', 'once'].map(type => {
                 const group = tasks.filter(t => t.type === type)
                 return (
                   <div key={type} className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-3">

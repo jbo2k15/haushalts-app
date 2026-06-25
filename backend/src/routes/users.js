@@ -12,7 +12,18 @@ router.put('/me', requireAuth, async (req, res) => {
   const updated = await prisma.user.update({
     where: { id: req.user.id },
     data: { name: name.trim() },
-    select: { id: true, email: true, name: true, role: true, mustChangePassword: true },
+    select: { id: true, email: true, name: true, role: true, mustChangePassword: true, vacationMode: true },
+  })
+  res.json(updated)
+})
+
+router.put('/me/vacation', requireAuth, async (req, res) => {
+  const { vacationMode } = req.body
+  if (typeof vacationMode !== 'boolean') return res.status(400).json({ error: 'Ungültiger Wert' })
+  const updated = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { vacationMode },
+    select: { id: true, email: true, name: true, role: true, mustChangePassword: true, vacationMode: true },
   })
   res.json(updated)
 })

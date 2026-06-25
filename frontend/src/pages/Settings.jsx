@@ -16,6 +16,7 @@ export default function Settings() {
   const [name, setName] = useState(user?.name || '')
   const [nameSaved, setNameSaved] = useState(false)
   const [nameError, setNameError] = useState('')
+  const [vacationMode, setVacationMode] = useState(user?.vacationMode || false)
 
   useEffect(() => {
     setPushSupported('serviceWorker' in navigator && 'PushManager' in window)
@@ -51,6 +52,12 @@ export default function Settings() {
       await api.post('/users/push-subscription', { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth })
       setPushEnabled(true)
     }
+  }
+
+  async function toggleVacation() {
+    const updated = await api.put('/users/me/vacation', { vacationMode: !vacationMode })
+    setVacationMode(updated.vacationMode)
+    setUser(updated)
   }
 
   async function saveName() {
@@ -117,6 +124,20 @@ export default function Settings() {
                 </button>
               </div>
             )}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+            <h2 className="font-medium text-gray-800">Urlaubsmodus</h2>
+            <p className="text-sm text-gray-500">Im Urlaubsmodus erhältst du keine Push-Benachrichtigungen.</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Aktivieren</span>
+              <button
+                onClick={toggleVacation}
+                className={`w-11 h-6 rounded-full transition-colors ${vacationMode ? 'bg-orange-600' : 'bg-gray-300'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${vacationMode ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4">
