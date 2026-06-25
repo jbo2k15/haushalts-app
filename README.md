@@ -4,14 +4,16 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 
 ## Funktionen
 
-- **Aufgaben** — Tägliche, wöchentliche und monatliche Aufgaben; Drag & Drop zum Sortieren
-- **Aufgabenlog** — Protokoll aller erledigten und abgelaufenen Aufgaben
+- **Aufgaben** — Tägliche, wöchentliche, monatliche und einmalige Aufgaben (mit Fälligkeitsdatum); Drag & Drop zum Sortieren (Desktop & Mobil)
+- **Aufgabenlog** — Protokoll aller erledigten und abgelaufenen Aufgaben (bis 100 Einträge)
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, diese Woche, letzte Woche, diesen und letzten Monat
-- **Ruhmeshalle** — Gesamtranking mit Trophäen: 🥉 Tagessieger, 🥈 Wochensieger, 🥇 Monatssieger
+- **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger; Trophäen werden nur für abgeschlossene Perioden vergeben
 - **Push-Benachrichtigungen** — Tägliche und wöchentliche Erinnerungen an offene Aufgaben
 - **Abfallkalender** — Anzeige kommender Abholtermine via iCal-Feed
-- **Nutzerverwaltung** — Registrierung mit Admin-Freischaltung, Rollenverwaltung
-- **Passwort-Reset** — Per E-Mail-Link
+- **Urlaubsmodus** — Pausiert Benachrichtigungen für einzelne Nutzer
+- **Export / Import** — Aufgaben als JSON exportieren und importieren (max. 200 Aufgaben)
+- **Nutzerverwaltung** — Registrierung mit Admin-Freischaltung, Rollenverwaltung, Account sperren/entsperren
+- **Passwort-Reset** — Per E-Mail-Link; invalidiert automatisch alle aktiven Sessions
 
 ---
 
