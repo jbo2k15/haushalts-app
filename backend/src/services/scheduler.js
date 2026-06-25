@@ -192,15 +192,19 @@ export function startScheduler() {
   }, { timezone: 'Europe/Berlin' })
 
   cron.schedule('0 0 * * *', async () => {
-    try {
-      await expireDailyTasks()
-      await expireWeeklyTasks()
-      await expireMonthlyTasks()
-      await expireOnce()
-      await updateTrophyCache()
-      await syncWasteCalendar()
-    } catch (err) {
-      console.error('[Scheduler] Fehler in Mitternachts-Job:', err)
+    for (const [name, job] of [
+      ['expireDailyTasks', expireDailyTasks],
+      ['expireWeeklyTasks', expireWeeklyTasks],
+      ['expireMonthlyTasks', expireMonthlyTasks],
+      ['expireOnce', expireOnce],
+      ['updateTrophyCache', updateTrophyCache],
+      ['syncWasteCalendar', syncWasteCalendar],
+    ]) {
+      try {
+        await job()
+      } catch (err) {
+        console.error(`[Scheduler] Fehler in ${name}:`, err.message)
+      }
     }
   }, { timezone: 'Europe/Berlin' })
 
