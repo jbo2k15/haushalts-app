@@ -46,7 +46,7 @@ export default function HallOfFame() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 pb-8">
         <div className="flex items-center gap-3 py-4">
-          <button onClick={() => navigate('/')} className="text-purple-600 text-sm">← Zurück</button>
+          <button onClick={() => navigate('/')} className="text-orange-600 text-sm">← Zurück</button>
           <h1 className="text-xl font-semibold">Ruhmeshalle</h1>
         </div>
 

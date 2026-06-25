@@ -25,7 +25,7 @@ export default function StatsSection({ refreshKey }) {
         </div>
         <button
           onClick={() => navigate('/hall-of-fame')}
-          className="text-xs text-purple-600 font-medium"
+          className="text-xs text-orange-600 font-medium"
         >
           🏆 Ruhmeshalle
         </button>
@@ -46,13 +46,13 @@ export default function StatsSection({ refreshKey }) {
           return (
             <div key={u.id} className="flex items-center gap-2 px-4 py-2.5">
               <span className="flex-1 text-sm text-gray-700 truncate">{u.name}</span>
-              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${dayLeader ? 'text-purple-600 bg-purple-50' : 'text-gray-400'}`}>
+              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${dayLeader ? 'text-orange-600 bg-orange-50' : 'text-gray-400'}`}>
                 {u.curDay}
               </span>
-              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${weekLeader ? 'text-purple-600 bg-purple-50' : 'text-gray-400'}`}>
+              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${weekLeader ? 'text-orange-600 bg-orange-50' : 'text-gray-400'}`}>
                 {u.curWeek}
               </span>
-              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${monthLeader ? 'text-purple-600 bg-purple-50' : 'text-gray-400'}`}>
+              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${monthLeader ? 'text-orange-600 bg-orange-50' : 'text-gray-400'}`}>
                 {u.curMonth}
               </span>
             </div>

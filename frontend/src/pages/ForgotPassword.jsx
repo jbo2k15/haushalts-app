@@ -20,7 +20,7 @@ export default function ForgotPassword() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 p-6 text-center">
           <p className="text-gray-700 text-sm">Falls die E-Mail-Adresse registriert ist, hast du einen Link zum Zurücksetzen des Passworts erhalten.</p>
-          <Link to="/login" className="mt-4 inline-block text-purple-600 text-sm">Zur Anmeldung</Link>
+          <Link to="/login" className="mt-4 inline-block text-orange-600 text-sm">Zur Anmeldung</Link>
         </div>
       </div>
     )
@@ -37,14 +37,14 @@ export default function ForgotPassword() {
             <label className="block text-sm text-gray-600 mb-1">E-Mail</label>
             <input
               type="email" required
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               value={email} onChange={e => setEmail(e.target.value)}
             />
           </div>
-          <button type="submit" disabled={loading} className="w-full bg-purple-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50">
+          <button type="submit" disabled={loading} className="w-full bg-orange-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50">
             {loading ? 'Senden…' : 'Link senden'}
           </button>
-          <div className="text-center"><Link to="/login" className="text-sm text-purple-600">Zurück zur Anmeldung</Link></div>
+          <div className="text-center"><Link to="/login" className="text-sm text-orange-600">Zurück zur Anmeldung</Link></div>
         </form>
       </div>
     </div>

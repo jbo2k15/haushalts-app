@@ -33,11 +33,11 @@ export default function ResetPassword() {
             <label className="block text-sm text-gray-600 mb-1">Neues Passwort (min. 6 Zeichen)</label>
             <input
               type="password" required minLength={6}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               value={password} onChange={e => setPassword(e.target.value)}
             />
           </div>
-          <button type="submit" disabled={loading} className="w-full bg-purple-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50">
+          <button type="submit" disabled={loading} className="w-full bg-orange-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50">
             {loading ? 'Speichern…' : 'Passwort speichern'}
           </button>
         </form>
