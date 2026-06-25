@@ -31,16 +31,11 @@ export default function TaskBlock({ type, tasks, onToggle }) {
   const sortedRest = sortTasks(rest)
   const sorted = [...sortedOverdue, ...sortedRest]
 
-  const todayWeekday = new Date().getDay()
-  const todayDayOfMonth = new Date().getDate()
-
   const markedTasks = sorted.map(t => ({
     ...t,
     pinned:
       (type === 'weekly' && t.fixedWeekday != null) ||
-      (type === 'monthly' && t.fixedDayOfMonth != null) ||
-      (type === 'weekly' && t.fixedWeekday === todayWeekday) ||
-      (type === 'monthly' && t.fixedDayOfMonth === todayDayOfMonth),
+      (type === 'monthly' && t.fixedDayOfMonth != null),
   }))
 
   return (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client.js'
+import { urlBase64ToUint8Array } from '../lib/push.js'
 
 const SNOOZE_KEY = 'pushSnoozedUntil'
 
@@ -10,13 +11,6 @@ function isSnoozed() {
 
 function snoozeUntilTomorrow() {
   localStorage.setItem(SNOOZE_KEY, Date.now() + 24 * 60 * 60 * 1000)
-}
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = window.atob(base64)
-  return new Uint8Array([...rawData].map(c => c.charCodeAt(0)))
 }
 
 export default function PushPromptBanner() {
