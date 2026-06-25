@@ -1,31 +1,34 @@
 import { Router } from 'express'
 import prisma from '../lib/prisma.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
+import {
+  dateStringInBerlin,
+  todayString,
+  yesterdayString,
+  twoDaysAgoString,
+  currentWeekStart,
+  currentMonthStart,
+} from '../lib/dates.js'
 
 const router = Router()
 
-const TZ = 'Europe/Berlin'
+const LOG_LIMIT = 100
 
-function dateStringInBerlin(offsetDays = 0) {
-  const d = new Date()
-  d.setDate(d.getDate() + offsetDays)
-  return d.toLocaleDateString('sv-SE', { timeZone: TZ })
-}
+const VALID_TYPES = ['daily', 'weekly', 'monthly', 'once']
+const VALID_PRIORITIES = ['high', 'normal', 'low']
 
-function todayString() { return dateStringInBerlin(0) }
-function yesterdayString() { return dateStringInBerlin(-1) }
-function twoDaysAgoString() { return dateStringInBerlin(-2) }
-
-function currentWeekStart() {
-  const today = new Date(dateStringInBerlin(0))
-  const day = today.getDay()
-  const diff = (day + 6) % 7
-  today.setDate(today.getDate() - diff)
-  return today.toISOString().slice(0, 10)
-}
-
-function currentMonthStart() {
-  return dateStringInBerlin(0).slice(0, 7) + '-01'
+function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, dueDate }) {
+  if (!title || typeof title !== 'string' || title.trim().length === 0) return 'Titel ist erforderlich'
+  if (title.length > 200) return 'Titel darf maximal 200 Zeichen haben'
+  if (!VALID_TYPES.includes(type)) return 'Ungültiger Typ'
+  if (priority && !VALID_PRIORITIES.includes(priority)) return 'Ungültige Priorität'
+  if (Array.isArray(weekdays) && !weekdays.every(d => Number.isInteger(d) && d >= 0 && d <= 6)) return 'Ungültige Wochentage'
+  if (fixedWeekday != null && !(Number.isInteger(fixedWeekday) && fixedWeekday >= 0 && fixedWeekday <= 6)) return 'Ungültiger Wochentag'
+  if (fixedDayOfMonth != null && !(Number.isInteger(fixedDayOfMonth) && fixedDayOfMonth >= 1 && fixedDayOfMonth <= 31)) return 'Ungültiger Tag im Monat'
+  if (type === 'once') {
+    if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return 'Fälligkeitsdatum ist erforderlich (YYYY-MM-DD)'
+  }
+  return null
 }
 
 router.get('/', requireAuth, async (req, res) => {
@@ -34,7 +37,6 @@ router.get('/', requireAuth, async (req, res) => {
   const twoDaysAgo = twoDaysAgoString()
   const todayBerlin = new Date(dateStringInBerlin(0))
   const todayWeekday = todayBerlin.getDay()
-  const todayDayOfMonth = todayBerlin.getDate()
   const weekStart = currentWeekStart()
   const monthStart = currentMonthStart()
 
@@ -168,35 +170,113 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
 router.get('/log', requireAuth, async (req, res) => {
   const logs = await prisma.taskLog.findMany({
     orderBy: { loggedAt: 'desc' },
-    take: 100,
+    take: LOG_LIMIT,
   })
   res.json(logs)
 })
 
-router.get('/stats', requireAuth, async (req, res) => {
-  const now = new Date()
+function formatDateISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
-  // Aktuelle Woche (Mo–So)
+// Compute the UTC timestamps for start and end of a Berlin calendar day.
+// This handles both MEZ (UTC+1) and MESZ (UTC+2) correctly.
+function getUTCRangeForBerlinDay(dateStr) {
+  const noon = new Date(`${dateStr}T12:00:00Z`)
+  const berlinHour = parseInt(noon.toLocaleString('en-US', { timeZone: 'Europe/Berlin', hour: 'numeric', hour12: false }))
+  const offsetHours = berlinHour - 12
+  const dayStart = new Date(`${dateStr}T00:00:00Z`)
+  dayStart.setHours(dayStart.getHours() - offsetHours)
+  const dayEnd = new Date(dayStart)
+  dayEnd.setHours(dayEnd.getHours() + 24)
+  return { gte: dayStart, lt: dayEnd }
+}
+
+async function countCompletedTaskLogsOnDate(userId, date) {
+  return prisma.taskLog.count({
+    where: { completedBy: userId, status: 'completed', loggedAt: getUTCRangeForBerlinDay(date) },
+  })
+}
+
+async function countCompletedTaskLogs(userId, from, to) {
+  return prisma.taskLog.count({
+    where: { completedBy: userId, status: 'completed', forDate: { gte: from, lte: to } },
+  })
+}
+
+function calculateTrophies(allLogs, users, { today, curWeekStart, curMonthStart }) {
+  const dayTrophies = {}
+  const weekTrophies = {}
+  const monthTrophies = {}
+  users.forEach(u => { dayTrophies[u.id] = 0; weekTrophies[u.id] = 0; monthTrophies[u.id] = 0 })
+
+  const completionsByDay = {}
+  for (const log of allLogs) {
+    if (log.forDate >= today) continue
+    if (!completionsByDay[log.forDate]) completionsByDay[log.forDate] = {}
+    completionsByDay[log.forDate][log.completedBy] = (completionsByDay[log.forDate][log.completedBy] || 0) + 1
+  }
+  for (const counts of Object.values(completionsByDay)) {
+    const max = Math.max(...Object.values(counts))
+    if (max === 0) continue
+    const winners = Object.entries(counts).filter(([, v]) => v === max)
+    if (winners.length === 1) dayTrophies[winners[0][0]] = (dayTrophies[winners[0][0]] || 0) + 1
+  }
+
+  const completionsByWeek = {}
+  for (const log of allLogs) {
+    const d = new Date(log.forDate)
+    const diff = (d.getDay() + 6) % 7
+    const mon = new Date(d)
+    mon.setDate(d.getDate() - diff)
+    const weekKey = formatDateISO(mon)
+    if (weekKey >= curWeekStart) continue
+    if (!completionsByWeek[weekKey]) completionsByWeek[weekKey] = {}
+    completionsByWeek[weekKey][log.completedBy] = (completionsByWeek[weekKey][log.completedBy] || 0) + 1
+  }
+  for (const counts of Object.values(completionsByWeek)) {
+    const max = Math.max(...Object.values(counts))
+    if (max === 0) continue
+    const winners = Object.entries(counts).filter(([, v]) => v === max)
+    if (winners.length === 1) weekTrophies[winners[0][0]] = (weekTrophies[winners[0][0]] || 0) + 1
+  }
+
+  const completionsByMonth = {}
+  for (const log of allLogs) {
+    const monthKey = log.forDate.slice(0, 7)
+    if (monthKey >= curMonthStart.slice(0, 7)) continue
+    if (!completionsByMonth[monthKey]) completionsByMonth[monthKey] = {}
+    completionsByMonth[monthKey][log.completedBy] = (completionsByMonth[monthKey][log.completedBy] || 0) + 1
+  }
+  for (const counts of Object.values(completionsByMonth)) {
+    const max = Math.max(...Object.values(counts))
+    if (max === 0) continue
+    const winners = Object.entries(counts).filter(([, v]) => v === max)
+    if (winners.length === 1) monthTrophies[winners[0][0]] = (monthTrophies[winners[0][0]] || 0) + 1
+  }
+
+  return { dayTrophies, weekTrophies, monthTrophies }
+}
+
+router.get('/stats', requireAuth, async (req, res) => {
   const curWeekStart = currentWeekStart()
   const curWeekEnd = (() => {
     const d = new Date(curWeekStart)
     d.setDate(d.getDate() + 6)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    return formatDateISO(d)
   })()
 
-  // Letzte Woche
   const lastWeekStart = (() => {
     const d = new Date(curWeekStart)
     d.setDate(d.getDate() - 7)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    return formatDateISO(d)
   })()
   const lastWeekEnd = (() => {
     const d = new Date(curWeekStart)
     d.setDate(d.getDate() - 1)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    return formatDateISO(d)
   })()
 
-  // Aktueller Monat
   const curMonthStart = currentMonthStart()
   const curMonthEnd = (() => {
     const todayBerlin = new Date(dateStringInBerlin(0))
@@ -204,7 +284,6 @@ router.get('/stats', requireAuth, async (req, res) => {
     return `${todayBerlin.getFullYear()}-${String(todayBerlin.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
   })()
 
-  // Letzter Monat
   const lastMonthEnd = (() => {
     const todayBerlin = new Date(dateStringInBerlin(0))
     const lastDay = new Date(todayBerlin.getFullYear(), todayBerlin.getMonth(), 0).getDate()
@@ -220,105 +299,28 @@ router.get('/stats', requireAuth, async (req, res) => {
 
   const today = todayString()
 
-  function berlinDayUTCRange(dateStr) {
-    // Compute the UTC timestamps for start and end of a Berlin calendar day
-    // This handles both MEZ (UTC+1) and MESZ (UTC+2) correctly
-    const noon = new Date(`${dateStr}T12:00:00Z`)
-    const berlinHour = parseInt(noon.toLocaleString('en-US', { timeZone: 'Europe/Berlin', hour: 'numeric', hour12: false }))
-    const offsetHours = berlinHour - 12
-    const dayStart = new Date(`${dateStr}T00:00:00Z`)
-    dayStart.setHours(dayStart.getHours() - offsetHours)
-    const dayEnd = new Date(dayStart)
-    dayEnd.setHours(dayEnd.getHours() + 24)
-    return { gte: dayStart, lt: dayEnd }
-  }
-
-  async function countCompletedOn(userId, date) {
-    return prisma.taskLog.count({
-      where: { completedBy: userId, status: 'completed', loggedAt: berlinDayUTCRange(date) },
-    })
-  }
-
-  async function countFor(userId, from, to) {
-    return prisma.taskLog.count({
-      where: { completedBy: userId, status: 'completed', forDate: { gte: from, lte: to } },
-    })
-  }
-
-  const userStats = await Promise.all(users.map(async (u) => ({
-    id: u.id,
-    name: u.name,
-    curDay: await countCompletedOn(u.id, today),
-    curWeek: await countFor(u.id, curWeekStart, curWeekEnd),
-    lastWeek: await countFor(u.id, lastWeekStart, lastWeekEnd),
-    curMonth: await countFor(u.id, curMonthStart, curMonthEnd),
-    lastMonth: await countFor(u.id, lastMonthStart, lastMonthEnd),
+  const userStats = await Promise.all(users.map(async (userRecord) => ({
+    id: userRecord.id,
+    name: userRecord.name,
+    curDay: await countCompletedTaskLogsOnDate(userRecord.id, today),
+    curWeek: await countCompletedTaskLogs(userRecord.id, curWeekStart, curWeekEnd),
+    lastWeek: await countCompletedTaskLogs(userRecord.id, lastWeekStart, lastWeekEnd),
+    curMonth: await countCompletedTaskLogs(userRecord.id, curMonthStart, curMonthEnd),
+    lastMonth: await countCompletedTaskLogs(userRecord.id, lastMonthStart, lastMonthEnd),
   })))
 
-  // Trophäen aus allen abgeschlossenen Perioden berechnen
   const allLogs = await prisma.taskLog.findMany({
     where: { status: 'completed', completedBy: { not: null } },
     select: { completedBy: true, forDate: true },
   })
 
-  const dayTrophies = {}
-  const weekTrophies = {}
-  const monthTrophies = {}
-  users.forEach(u => { dayTrophies[u.id] = 0; weekTrophies[u.id] = 0; monthTrophies[u.id] = 0 })
+  const { dayTrophies, weekTrophies, monthTrophies } = calculateTrophies(allLogs, users, { today, curWeekStart, curMonthStart })
 
-  // Tage gruppieren (ohne heute)
-  const byDay = {}
-  for (const log of allLogs) {
-    if (log.forDate >= today) continue
-    if (!byDay[log.forDate]) byDay[log.forDate] = {}
-    byDay[log.forDate][log.completedBy] = (byDay[log.forDate][log.completedBy] || 0) + 1
-  }
-  for (const counts of Object.values(byDay)) {
-    const max = Math.max(...Object.values(counts))
-    if (max === 0) continue
-    const winners = Object.entries(counts).filter(([, v]) => v === max)
-    if (winners.length === 1) dayTrophies[winners[0][0]] = (dayTrophies[winners[0][0]] || 0) + 1
-  }
-
-  // Wochen gruppieren (ohne laufende Woche)
-  const byWeek = {}
-  for (const log of allLogs) {
-    const d = new Date(log.forDate)
-    const diff = (d.getDay() + 6) % 7
-    const mon = new Date(d)
-    mon.setDate(d.getDate() - diff)
-    const wk = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, '0')}-${String(mon.getDate()).padStart(2, '0')}`
-    if (wk >= curWeekStart) continue
-    if (!byWeek[wk]) byWeek[wk] = {}
-    byWeek[wk][log.completedBy] = (byWeek[wk][log.completedBy] || 0) + 1
-  }
-  for (const counts of Object.values(byWeek)) {
-    const max = Math.max(...Object.values(counts))
-    if (max === 0) continue
-    const winners = Object.entries(counts).filter(([, v]) => v === max)
-    if (winners.length === 1) weekTrophies[winners[0][0]] = (weekTrophies[winners[0][0]] || 0) + 1
-  }
-
-  // Monate gruppieren (ohne laufenden Monat)
-  const byMonth = {}
-  for (const log of allLogs) {
-    const mo = log.forDate.slice(0, 7)
-    if (mo >= curMonthStart.slice(0, 7)) continue
-    if (!byMonth[mo]) byMonth[mo] = {}
-    byMonth[mo][log.completedBy] = (byMonth[mo][log.completedBy] || 0) + 1
-  }
-  for (const counts of Object.values(byMonth)) {
-    const max = Math.max(...Object.values(counts))
-    if (max === 0) continue
-    const winners = Object.entries(counts).filter(([, v]) => v === max)
-    if (winners.length === 1) monthTrophies[winners[0][0]] = (monthTrophies[winners[0][0]] || 0) + 1
-  }
-
-  const result = userStats.map(u => ({
-    ...u,
-    dayTrophies: dayTrophies[u.id] || 0,
-    weekTrophies: weekTrophies[u.id] || 0,
-    monthTrophies: monthTrophies[u.id] || 0,
+  const result = userStats.map(userStat => ({
+    ...userStat,
+    dayTrophies: dayTrophies[userStat.id] || 0,
+    weekTrophies: weekTrophies[userStat.id] || 0,
+    monthTrophies: monthTrophies[userStat.id] || 0,
   }))
 
   res.json(result)
@@ -328,23 +330,6 @@ router.get('/admin', requireAuth, requireAdmin, async (req, res) => {
   const tasks = await prisma.task.findMany({ orderBy: [{ sortOrder: 'asc' }] })
   res.json(tasks.map(t => ({ ...t, weekdays: t.weekdays ? JSON.parse(t.weekdays) : null })))
 })
-
-const VALID_TYPES = ['daily', 'weekly', 'monthly', 'once']
-const VALID_PRIORITIES = ['high', 'normal', 'low']
-
-function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, dueDate }) {
-  if (!title || typeof title !== 'string' || title.trim().length === 0) return 'Titel ist erforderlich'
-  if (title.length > 200) return 'Titel darf maximal 200 Zeichen haben'
-  if (!VALID_TYPES.includes(type)) return 'Ungültiger Typ'
-  if (priority && !VALID_PRIORITIES.includes(priority)) return 'Ungültige Priorität'
-  if (Array.isArray(weekdays) && !weekdays.every(d => Number.isInteger(d) && d >= 0 && d <= 6)) return 'Ungültige Wochentage'
-  if (fixedWeekday != null && !(Number.isInteger(fixedWeekday) && fixedWeekday >= 0 && fixedWeekday <= 6)) return 'Ungültiger Wochentag'
-  if (fixedDayOfMonth != null && !(Number.isInteger(fixedDayOfMonth) && fixedDayOfMonth >= 1 && fixedDayOfMonth <= 31)) return 'Ungültiger Tag im Monat'
-  if (type === 'once') {
-    if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return 'Fälligkeitsdatum ist erforderlich (YYYY-MM-DD)'
-  }
-  return null
-}
 
 router.get('/admin/export', requireAuth, requireAdmin, async (req, res) => {
   const tasks = await prisma.task.findMany({
@@ -363,17 +348,14 @@ router.post('/admin/import', requireAuth, requireAdmin, async (req, res) => {
   if (!Array.isArray(tasks) || tasks.length === 0) return res.status(400).json({ error: 'Ungültiges Format' })
   if (tasks.length > 200) return res.status(400).json({ error: 'Maximal 200 Aufgaben pro Import' })
 
-  const IMPORT_VALID_TYPES = ['daily', 'weekly', 'monthly', 'once']
-  const IMPORT_VALID_PRIORITIES = ['high', 'normal', 'low']
-
   const maxOrder = await prisma.task.aggregate({ _max: { sortOrder: true } })
   let nextOrder = (maxOrder._max.sortOrder || 0) + 1
   let count = 0
 
   for (const t of tasks) {
     if (!t.title || typeof t.title !== 'string' || t.title.trim().length === 0 || t.title.length > 200) continue
-    if (!IMPORT_VALID_TYPES.includes(t.type)) continue
-    if (t.priority && !IMPORT_VALID_PRIORITIES.includes(t.priority)) continue
+    if (!VALID_TYPES.includes(t.type)) continue
+    if (t.priority && !VALID_PRIORITIES.includes(t.priority)) continue
     await prisma.task.create({
       data: {
         title: t.title.trim(),

@@ -46,6 +46,7 @@ export default function TaskRow({ task, onToggle }) {
       </div>
       <span className={`flex-1 text-sm ${task.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
         {task.title}
+        {task.isOnce && <span className="ml-1.5 text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">Einmalig</span>}
       </span>
       <div className="flex items-center gap-2 flex-shrink-0">
         {task.fixedWeekday != null && (

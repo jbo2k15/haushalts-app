@@ -2,18 +2,7 @@ import cron from 'node-cron'
 import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
 import { syncWasteCalendar } from './waste-calendar.js'
-
-const TZ = 'Europe/Berlin'
-
-function dateStringInBerlin(offsetDays = 0) {
-  const d = new Date()
-  d.setDate(d.getDate() + offsetDays)
-  return d.toLocaleDateString('sv-SE', { timeZone: TZ })
-}
-
-function todayString() { return dateStringInBerlin(0) }
-function yesterdayString() { return dateStringInBerlin(-1) }
-function twoDaysAgoString() { return dateStringInBerlin(-2) }
+import { todayString, twoDaysAgoString } from '../lib/dates.js'
 
 async function expireDailyTasks() {
   const twoDaysAgo = twoDaysAgoString()
@@ -24,10 +13,8 @@ async function expireDailyTasks() {
   const tasks = await prisma.task.findMany({ where: { type: 'daily', isActive: true } })
 
   for (const task of tasks) {
-    // Aufgabe existierte an dem Tag noch nicht
     if (task.createdAt > twoDaysAgoDate) continue
 
-    // Aufgabe war an dem Wochentag nicht fällig
     const weekdays = task.weekdays ? JSON.parse(task.weekdays) : null
     if (weekdays && weekdays.length > 0 && !weekdays.includes(twoDaysAgoWeekday)) continue
 
@@ -144,20 +131,20 @@ async function sendWeeklyReminders() {
   monday.setDate(now.getDate() - ((now.getDay() + 6) % 7))
   const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
 
-  const openCount = []
+  const openTasks = []
   for (const task of tasks) {
     const completion = await prisma.taskCompletion.findFirst({
       where: { taskId: task.id, forDate: { gte: weekStart } },
     })
-    if (!completion) openCount.push(task)
+    if (!completion) openTasks.push(task)
   }
 
-  if (openCount.length > 0) {
+  if (openTasks.length > 0) {
     const users = await prisma.user.findMany({ where: { approved: true, vacationMode: false } })
     for (const user of users) {
       await sendPushToUser(user.id, {
         title: 'Haushalt',
-        body: `Du hast noch ${openCount.length} offene Aufgabe${openCount.length === 1 ? '' : 'n'} in dieser Woche.`,
+        body: `Du hast noch ${openTasks.length} offene Aufgabe${openTasks.length === 1 ? '' : 'n'} in dieser Woche.`,
       })
     }
   }
