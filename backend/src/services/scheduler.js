@@ -163,7 +163,7 @@ async function updateTrophyCache() {
   const users = await prisma.user.findMany({ where: { approved: true } })
   const allLogs = await prisma.taskLog.findMany({
     where: { status: 'completed', completedBy: { not: null } },
-    select: { completedBy: true, forDate: true },
+    select: { completedBy: true, loggedAt: true },
   })
 
   const today = todayString()
@@ -208,4 +208,5 @@ export function startScheduler() {
   }, { timezone: 'Europe/Berlin' })
 
   syncWasteCalendar().catch(err => console.error('[Scheduler] Fehler bei initialem Kalender-Sync:', err))
+  updateTrophyCache().catch(err => console.error('[Scheduler] Fehler bei initialem Trophy-Cache:', err))
 }
