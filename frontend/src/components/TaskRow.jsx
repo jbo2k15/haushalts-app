@@ -25,7 +25,7 @@ export default function TaskRow({ task, onToggle }) {
   }
 
   let rowBg = 'bg-white'
-  if (task.overdueDay2 && !task.completed) rowBg = 'bg-red-50'
+  if ((task.overdueDay2 || task.isOverdue) && !task.completed) rowBg = 'bg-red-50'
   else if (task.overdueDay1 && !task.completed) rowBg = 'bg-orange-50'
   else if (task.pinned) rowBg = 'bg-orange-50'
 
@@ -36,7 +36,7 @@ export default function TaskRow({ task, onToggle }) {
       onClick={handleClick}
     >
       <div className={`w-5 h-5 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors ${
-        task.completed ? 'bg-green-500 border-green-500' : task.overdueDay2 ? 'border-red-400' : task.overdueDay1 ? 'border-orange-400' : 'border-gray-300'
+        task.completed ? 'bg-green-500 border-green-500' : (task.overdueDay2 || task.isOverdue) ? 'border-red-400' : task.overdueDay1 ? 'border-orange-400' : 'border-gray-300'
       }`}>
         {task.completed && (
           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -46,7 +46,11 @@ export default function TaskRow({ task, onToggle }) {
       </div>
       <span className={`flex-1 text-sm ${task.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
         {task.title}
-        {task.isOnce && <span className="ml-1.5 text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">Einmalig</span>}
+        {task.isOnce && task.dueDate && (
+          <span className="ml-1.5 text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
+            {task.dueDate}
+          </span>
+        )}
       </span>
       <div className="flex items-center gap-2 flex-shrink-0">
         {task.fixedWeekday != null && (
@@ -63,6 +67,9 @@ export default function TaskRow({ task, onToggle }) {
         )}
         {task.overdueDay2 && !task.completed && (
           <span className="text-xs text-red-600">2 Tage</span>
+        )}
+        {task.isOverdue && !task.completed && (
+          <span className="text-xs text-red-600">überfällig</span>
         )}
       </div>
       {loading && <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />}
