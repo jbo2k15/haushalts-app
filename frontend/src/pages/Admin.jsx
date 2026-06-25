@@ -18,7 +18,7 @@ function SortableTask({ task, onEdit, onDelete }) {
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-b-0 bg-white">
-      <div {...attributes} {...listeners} className="text-gray-300 cursor-grab active:cursor-grabbing text-lg">⠿</div>
+      <div {...attributes} {...listeners} style={{ touchAction: 'none' }} className="text-gray-300 cursor-grab active:cursor-grabbing text-lg">⠿</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-800 truncate">{task.title}</span>
