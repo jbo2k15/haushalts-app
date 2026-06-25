@@ -93,6 +93,8 @@ model TaskCompletion {
   user        User     @relation(fields: [completedBy], references: [id], onDelete: Cascade)
 
   @@unique([taskId, forDate])
+  @@index([taskId])
+  @@index([completedBy])
 }
 
 model TaskLog {
@@ -106,4 +108,8 @@ model TaskLog {
   forDate     String
   task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
   user        User?    @relation(fields: [completedBy], references: [id], onDelete: SetNull)
+
+  @@index([completedBy, status])
+  @@index([loggedAt])
+  @@index([taskId])
 }
