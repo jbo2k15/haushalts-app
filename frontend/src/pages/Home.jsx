@@ -52,7 +52,9 @@ export default function Home() {
   useEffect(() => { loadTasks() }, [loadTasks])
 
   useEffect(() => {
-    const interval = setInterval(loadTasks, 30000)
+    const interval = setInterval(() => {
+      if (!document.hidden) loadTasks()
+    }, 30000)
     return () => clearInterval(interval)
   }, [loadTasks])
 
