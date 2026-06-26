@@ -31,7 +31,7 @@ function getGreetingMessage(firstName, dailyTasks) {
 export default function Home() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [tasks, setTasks] = useState({ daily: [], weekly: [], monthly: [] })
+  const [tasks, setTasks] = useState({ once: [], daily: [], weekly: [], monthly: [] })
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [logRefreshKey, setLogRefreshKey] = useState(0)
