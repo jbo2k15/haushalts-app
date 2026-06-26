@@ -183,6 +183,7 @@ export default function Settings() {
           </div>
         </div>
       </div>
+      <p className="text-center text-xs text-gray-300 pb-6">v{__APP_VERSION__}</p>
     </div>
   )
 }
