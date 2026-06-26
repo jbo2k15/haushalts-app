@@ -1,6 +1,6 @@
 export default function HeaderIllustration() {
   return (
-    <svg viewBox="169 0 50 100" height="80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg viewBox="152 0 78 100" height="80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       {/* Heart */}
       <path d="M191 10 Q191 6 194 6 Q197 6 197 10 Q197 14 191 17 Q185 14 185 10 Q185 6 188 6 Q191 6 191 10Z" fill="#EF4444"/>
       <circle cx="199" cy="4" r="1.3" fill="#F97316"/>
