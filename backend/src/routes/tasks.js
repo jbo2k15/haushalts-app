@@ -58,7 +58,7 @@ router.get('/', requireAuth, async (req, res) => {
         ...(onceDueDates.length ? [{ forDate: { in: onceDueDates } }] : []),
       ],
     },
-    include: { user: true },
+    select: { taskId: true, forDate: true, user: { select: { name: true } } },
   })
 
   // O(1) lookup maps
@@ -167,6 +167,7 @@ router.get('/log', requireAuth, async (req, res) => {
   const logs = await prisma.taskLog.findMany({
     orderBy: { loggedAt: 'desc' },
     take: LOG_LIMIT,
+    select: { id: true, taskTitle: true, status: true, userName: true, loggedAt: true },
   })
   res.json(logs)
 })
@@ -202,16 +203,21 @@ router.get('/stats', requireAuth, async (req, res) => {
   const today = todayString()
   const users = await prisma.user.findMany({ where: { approved: true } })
 
-  res.json(await Promise.all(users.map(async (userRecord) => ({
-    id: userRecord.id,
-    name: userRecord.name,
-    curDay: await countCompletedTaskLogsOnDate(userRecord.id, today),
-    curWeek: await countCompletedTaskLogs(userRecord.id, curWeekStart),
-    curMonth: await countCompletedTaskLogs(userRecord.id, curMonthStart),
-    dayTrophies: userRecord.dayTrophies,
-    weekTrophies: userRecord.weekTrophies,
-    monthTrophies: userRecord.monthTrophies,
-  }))))
+  res.json(await Promise.all(users.map(async (userRecord) => {
+    const [curDay, curWeek, curMonth] = await Promise.all([
+      countCompletedTaskLogsOnDate(userRecord.id, today),
+      countCompletedTaskLogs(userRecord.id, curWeekStart),
+      countCompletedTaskLogs(userRecord.id, curMonthStart),
+    ])
+    return {
+      id: userRecord.id,
+      name: userRecord.name,
+      curDay, curWeek, curMonth,
+      dayTrophies: userRecord.dayTrophies,
+      weekTrophies: userRecord.weekTrophies,
+      monthTrophies: userRecord.monthTrophies,
+    }
+  })))
 })
 
 router.get('/admin', requireAuth, requireAdmin, async (req, res) => {

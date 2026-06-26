@@ -111,7 +111,7 @@ model TaskLog {
   task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
   user        User?    @relation(fields: [completedBy], references: [id], onDelete: SetNull)
 
-  @@index([completedBy, status])
+  @@index([completedBy, status, forDate])
   @@index([loggedAt])
-  @@index([taskId])
+  @@index([taskId, forDate, status])
 }
