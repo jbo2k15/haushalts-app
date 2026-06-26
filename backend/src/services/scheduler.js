@@ -12,27 +12,26 @@ async function expireDailyTasks() {
   const twoDaysAgoWeekday = twoDaysAgoDate.getDay()
 
   const tasks = await prisma.task.findMany({ where: { type: 'daily', isActive: true } })
-
-  for (const task of tasks) {
-    if (task.createdAt > twoDaysAgoDate) continue
-
+  const dueTasks = tasks.filter(task => {
+    if (task.createdAt > twoDaysAgoDate) return false
     const weekdays = task.weekdays ? JSON.parse(task.weekdays) : null
-    if (weekdays && weekdays.length > 0 && !weekdays.includes(twoDaysAgoWeekday)) continue
+    return !weekdays || weekdays.length === 0 || weekdays.includes(twoDaysAgoWeekday)
+  })
+  if (dueTasks.length === 0) return
 
-    const completion = await prisma.taskCompletion.findUnique({
-      where: { taskId_forDate: { taskId: task.id, forDate: twoDaysAgo } },
-    })
-    if (!completion) {
-      const existing = await prisma.taskLog.findFirst({
-        where: { taskId: task.id, forDate: twoDaysAgo, status: 'expired' },
-      })
-      if (!existing) {
-        await prisma.taskLog.create({
-          data: { taskId: task.id, taskTitle: task.title, status: 'expired', forDate: twoDaysAgo },
-        })
-      }
-    }
-  }
+  const taskIds = dueTasks.map(t => t.id)
+  const [completions, existingLogs] = await Promise.all([
+    prisma.taskCompletion.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo }, select: { taskId: true } }),
+    prisma.taskLog.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo, status: 'expired' }, select: { taskId: true } }),
+  ])
+  const completedIds = new Set(completions.map(c => c.taskId))
+  const loggedIds = new Set(existingLogs.map(l => l.taskId))
+
+  await Promise.all(
+    dueTasks
+      .filter(t => !completedIds.has(t.id) && !loggedIds.has(t.id))
+      .map(t => prisma.taskLog.create({ data: { taskId: t.id, taskTitle: t.title, status: 'expired', forDate: twoDaysAgo } }))
+  )
 }
 
 async function expireWeeklyTasks() {
@@ -80,15 +79,20 @@ async function expireOnce() {
   // Deactivate completed once tasks so they disappear the next day.
   // Uncompleted once tasks stay visible (shown as overdue in the UI) until manually done or deleted.
   const tasks = await prisma.task.findMany({ where: { type: 'once', isActive: true } })
-  for (const task of tasks) {
-    if (!task.dueDate) continue
-    const completion = await prisma.taskCompletion.findUnique({
-      where: { taskId_forDate: { taskId: task.id, forDate: task.dueDate } },
-    })
-    if (completion) {
-      await prisma.task.update({ where: { id: task.id }, data: { isActive: false } })
-    }
-  }
+  const tasksWithDue = tasks.filter(t => t.dueDate)
+  if (tasksWithDue.length === 0) return
+
+  const completions = await prisma.taskCompletion.findMany({
+    where: { taskId: { in: tasksWithDue.map(t => t.id) } },
+    select: { taskId: true },
+  })
+  const completedIds = new Set(completions.map(c => c.taskId))
+
+  await Promise.all(
+    tasksWithDue
+      .filter(t => completedIds.has(t.id))
+      .map(t => prisma.task.update({ where: { id: t.id }, data: { isActive: false } }))
+  )
 }
 
 async function sendDailyReminders() {
@@ -101,26 +105,32 @@ async function sendDailyReminders() {
   if (globalSettings?.lastDailyNotifiedDate === today) return
 
   const todayWeekday = now.getDay()
-  const tasks = await prisma.task.findMany({ where: { type: 'daily', isActive: true } })
-  const users = await prisma.user.findMany({ where: { approved: true, vacationMode: false } })
+  const [tasks, users] = await Promise.all([
+    prisma.task.findMany({ where: { type: 'daily', isActive: true } }),
+    prisma.user.findMany({ where: { approved: true, vacationMode: false } }),
+  ])
 
-  for (const user of users) {
-    const openTasks = []
-    for (const task of tasks) {
-      const weekdays = task.weekdays ? JSON.parse(task.weekdays) : null
-      if (weekdays && !weekdays.includes(todayWeekday)) continue
-      const completion = await prisma.taskCompletion.findUnique({
-        where: { taskId_forDate: { taskId: task.id, forDate: today } },
-      })
-      if (!completion) openTasks.push(task)
-    }
-    if (openTasks.length > 0) {
-      await sendPushToUser(user.id, {
+  const dueTodayIds = tasks
+    .filter(t => { const w = t.weekdays ? JSON.parse(t.weekdays) : null; return !w || !w.length || w.includes(todayWeekday) })
+    .map(t => t.id)
+
+  const completedIds = new Set(
+    (await prisma.taskCompletion.findMany({
+      where: { forDate: today, taskId: { in: dueTodayIds } },
+      select: { taskId: true },
+    })).map(c => c.taskId)
+  )
+
+  const openCount = dueTodayIds.filter(id => !completedIds.has(id)).length
+
+  await Promise.all(
+    users
+      .filter(() => openCount > 0)
+      .map(user => sendPushToUser(user.id, {
         title: 'Haushalt',
-        body: `Du hast heute noch ${openTasks.length} Aufgabe${openTasks.length === 1 ? '' : 'n'} nicht abgeschlossen.`,
-      })
-    }
-  }
+        body: `Du hast heute noch ${openCount} Aufgabe${openCount === 1 ? '' : 'n'} nicht abgeschlossen.`,
+      }))
+  )
 
   await prisma.notificationSettings.upsert({
     where: { userId: null },
