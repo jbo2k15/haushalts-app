@@ -244,26 +244,24 @@ router.post('/admin/import', requireAuth, requireAdmin, async (req, res) => {
 
   const maxOrder = await prisma.task.aggregate({ _max: { sortOrder: true } })
   let nextOrder = (maxOrder._max.sortOrder || 0) + 1
-  let count = 0
 
-  for (const t of tasks) {
-    if (validateTaskInput(t)) continue
-    await prisma.task.create({
-      data: {
-        title: t.title.trim(),
-        type: t.type,
-        priority: t.priority || 'normal',
-        weekdays: Array.isArray(t.weekdays) && t.weekdays.length ? JSON.stringify(t.weekdays) : null,
-        fixedWeekday: Number.isInteger(t.fixedWeekday) ? t.fixedWeekday : null,
-        fixedDayOfMonth: Number.isInteger(t.fixedDayOfMonth) ? t.fixedDayOfMonth : null,
-        dueDate: t.type === 'once' && t.dueDate ? t.dueDate : null,
-        isActive: t.isActive !== false,
-        sortOrder: nextOrder++,
-      },
-    })
-    count++
-  }
-  res.json({ message: `${count} Aufgaben importiert` })
+  const valid = tasks.filter(t => !validateTaskInput(t))
+  if (valid.length === 0) return res.json({ message: '0 Aufgaben importiert' })
+
+  await prisma.task.createMany({
+    data: valid.map((t, i) => ({
+      title: t.title.trim(),
+      type: t.type,
+      priority: t.priority || 'normal',
+      weekdays: Array.isArray(t.weekdays) && t.weekdays.length ? JSON.stringify(t.weekdays) : null,
+      fixedWeekday: Number.isInteger(t.fixedWeekday) ? t.fixedWeekday : null,
+      fixedDayOfMonth: Number.isInteger(t.fixedDayOfMonth) ? t.fixedDayOfMonth : null,
+      dueDate: t.type === 'once' && t.dueDate ? t.dueDate : null,
+      isActive: t.isActive !== false,
+      sortOrder: nextOrder + i,
+    })),
+  })
+  res.json({ message: `${valid.length} Aufgaben importiert` })
 })
 
 router.post('/admin', requireAuth, requireAdmin, async (req, res) => {
@@ -328,9 +326,9 @@ router.post('/admin/reorder', requireAuth, requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Ungültige Reihenfolge' })
   }
   try {
-    for (let i = 0; i < orderedIds.length; i++) {
-      await prisma.task.update({ where: { id: orderedIds[i] }, data: { sortOrder: i } })
-    }
+    await prisma.$transaction(
+      orderedIds.map((id, i) => prisma.task.update({ where: { id }, data: { sortOrder: i } }))
+    )
     res.json({ message: 'Reihenfolge gespeichert' })
   } catch {
     res.status(400).json({ error: 'Ungültige Aufgaben-ID in der Reihenfolge' })

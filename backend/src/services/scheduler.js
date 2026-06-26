@@ -43,15 +43,18 @@ async function expireWeeklyTasks() {
   const weekStart = dateToISO(lastMonday)
 
   const tasks = await prisma.task.findMany({ where: { type: 'weekly', isActive: true } })
-  for (const task of tasks) {
-    const completion = await prisma.taskCompletion.findFirst({
-      where: { taskId: task.id, forDate: { gte: weekStart } },
+  if (tasks.length === 0) return
+
+  const completions = await prisma.taskCompletion.findMany({
+    where: { taskId: { in: tasks.map(t => t.id) }, forDate: { gte: weekStart } },
+    select: { taskId: true },
+  })
+  const completedIds = new Set(completions.map(c => c.taskId))
+  const expired = tasks.filter(t => !completedIds.has(t.id))
+  if (expired.length > 0) {
+    await prisma.taskLog.createMany({
+      data: expired.map(t => ({ taskId: t.id, taskTitle: t.title, status: 'expired', forDate: weekStart })),
     })
-    if (!completion) {
-      await prisma.taskLog.create({
-        data: { taskId: task.id, taskTitle: task.title, status: 'expired', forDate: weekStart },
-      })
-    }
   }
 }
 
@@ -63,15 +66,18 @@ async function expireMonthlyTasks() {
   const monthStr = dateToISO(lastMonth)
 
   const tasks = await prisma.task.findMany({ where: { type: 'monthly', isActive: true } })
-  for (const task of tasks) {
-    const completion = await prisma.taskCompletion.findFirst({
-      where: { taskId: task.id, forDate: { gte: monthStr } },
+  if (tasks.length === 0) return
+
+  const completions = await prisma.taskCompletion.findMany({
+    where: { taskId: { in: tasks.map(t => t.id) }, forDate: { gte: monthStr } },
+    select: { taskId: true },
+  })
+  const completedIds = new Set(completions.map(c => c.taskId))
+  const expired = tasks.filter(t => !completedIds.has(t.id))
+  if (expired.length > 0) {
+    await prisma.taskLog.createMany({
+      data: expired.map(t => ({ taskId: t.id, taskTitle: t.title, status: 'expired', forDate: monthStr })),
     })
-    if (!completion) {
-      await prisma.taskLog.create({
-        data: { taskId: task.id, taskTitle: task.title, status: 'expired', forDate: monthStr },
-      })
-    }
   }
 }
 
@@ -149,23 +155,23 @@ async function sendWeeklyReminders() {
   const weekStart = currentWeekStart()
   if (globalSettings?.lastWeeklyNotifiedDate === weekStart) return
 
-  const tasks = await prisma.task.findMany({ where: { type: 'weekly', isActive: true } })
-  const openTasks = []
-  for (const task of tasks) {
-    const completion = await prisma.taskCompletion.findFirst({
-      where: { taskId: task.id, forDate: { gte: weekStart } },
-    })
-    if (!completion) openTasks.push(task)
-  }
+  const [tasks, users] = await Promise.all([
+    prisma.task.findMany({ where: { type: 'weekly', isActive: true } }),
+    prisma.user.findMany({ where: { approved: true, vacationMode: false } }),
+  ])
 
-  if (openTasks.length > 0) {
-    const users = await prisma.user.findMany({ where: { approved: true, vacationMode: false } })
-    for (const user of users) {
-      await sendPushToUser(user.id, {
-        title: 'Haushalt',
-        body: `Du hast noch ${openTasks.length} offene Aufgabe${openTasks.length === 1 ? '' : 'n'} in dieser Woche.`,
-      })
-    }
+  const completions = tasks.length === 0 ? [] : await prisma.taskCompletion.findMany({
+    where: { taskId: { in: tasks.map(t => t.id) }, forDate: { gte: weekStart } },
+    select: { taskId: true },
+  })
+  const completedIds = new Set(completions.map(c => c.taskId))
+  const openCount = tasks.filter(t => !completedIds.has(t.id)).length
+
+  if (openCount > 0) {
+    await Promise.all(users.map(user => sendPushToUser(user.id, {
+      title: 'Haushalt',
+      body: `Du hast noch ${openCount} offene Aufgabe${openCount === 1 ? '' : 'n'} in dieser Woche.`,
+    })))
   }
 
   await prisma.notificationSettings.upsert({
@@ -192,16 +198,14 @@ async function updateTrophyCache() {
 
   const { dayTrophies, weekTrophies, monthTrophies } = calculateTrophies(allLogs, users, { today, curWeekStart, curMonthStart })
 
-  for (const user of users) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        dayTrophies: dayTrophies[user.id] || 0,
-        weekTrophies: weekTrophies[user.id] || 0,
-        monthTrophies: monthTrophies[user.id] || 0,
-      },
-    })
-  }
+  await Promise.all(users.map(user => prisma.user.update({
+    where: { id: user.id },
+    data: {
+      dayTrophies: dayTrophies[user.id] || 0,
+      weekTrophies: weekTrophies[user.id] || 0,
+      monthTrophies: monthTrophies[user.id] || 0,
+    },
+  })))
 }
 
 export function startScheduler() {
