@@ -6,6 +6,7 @@ import TaskBlock from '../components/TaskBlock.jsx'
 import StatsSection from '../components/StatsSection.jsx'
 import LogSection from '../components/LogSection.jsx'
 import PushPromptBanner from '../components/PushPromptBanner.jsx'
+import HeaderIllustration from '../components/HeaderIllustration.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
@@ -63,11 +64,12 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 pb-8">
-        <div className="flex items-center justify-between py-4">
+        <div className="flex items-center justify-between py-2">
           <div>
             <h1 className="text-xl font-semibold text-gray-900">Haushalt</h1>
             <p className="text-xs text-gray-400 mt-0.5">{dateLabel}</p>
           </div>
+          <HeaderIllustration />
           <div className="relative">
             <button
               className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-medium text-sm"
