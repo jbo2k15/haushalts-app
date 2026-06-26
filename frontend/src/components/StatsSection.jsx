@@ -10,13 +10,13 @@ export default function StatsSection({ refreshKey }) {
     api.get('/tasks/stats').then(setStats).catch(() => {})
   }, [refreshKey])
 
-  if (stats.length === 0) return null
-
   const { maxDay, maxWeek, maxMonth } = useMemo(() => ({
-    maxDay: Math.max(...stats.map(s => s.curDay)),
-    maxWeek: Math.max(...stats.map(s => s.curWeek)),
-    maxMonth: Math.max(...stats.map(s => s.curMonth)),
+    maxDay: stats.length ? Math.max(...stats.map(s => s.curDay)) : 0,
+    maxWeek: stats.length ? Math.max(...stats.map(s => s.curWeek)) : 0,
+    maxMonth: stats.length ? Math.max(...stats.map(s => s.curMonth)) : 0,
   }), [stats])
+
+  if (stats.length === 0) return null
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
