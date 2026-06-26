@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client.js'
 
@@ -12,9 +12,11 @@ export default function StatsSection({ refreshKey }) {
 
   if (stats.length === 0) return null
 
-  const maxDay = Math.max(...stats.map(userStat => userStat.curDay))
-  const maxWeek = Math.max(...stats.map(userStat => userStat.curWeek))
-  const maxMonth = Math.max(...stats.map(userStat => userStat.curMonth))
+  const { maxDay, maxWeek, maxMonth } = useMemo(() => ({
+    maxDay: Math.max(...stats.map(s => s.curDay)),
+    maxWeek: Math.max(...stats.map(s => s.curWeek)),
+    maxMonth: Math.max(...stats.map(s => s.curMonth)),
+  }), [stats])
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">

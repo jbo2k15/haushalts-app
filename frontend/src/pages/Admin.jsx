@@ -69,7 +69,7 @@ export default function Admin() {
     } catch {}
   }
 
-  useEffect(() => { loadTasks(); loadUsers() }, [])
+  useEffect(() => { Promise.all([loadTasks(), loadUsers()]) }, [])
 
   async function handleExport() {
     const data = await api.get('/tasks/admin/export')

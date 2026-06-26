@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { api } from '../api/client.js'
 
 const PRIORITY_COLORS = {
@@ -9,7 +9,7 @@ const PRIORITY_COLORS = {
 
 const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 
-export default function TaskRow({ task, onToggle }) {
+const TaskRow = memo(function TaskRow({ task, onToggle }) {
   const [loading, setLoading] = useState(false)
 
   const borderColor = PRIORITY_COLORS[task.priority] || 'transparent'
@@ -75,4 +75,6 @@ export default function TaskRow({ task, onToggle }) {
       {loading && <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />}
     </div>
   )
-}
+})
+
+export default TaskRow
