@@ -25,7 +25,7 @@ function getGreetingMessage(firstName, dailyTasks) {
   const open = dailyTasks.filter(t => !t.completed).length
   if (dailyTasks.length === 0) return `${getGreeting()}, ${firstName}!`
   if (open === 0) return `${getGreeting()}, ${firstName} — heute gibt es nichts mehr zu tun! 🎉`
-  if (completed === 0) return `${getGreeting()}, ${firstName} — heute liegen noch ${open} Aufgabe${open === 1 ? '' : 'n'} vor dir.`
+  if (completed === 0) return `${getGreeting()}, ${firstName} — heute ${open === 1 ? 'liegt noch 1 Aufgabe' : `liegen noch ${open} Aufgaben`} vor dir.`
   return `${getGreeting()}, ${firstName} — heute hast du schon ${completed} Aufgabe${completed === 1 ? '' : 'n'} erledigt.`
 }
 
