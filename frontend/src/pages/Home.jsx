@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -36,8 +36,10 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [logRefreshKey, setLogRefreshKey] = useState(0)
 
-  const now = new Date()
-  const dateLabel = `${WEEKDAYS[now.getDay()]}, ${now.getDate()}. ${MONTHS[now.getMonth()]} ${now.getFullYear()}`
+  const dateLabel = useMemo(() => {
+    const now = new Date()
+    return `${WEEKDAYS[now.getDay()]}, ${now.getDate()}. ${MONTHS[now.getMonth()]} ${now.getFullYear()}`
+  }, [])
 
   const loadTasks = useCallback(async () => {
     try {

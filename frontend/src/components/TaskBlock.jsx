@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import TaskRow from './TaskRow.jsx'
 
 const BLOCK_CONFIG = {
@@ -21,22 +22,26 @@ function sortTasks(tasks) {
   })
 }
 
-export default function TaskBlock({ type, tasks, onToggle }) {
+const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle }) {
   const config = BLOCK_CONFIG[type]
-  if (!tasks || tasks.length === 0) return null
 
-  const overdue = tasks.filter(t => ((t.overdueDay1 || t.overdueDay2) && type === 'daily' || t.isOverdue) && !t.completed)
-  const rest = tasks.filter(t => !overdue.includes(t))
-  const sortedOverdue = sortTasks(overdue)
-  const sortedRest = sortTasks(rest)
-  const sorted = [...sortedOverdue, ...sortedRest]
+  const markedTasks = useMemo(() => {
+    if (!tasks || tasks.length === 0) return []
+    const overdue = tasks.filter(t => ((t.overdueDay1 || t.overdueDay2) && type === 'daily' || t.isOverdue) && !t.completed)
+    const overdueSet = new Set(overdue.map(t => t.id))
+    const rest = tasks.filter(t => !overdueSet.has(t.id))
+    const sorted = [...sortTasks(overdue), ...sortTasks(rest)]
+    return sorted.map(t => ({
+      ...t,
+      pinned:
+        (type === 'weekly' && t.fixedWeekday != null) ||
+        (type === 'monthly' && t.fixedDayOfMonth != null),
+    }))
+  }, [tasks, type])
 
-  const markedTasks = sorted.map(t => ({
-    ...t,
-    pinned:
-      (type === 'weekly' && t.fixedWeekday != null) ||
-      (type === 'monthly' && t.fixedDayOfMonth != null),
-  }))
+  if (!markedTasks.length) return null
+
+  const completedCount = tasks.filter(t => t.completed).length
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -44,7 +49,7 @@ export default function TaskBlock({ type, tasks, onToggle }) {
         <span className="text-base">{config.icon}</span>
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{config.label}</span>
         <span className="ml-auto text-xs text-gray-400">
-          {tasks.filter(t => t.completed).length}/{tasks.length}
+          {completedCount}/{tasks.length}
         </span>
       </div>
       {markedTasks.map(task => (
@@ -52,4 +57,6 @@ export default function TaskBlock({ type, tasks, onToggle }) {
       ))}
     </div>
   )
-}
+})
+
+export default TaskBlock
