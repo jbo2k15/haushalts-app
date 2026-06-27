@@ -101,11 +101,22 @@ async function expireOnce() {
   )
 }
 
+function berlinTime(now) {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Berlin',
+    hour: 'numeric', minute: 'numeric', weekday: 'short', hour12: false,
+  })
+  const parts = Object.fromEntries(fmt.formatToParts(now).map(p => [p.type, p.value]))
+  const days = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+  return { hour: Number(parts.hour), minute: Number(parts.minute), day: days[parts.weekday] }
+}
+
 async function sendDailyReminders() {
   const globalSettings = await prisma.notificationSettings.findFirst({ where: { userId: null } })
   const [hours, minutes] = (globalSettings?.dailyTime || '21:00').split(':')
   const now = new Date()
-  if (now.getHours() !== Number(hours) || now.getMinutes() !== Number(minutes)) return
+  const berlin = berlinTime(now)
+  if (berlin.hour !== Number(hours) || berlin.minute !== Number(minutes)) return
 
   const today = todayString()
   if (globalSettings?.lastDailyNotifiedDate === today) return
@@ -150,7 +161,8 @@ async function sendWeeklyReminders() {
   const weeklyDay = globalSettings?.weeklyDay ?? 6
   const [hours, minutes] = (globalSettings?.weeklyTime || '09:00').split(':')
   const now = new Date()
-  if (now.getDay() !== weeklyDay || now.getHours() !== Number(hours) || now.getMinutes() !== Number(minutes)) return
+  const berlin = berlinTime(now)
+  if (berlin.day !== weeklyDay || berlin.hour !== Number(hours) || berlin.minute !== Number(minutes)) return
 
   const weekStart = currentWeekStart()
   if (globalSettings?.lastWeeklyNotifiedDate === weekStart) return
