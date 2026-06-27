@@ -27,7 +27,7 @@ const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle }) {
 
   const markedTasks = useMemo(() => {
     if (!tasks || tasks.length === 0) return []
-    const overdue = tasks.filter(t => ((t.overdueDay1 || t.overdueDay2) && type === 'daily' || t.isOverdue) && !t.completed)
+    const overdue = tasks.filter(t => t.isOverdue && !t.completed)
     const overdueSet = new Set(overdue.map(t => t.id))
     const rest = tasks.filter(t => !overdueSet.has(t.id))
     const sorted = [...sortTasks(overdue), ...sortTasks(rest)]
