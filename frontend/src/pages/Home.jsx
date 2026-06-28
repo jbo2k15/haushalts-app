@@ -126,22 +126,24 @@ export default function Home() {
           </div>
         )}
 
-        {(loaded || error) && <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3 mb-2">
-          <p className="text-sm text-orange-800 font-medium">
-            {getGreetingMessage(user?.name?.split(' ')[0] || '', tasks.daily)}
-          </p>
-        </div>
+        {(loaded || error) && <>
+          <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3 mb-2">
+            <p className="text-sm text-orange-800 font-medium">
+              {getGreetingMessage(user?.name?.split(' ')[0] || '', tasks.daily)}
+            </p>
+          </div>
 
-        <PushPromptBanner />
+          <PushPromptBanner />
 
-        <div className="space-y-4">
-          <TaskBlock type="once" tasks={tasks.once} onToggle={loadTasks} />
-          <TaskBlock type="daily" tasks={tasks.daily} onToggle={loadTasks} />
-          <TaskBlock type="weekly" tasks={tasks.weekly} onToggle={loadTasks} />
-          <TaskBlock type="monthly" tasks={tasks.monthly} onToggle={loadTasks} />
-          <StatsSection refreshKey={logRefreshKey} />
-          <LogSection refreshKey={logRefreshKey} />
-        </div>}
+          <div className="space-y-4">
+            <TaskBlock type="once" tasks={tasks.once} onToggle={loadTasks} />
+            <TaskBlock type="daily" tasks={tasks.daily} onToggle={loadTasks} />
+            <TaskBlock type="weekly" tasks={tasks.weekly} onToggle={loadTasks} />
+            <TaskBlock type="monthly" tasks={tasks.monthly} onToggle={loadTasks} />
+            <StatsSection refreshKey={logRefreshKey} />
+            <LogSection refreshKey={logRefreshKey} />
+          </div>
+        </>}
       </div>
     </div>
   )
