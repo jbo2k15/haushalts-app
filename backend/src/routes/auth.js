@@ -63,13 +63,19 @@ router.post('/register', async (req, res) => {
   res.json({ message: 'Registrierung erfolgreich. Warte auf Freischaltung durch einen Admin.' })
 })
 
+// Dummy hash for timing-safe login (prevents user enumeration via response time)
+const DUMMY_HASH = await bcrypt.hash('dummy-timing-protection', BCRYPT_ROUNDS)
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body
   const user = await prisma.user.findUnique({ where: { email: email?.toLowerCase() } })
-  if (!user) return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
-  if (!user.approved) return res.status(403).json({ error: 'Dein Account wurde noch nicht freigeschaltet' })
 
-  const valid = await bcrypt.compare(password, user.passwordHash)
+  // Always run bcrypt compare to prevent timing-based user enumeration
+  const hash = user?.passwordHash ?? DUMMY_HASH
+  const valid = await bcrypt.compare(password ?? '', hash)
+
+  if (!user || !valid) return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
+  if (!user.approved) return res.status(403).json({ error: 'Dein Account wurde noch nicht freigeschaltet' })
   if (!valid) return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
 
   await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } })
