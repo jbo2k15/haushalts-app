@@ -33,7 +33,8 @@ export default function Home() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [tasks, setTasks] = useState({ once: [], daily: [], weekly: [], monthly: [] })
-  const [error, setError] = useState('')
+  const [error, setError] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [logRefreshKey, setLogRefreshKey] = useState(0)
 
@@ -46,9 +47,11 @@ export default function Home() {
     try {
       const data = await api.get('/tasks')
       setTasks(data)
+      setError(false)
+      setLoaded(true)
       setLogRefreshKey(k => k + 1)
     } catch {
-      setError('Keine Verbindung zum Server. Bitte überprüfe deine Internetverbindung.')
+      setError(true)
     }
   }, [])
 
@@ -98,9 +101,32 @@ export default function Home() {
           </div>
         </div>
 
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm mb-4">{error}</div>}
+        {error && !loaded && (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+            <div className="text-4xl">📡</div>
+            <p className="text-gray-700 font-medium">Server nicht erreichbar</p>
+            <p className="text-sm text-gray-400">Bitte überprüfe deine Internetverbindung.</p>
+            <button
+              onClick={loadTasks}
+              className="mt-2 px-4 py-2 bg-orange-500 text-white text-sm rounded-xl font-medium"
+            >
+              Erneut versuchen
+            </button>
+          </div>
+        )}
+        {error && loaded && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm mb-4">
+            Verbindung unterbrochen — Daten könnten veraltet sein.
+          </div>
+        )}
 
-        <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3 mb-2">
+        {!loaded && !error && (
+          <div className="flex justify-center py-24">
+            <div className="w-6 h-6 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
+        {(loaded || error) && <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3 mb-2">
           <p className="text-sm text-orange-800 font-medium">
             {getGreetingMessage(user?.name?.split(' ')[0] || '', tasks.daily)}
           </p>
@@ -115,7 +141,7 @@ export default function Home() {
           <TaskBlock type="monthly" tasks={tasks.monthly} onToggle={loadTasks} />
           <StatsSection refreshKey={logRefreshKey} />
           <LogSection refreshKey={logRefreshKey} />
-        </div>
+        </div>}
       </div>
     </div>
   )
