@@ -9,14 +9,19 @@ webpush.setVapidDetails(
 
 export async function sendPushToUser(userId, payload) {
   const subs = await prisma.pushSubscription.findMany({ where: { userId } })
+  if (subs.length === 0) {
+    console.log(`[Push] Keine Subscriptions für userId=${userId}`)
+    return
+  }
   for (const sub of subs) {
     try {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         JSON.stringify(payload)
       )
+      console.log(`[Push] ✓ Gesendet an ...${sub.endpoint.slice(-20)}`)
     } catch (err) {
-      console.error(`[Push] Fehler beim Senden an ${sub.endpoint.slice(-20)}: ${err.statusCode} ${err.message}`)
+      console.error(`[Push] Fehler beim Senden an ...${sub.endpoint.slice(-20)}: ${err.statusCode} ${err.message}`)
       if (err.statusCode === 410 || err.statusCode === 404) {
         await prisma.pushSubscription.delete({ where: { id: sub.id } })
       }
