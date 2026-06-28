@@ -24,6 +24,14 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
     setLoading(false)
   }
 
+  async function handleSkip(e) {
+    e.stopPropagation()
+    try {
+      await api.post(`/tasks/${task.id}/skip`, {})
+      onToggle()
+    } catch {}
+  }
+
   let rowBg = 'bg-white'
   if (task.isOverdue && !task.completed) rowBg = 'bg-red-50'
   else if (task.pinned) rowBg = 'bg-orange-50'
@@ -65,6 +73,15 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
           <span className="text-xs text-red-600">überfällig</span>
         )}
       </div>
+      {task.type === 'daily' && !task.completed && (
+        <button
+          onClick={handleSkip}
+          title="Heute nicht nötig"
+          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors text-base leading-none"
+        >
+          ✕
+        </button>
+      )}
       {loading && <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />}
     </div>
   )
