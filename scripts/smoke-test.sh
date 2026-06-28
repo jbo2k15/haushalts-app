@@ -101,6 +101,95 @@ else
   fail "POST /api/auth/register → $CODE"
 fi
 
+# ── Admin Guard ─────────────────────────────
+echo ""
+echo "▸ Admin Guard"
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/users" 2>/dev/null)
+if [ "$CODE" = "401" ]; then
+  ok "GET /api/users ohne Token → 401"
+else
+  fail "GET /api/users ohne Token → $CODE (erwartet 401)"
+fi
+
+CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X DELETE "$BASE_URL/api/users/nonexistent-id" 2>/dev/null)
+if [ "$CODE" = "401" ]; then
+  ok "DELETE /api/users/:id ohne Token → 401"
+else
+  fail "DELETE /api/users/:id ohne Token → $CODE (erwartet 401)"
+fi
+
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/tasks/admin" 2>/dev/null)
+if [ "$CODE" = "401" ]; then
+  ok "GET /api/tasks/admin ohne Token → 401"
+else
+  fail "GET /api/tasks/admin ohne Token → $CODE (erwartet 401)"
+fi
+
+# ── Input Validierung ────────────────────────
+echo ""
+echo "▸ Input Validierung"
+CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X POST "$BASE_URL/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@test.de","password":"schwach","name":"Test"}' 2>/dev/null)
+if [ "$CODE" = "400" ]; then
+  ok "Registrierung mit schwachem Passwort → 400"
+else
+  fail "Registrierung mit schwachem Passwort → $CODE (erwartet 400)"
+fi
+
+CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X POST "$BASE_URL/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"test@test.de\",\"password\":\"Test1234!\",\"name\":\"$(python3 -c 'print("x"*101)' 2>/dev/null || printf '%0.s x' {1..101})\"}" 2>/dev/null)
+if [ "$CODE" = "400" ]; then
+  ok "Registrierung mit zu langem Namen → 400"
+else
+  warn "Registrierung mit zu langem Namen → $CODE (erwartet 400)"
+fi
+
+# Zu großer Request-Body (über 100kb Limit)
+BIG_BODY=$(python3 -c 'print("{\"x\":\"" + "a"*110000 + "\"}")' 2>/dev/null || dd if=/dev/zero bs=110000 count=1 2>/dev/null | tr '\0' 'a' || echo "")
+if [ -n "$BIG_BODY" ]; then
+  CODE=$(echo "$BIG_BODY" | curl -s -o /dev/null -w "%{http_code}" \
+    -X POST "$BASE_URL/api/auth/login" \
+    -H "Content-Type: application/json" \
+    --data-binary @- 2>/dev/null)
+  if [ "$CODE" = "413" ] || [ "$CODE" = "400" ] || [ "$CODE" = "401" ]; then
+    ok "Zu großer Request-Body → $CODE (abgelehnt)"
+  else
+    warn "Zu großer Request-Body → $CODE"
+  fi
+fi
+
+# ── Sicherheits-Header ───────────────────────
+echo ""
+echo "▸ Sicherheits-Header"
+HEADERS=$(curl -sI "$BASE_URL/api/health" 2>/dev/null)
+
+if echo "$HEADERS" | grep -qi "x-frame-options"; then
+  ok "X-Frame-Options Header vorhanden"
+else
+  warn "X-Frame-Options Header fehlt"
+fi
+
+if echo "$HEADERS" | grep -qi "x-content-type-options"; then
+  ok "X-Content-Type-Options Header vorhanden"
+else
+  warn "X-Content-Type-Options Header fehlt"
+fi
+
+# ── 404 Handling ─────────────────────────────
+echo ""
+echo "▸ 404 Handling"
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/nonexistent-route" 2>/dev/null)
+if [ "$CODE" = "404" ] || [ "$CODE" = "401" ]; then
+  ok "Unbekannte API-Route → $CODE"
+else
+  warn "Unbekannte API-Route → $CODE"
+fi
+
 # ── VAPID Key ────────────────────────────────
 echo ""
 echo "▸ Push / VAPID"
