@@ -4,25 +4,26 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 
 ## Funktionen
 
-- **Aufgaben** — Tägliche, wöchentliche, monatliche und einmalige Aufgaben (mit Fälligkeitsdatum); Drag & Drop zum Sortieren (Desktop & Mobil)
-- **Aufgabenlog** — Protokoll aller erledigten und abgelaufenen Aufgaben (bis 100 Einträge)
+- **Aufgaben** — Tägliche, wöchentliche, monatliche und einmalige Aufgaben (mit Fälligkeitsdatum); Drag & Drop zum Sortieren; tägliche Aufgaben können für den Tag übersprungen werden
+- **Aufgabenlog** — Protokoll aller erledigten, abgelaufenen, übersprungenen und gelöschten Aufgaben (bis 100 Einträge)
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, diese Woche, letzte Woche, diesen und letzten Monat
-- **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger; Trophäen werden nur für abgeschlossene Perioden vergeben
-- **Push-Benachrichtigungen** — Tägliche und wöchentliche Erinnerungen an offene Aufgaben
-- **Abfallkalender** — Anzeige kommender Abholtermine via iCal-Feed
+- **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger
+- **Push-Benachrichtigungen** — Tägliche und wöchentliche Erinnerungen an offene Aufgaben (konfigurierbare Uhrzeit)
+- **Abfallkalender** — Automatische tägliche Aufgaben aus iCal-Feed; überlebende Completions bei Re-Sync
 - **Urlaubsmodus** — Pausiert Benachrichtigungen für einzelne Nutzer
 - **Export / Import** — Aufgaben als JSON exportieren und importieren (max. 200 Aufgaben)
-- **Nutzerverwaltung** — Registrierung mit Admin-Freischaltung, Rollenverwaltung, Account sperren/entsperren
+- **Nutzerverwaltung** — Registrierung mit Admin-Freischaltung, Rollenverwaltung, Sperren/Entsperren, Löschen
 - **Passwort-Reset** — Per E-Mail-Link; invalidiert automatisch alle aktiven Sessions
+- **PWA** — Installierbar auf Android und iOS; funktioniert nach Erstladen auch offline (statische Assets)
 
 ---
 
 ## Voraussetzungen
 
-- Docker + Docker Compose installiert
-- Git installiert
-- Cloudflare-Account (für externen Zugriff)
-- Gmail-Account mit App-Passwort
+- Docker + Docker Compose
+- Git
+- Cloudflare-Account (für externen Zugriff mit TLS)
+- Gmail-Account mit App-Passwort (für E-Mail-Versand)
 
 ---
 
@@ -41,6 +42,7 @@ cd haushalts-app
 cd backend
 npm install
 npx web-push generate-vapid-keys
+cd ..
 ```
 
 Die ausgegebenen Keys in die `.env`-Datei eintragen.
@@ -55,16 +57,18 @@ Alle Werte in `.env` ausfüllen:
 
 | Variable | Beschreibung |
 |---|---|
-| `JWT_SECRET` | Langer zufälliger String (z.B. `openssl rand -hex 32`) |
+| `JWT_SECRET` | Langer zufälliger String — `openssl rand -hex 32` |
 | `ADMIN_EMAIL` | E-Mail-Adresse des ersten Admin-Accounts |
 | `ADMIN_PASSWORD` | Initiales Admin-Passwort (min. 10 Zeichen, Groß-/Kleinbuchstaben, Zahl, Sonderzeichen) |
 | `FRONTEND_URL` | Deine Domain (z.B. `https://haushalt.meinedomain.de`) |
-| `SMTP_USER` | Gmail-Adresse |
+| `SMTP_HOST` | SMTP-Server (z.B. `smtp.gmail.com`) |
+| `SMTP_PORT` | SMTP-Port (z.B. `587`) |
+| `SMTP_USER` | Absender-E-Mail-Adresse |
 | `SMTP_PASS` | Gmail App-Passwort (siehe unten) |
 | `VAPID_PUBLIC_KEY` | Aus Schritt 2 |
 | `VAPID_PRIVATE_KEY` | Aus Schritt 2 |
-| `VAPID_EMAIL` | `mailto:deine@gmail.com` |
-| `WASTE_ICAL_URL` | iCal-URL des Abfallkalenders |
+| `VAPID_EMAIL` | `mailto:deine@email.de` |
+| `WASTE_ICAL_URL` | iCal-URL des Abfallkalenders (optional, muss mit `https://` beginnen) |
 
 ### 4. App starten
 
@@ -73,6 +77,40 @@ docker compose up --build -d
 ```
 
 Der erste Admin-Account wird automatisch mit den Werten aus `ADMIN_EMAIL` und `ADMIN_PASSWORD` angelegt. Das Passwort muss beim ersten Login geändert werden.
+
+---
+
+## Deploy-Script
+
+Für einfaches Einspielen von Updates steht ein Deploy-Script bereit:
+
+```bash
+# Einmalig einrichten
+cp scripts/deploy.sh /usr/local/bin/deploy
+chmod +x /usr/local/bin/deploy
+
+# Danach von überall ausführbar
+deploy
+```
+
+Das Script führt automatisch `git pull`, Docker Build & Start und den Smoke-Test aus.
+
+---
+
+## Datenbank-Backup
+
+Tägliches Backup der SQLite-Datenbank (21 Tage Aufbewahrung):
+
+```bash
+# Cronjob einrichten (einmalig)
+crontab -e
+# Folgende Zeile einfügen:
+# 0 3 * * * /opt/haushalts-app/scripts/backup.sh >> /var/log/haushalts-backup.log 2>&1
+
+# Manuell testen
+bash scripts/backup.sh
+ls -lh /opt/backups/haushalts-app/
+```
 
 ---
 
@@ -89,27 +127,37 @@ Der erste Admin-Account wird automatisch mit den Werten aus `ADMIN_EMAIL` und `A
 
 1. [dash.cloudflare.com](https://dash.cloudflare.com) → Zero Trust → Networks → Tunnels
 2. Neuen Tunnel erstellen
-3. Connector installieren (Docker-Befehl kopieren und auf dem Server ausführen)
+3. Connector installieren (Docker-Befehl auf dem Server ausführen)
 4. Public Hostname hinzufügen:
    - Domain: `haushalt.meinedomain.de`
    - Service: `http://localhost:80`
-5. `FRONTEND_URL` in `.env` entsprechend setzen und Container neu starten:
-   ```bash
-   docker compose up -d --build
-   ```
+5. `FRONTEND_URL` in `.env` entsprechend setzen und Container neu starten
 
 ---
 
-## App als PWA installieren (Android)
+## App als PWA installieren
 
-1. Chrome öffnen und zur App-URL navigieren
-2. Menü → „Zum Startbildschirm hinzufügen"
+**Android (Chrome):** Menü → „Zum Startbildschirm hinzufügen"
+
+**iOS (Safari):** Teilen-Symbol → „Zum Home-Bildschirm"
 
 ---
 
 ## Updates einspielen
 
 ```bash
+deploy
+```
+
+oder manuell:
+
+```bash
 git pull
 docker compose up --build -d
 ```
+
+---
+
+## Versionierung
+
+Die aktuelle App-Version ist in `frontend/package.json` unter `version` hinterlegt und wird in den Einstellungen angezeigt. Bei größeren Änderungen bitte manuell hochzählen (Semantic Versioning: `MAJOR.MINOR.PATCH`).
