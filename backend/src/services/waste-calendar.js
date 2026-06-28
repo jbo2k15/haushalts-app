@@ -24,6 +24,10 @@ function subtractOneDay(dateStr) {
 export async function syncWasteCalendar() {
   const url = process.env.WASTE_ICAL_URL
   if (!url) return
+  if (!url.startsWith('https://')) {
+    console.error('Abfallkalender: WASTE_ICAL_URL muss mit https:// beginnen')
+    return
+  }
 
   try {
     const events = await Promise.race([
