@@ -16,7 +16,8 @@ async function main() {
     return
   }
 
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Haushalt2024!'
+  const adminPassword = process.env.ADMIN_PASSWORD
+  if (!adminPassword) throw new Error('ADMIN_PASSWORD muss in der .env gesetzt sein')
   const passwordHash = await bcrypt.hash(adminPassword, 12)
   await prisma.user.create({
     data: {

@@ -10,7 +10,7 @@ echo "▸ Git pull..."
 git pull
 
 echo "▸ Docker build & start..."
-docker compose up --build -d
+DOCKER_BUILDKIT=1 docker compose up --build -d
 
 echo "▸ Warte 15s auf Container-Start..."
 sleep 15

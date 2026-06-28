@@ -1,4 +1,19 @@
 import 'dotenv/config'
+
+// C1: Startup-Validierung JWT_SECRET
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET fehlt oder ist zu kurz (min. 32 Zeichen). Starte nicht.')
+  process.exit(1)
+}
+
+const _origLog = console.log.bind(console)
+const _origError = console.error.bind(console)
+function ts() {
+  const d = new Date()
+  return `[${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}]`
+}
+console.log = (...a) => _origLog(ts(), ...a)
+console.error = (...a) => _origError(ts(), ...a)
 import 'express-async-errors'
 import express from 'express'
 import cors from 'cors'
@@ -37,6 +52,8 @@ app.use(express.json({ limit: '100kb' }))
 const limiter = (max, windowMs, message) => rateLimit({
   windowMs, max, message: { error: message }, standardHeaders: true, legacyHeaders: false,
 })
+
+app.use('/api/', limiter(300, 15 * 60 * 1000, 'Zu viele Anfragen. Bitte warte 15 Minuten.'))
 
 app.use('/api/auth/login',           limiter(10, 15 * 60 * 1000, 'Zu viele Anmeldeversuche. Bitte warte 15 Minuten.'))
 app.use('/api/auth/register',        limiter(5,  60 * 60 * 1000, 'Zu viele Registrierungsversuche. Bitte warte eine Stunde.'))
