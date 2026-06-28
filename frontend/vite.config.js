@@ -13,6 +13,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: ['icons/*.png', 'screenshots/*.png'],
       manifest: {
         name: 'Haushalt',
@@ -33,7 +36,7 @@ export default defineConfig({
           { src: '/screenshots/halloffame.png',type: 'image/png', form_factor: 'narrow', label: 'Ruhmeshalle' },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
     }),
