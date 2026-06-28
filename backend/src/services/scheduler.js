@@ -20,16 +20,18 @@ async function expireDailyTasks() {
   if (dueTasks.length === 0) return
 
   const taskIds = dueTasks.map(t => t.id)
-  const [completions, existingLogs] = await Promise.all([
+  const [completions, existingLogs, skippedLogs] = await Promise.all([
     prisma.taskCompletion.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo }, select: { taskId: true } }),
     prisma.taskLog.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo, status: 'expired' }, select: { taskId: true } }),
+    prisma.taskLog.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo, status: 'skipped' }, select: { taskId: true } }),
   ])
   const completedIds = new Set(completions.map(c => c.taskId))
   const loggedIds = new Set(existingLogs.map(l => l.taskId))
+  const skippedIds = new Set(skippedLogs.map(l => l.taskId))
 
   await Promise.all(
     dueTasks
-      .filter(t => !completedIds.has(t.id) && !loggedIds.has(t.id))
+      .filter(t => !completedIds.has(t.id) && !loggedIds.has(t.id) && !skippedIds.has(t.id))
       .map(t => prisma.taskLog.create({ data: { taskId: t.id, taskTitle: t.title, status: 'expired', forDate: twoDaysAgo } }))
   )
 }
@@ -139,15 +141,14 @@ async function sendDailyReminders() {
   )
 
   const openCount = dueTodayIds.filter(id => !completedIds.has(id)).length
+  console.log(`[Push] Täglich: ${openCount} offene Aufgaben, ${users.length} Nutzer, Zeit: ${berlin.hour}:${String(berlin.minute).padStart(2,'0')}`)
 
-  await Promise.all(
-    users
-      .filter(() => openCount > 0)
-      .map(user => sendPushToUser(user.id, {
-        title: 'Haushalt',
-        body: `Du hast heute noch ${openCount} Aufgabe${openCount === 1 ? '' : 'n'} nicht abgeschlossen.`,
-      }))
-  )
+  if (openCount > 0) {
+    await Promise.all(users.map(user => sendPushToUser(user.id, {
+      title: 'Haushalt',
+      body: `Du hast heute noch ${openCount} Aufgabe${openCount === 1 ? '' : 'n'} nicht abgeschlossen.`,
+    })))
+  }
 
   await prisma.notificationSettings.upsert({
     where: { userId: null },

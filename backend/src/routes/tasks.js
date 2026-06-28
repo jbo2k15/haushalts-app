@@ -50,6 +50,12 @@ router.get('/', requireAuth, async (req, res) => {
   const onceDueDates = tasks.filter(t => t.type === 'once' && t.dueDate).map(t => t.dueDate)
   const rangeStart = monthStart < twoDaysAgo ? monthStart : twoDaysAgo
 
+  const skippedToday = taskIds.length === 0 ? [] : await prisma.taskLog.findMany({
+    where: { taskId: { in: taskIds }, forDate: today, status: 'skipped' },
+    select: { taskId: true },
+  })
+  const skippedIds = new Set(skippedToday.map(l => l.taskId))
+
   const allCompletions = taskIds.length === 0 ? [] : await prisma.taskCompletion.findMany({
     where: {
       taskId: { in: taskIds },
@@ -92,6 +98,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     if (task.type === 'daily') {
       if (weekdays && weekdays.length > 0 && !weekdays.includes(todayWeekday)) continue
+      if (skippedIds.has(task.id)) continue
 
       const completionToday = byKey.get(`${task.id}-${today}`) || null
       const taskCreatedDate = task.createdAt.toISOString().slice(0, 10)
@@ -161,6 +168,22 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
   ])
 
   return res.json({ completed: true })
+})
+
+router.post('/:id/skip', requireAuth, async (req, res) => {
+  const { id } = req.params
+  const today = todayString()
+  const task = await prisma.task.findUnique({ where: { id } })
+  if (!task || task.type !== 'daily') return res.status(400).json({ error: 'Nur tägliche Aufgaben können übersprungen werden' })
+
+  const existing = await prisma.taskLog.findFirst({ where: { taskId: id, forDate: today, status: 'skipped' } })
+  if (existing) {
+    await prisma.taskLog.delete({ where: { id: existing.id } })
+    return res.json({ skipped: false })
+  }
+
+  await prisma.taskLog.create({ data: { taskId: id, taskTitle: task.title, status: 'skipped', forDate: today } })
+  return res.json({ skipped: true })
 })
 
 router.get('/log', requireAuth, async (req, res) => {
