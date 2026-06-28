@@ -150,11 +150,11 @@ async function sendDailyReminders() {
     })))
   }
 
-  await prisma.notificationSettings.upsert({
-    where: { userId: null },
-    update: { lastDailyNotifiedDate: today },
-    create: { lastDailyNotifiedDate: today },
-  })
+  if (globalSettings) {
+    await prisma.notificationSettings.update({ where: { id: globalSettings.id }, data: { lastDailyNotifiedDate: today } })
+  } else {
+    await prisma.notificationSettings.create({ data: { lastDailyNotifiedDate: today } })
+  }
 }
 
 async function sendWeeklyReminders() {
@@ -187,11 +187,11 @@ async function sendWeeklyReminders() {
     })))
   }
 
-  await prisma.notificationSettings.upsert({
-    where: { userId: null },
-    update: { lastWeeklyNotifiedDate: weekStart },
-    create: { lastWeeklyNotifiedDate: weekStart },
-  })
+  if (globalSettings) {
+    await prisma.notificationSettings.update({ where: { id: globalSettings.id }, data: { lastWeeklyNotifiedDate: weekStart } })
+  } else {
+    await prisma.notificationSettings.create({ data: { lastWeeklyNotifiedDate: weekStart } })
+  }
 }
 
 async function updateTrophyCache() {
