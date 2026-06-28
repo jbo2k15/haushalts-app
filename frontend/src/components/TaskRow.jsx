@@ -12,8 +12,9 @@ const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 const TaskRow = memo(function TaskRow({ task, onToggle }) {
   const [loading, setLoading] = useState(false)
 
-  const borderColor = PRIORITY_COLORS[task.priority] || 'transparent'
-  const hasBorder = task.priority !== 'normal'
+  const isOverdueVisible = task.isOverdue && !task.completed
+  const borderColor = isOverdueVisible ? '#EF4444' : (PRIORITY_COLORS[task.priority] || 'transparent')
+  const hasBorder = isOverdueVisible || task.priority !== 'normal'
 
   async function handleClick() {
     setLoading(true)
