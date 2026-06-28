@@ -30,9 +30,15 @@ export default function LogSection({ refreshKey }) {
             <div key={log.id} className="flex items-center gap-3 px-4 py-2.5">
               <span className="flex-1 text-sm text-gray-700 truncate">{log.taskTitle}</span>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
-                log.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                log.status === 'completed' ? 'bg-green-100 text-green-700'
+                : log.status === 'skipped' ? 'bg-orange-100 text-orange-700'
+                : log.taskId === null ? 'bg-gray-100 text-gray-500'
+                : 'bg-red-100 text-red-700'
               }`}>
-                {log.status === 'completed' ? 'erledigt' : 'verfallen'}
+                {log.status === 'completed' ? 'erledigt'
+                : log.status === 'skipped' ? 'abgelehnt'
+                : log.taskId === null ? 'gelöscht'
+                : 'verfallen'}
               </span>
               {log.userName && <span className="text-xs text-gray-400 flex-shrink-0">{log.userName}</span>}
               <span className="text-xs text-gray-400 flex-shrink-0">{formatDate(log.loggedAt)}</span>

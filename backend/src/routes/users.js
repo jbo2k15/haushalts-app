@@ -74,6 +74,22 @@ router.post('/:id/approve', requireAuth, requireAdmin, async (req, res) => {
   res.json(updated)
 })
 
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params
+  if (id === req.user.id) return res.status(400).json({ error: 'Du kannst deinen eigenen Account nicht löschen' })
+
+  const target = await prisma.user.findUnique({ where: { id } })
+  if (!target) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+
+  if (target.role === 'admin') {
+    const adminCount = await prisma.user.count({ where: { role: 'admin' } })
+    if (adminCount <= 1) return res.status(400).json({ error: 'Es muss mindestens ein Admin vorhanden sein' })
+  }
+
+  await prisma.user.delete({ where: { id } })
+  res.json({ message: 'Nutzer gelöscht' })
+})
+
 router.get('/notifications', requireAuth, async (req, res) => {
   const settings = await prisma.notificationSettings.findUnique({ where: { userId: req.user.id } })
   const global = await prisma.notificationSettings.findFirst({ where: { userId: null } })

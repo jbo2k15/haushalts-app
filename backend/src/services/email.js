@@ -1,5 +1,9 @@
 import nodemailer from 'nodemailer'
 
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
@@ -13,9 +17,9 @@ export async function sendApprovalEmail(to, name) {
     to,
     subject: 'Dein Account wurde freigeschaltet',
     html: `
-      <p>Hallo ${name},</p>
+      <p>Hallo ${esc(name)},</p>
       <p>Dein Account wurde freigeschaltet. Du kannst dich jetzt anmelden und dein Passwort ändern.</p>
-      <p><a href="${process.env.FRONTEND_URL}/login">Zur App</a></p>
+      <p><a href="${esc(process.env.FRONTEND_URL)}/login">Zur App</a></p>
     `,
   })
 }
@@ -26,9 +30,9 @@ export async function sendPasswordResetEmail(to, name, resetLink) {
     to,
     subject: 'Passwort zurücksetzen',
     html: `
-      <p>Hallo ${name},</p>
+      <p>Hallo ${esc(name)},</p>
       <p>Du hast eine Passwort-Zurücksetzung angefordert. Klicke auf den folgenden Link (gültig für 1 Stunde):</p>
-      <p><a href="${resetLink}">Passwort zurücksetzen</a></p>
+      <p><a href="${esc(resetLink)}">Passwort zurücksetzen</a></p>
       <p>Falls du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.</p>
     `,
   })

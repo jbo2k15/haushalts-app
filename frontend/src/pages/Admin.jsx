@@ -4,6 +4,7 @@ import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSens
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { api } from '../api/client.js'
+import { useAuth } from '../context/AuthContext.jsx'
 
 const WEEKDAY_LABELS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0] // Mo–So
@@ -44,6 +45,7 @@ function SortableTask({ task, onEdit, onDelete }) {
 
 export default function Admin() {
   const navigate = useNavigate()
+  const { user: currentUser } = useAuth()
   const [tasks, setTasks] = useState([])
   const [users, setUsers] = useState([])
   const [tab, setTab] = useState('tasks')
@@ -150,6 +152,17 @@ export default function Admin() {
     }
     try {
       await api.post(`/users/${id}/approve`)
+      loadUsers()
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  async function deleteUser(id) {
+    const userRecord = users.find(u => u.id === id)
+    if (!confirm(`Möchtest du "${userRecord.name}" (${userRecord.email}) wirklich dauerhaft löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return
+    try {
+      await api.delete(`/users/${id}`)
       loadUsers()
     } catch (err) {
       alert(err.message)
@@ -361,6 +374,14 @@ export default function Admin() {
                   >
                     {userRecord.approved ? 'Sperren' : 'Freischalten'}
                   </button>
+                  {userRecord.id !== currentUser?.id && (
+                    <button
+                      onClick={() => deleteUser(userRecord.id)}
+                      className="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-lg font-medium"
+                    >
+                      Löschen
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

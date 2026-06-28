@@ -145,6 +145,7 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
 
   const task = await prisma.task.findUnique({ where: { id } })
   if (!task) return res.status(404).json({ error: 'Aufgabe nicht gefunden' })
+  if (!task.isActive) return res.status(400).json({ error: 'Aufgabe ist nicht aktiv' })
 
   let forDate = today
   if (task.type === 'weekly') forDate = weekStart
@@ -175,6 +176,7 @@ router.post('/:id/skip', requireAuth, async (req, res) => {
   const today = todayString()
   const task = await prisma.task.findUnique({ where: { id } })
   if (!task || task.type !== 'daily') return res.status(400).json({ error: 'Nur tägliche Aufgaben können übersprungen werden' })
+  if (!task.isActive) return res.status(400).json({ error: 'Aufgabe ist nicht aktiv' })
 
   const existing = await prisma.taskLog.findFirst({ where: { taskId: id, forDate: today, status: 'skipped' } })
   if (existing) {
@@ -190,7 +192,7 @@ router.get('/log', requireAuth, async (req, res) => {
   const logs = await prisma.taskLog.findMany({
     orderBy: { loggedAt: 'desc' },
     take: LOG_LIMIT,
-    select: { id: true, taskTitle: true, status: true, userName: true, loggedAt: true },
+    select: { id: true, taskId: true, taskTitle: true, status: true, userName: true, loggedAt: true },
   })
   res.json(logs)
 })

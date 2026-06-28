@@ -48,6 +48,7 @@ async function issueRefreshToken(userId, res) {
 router.post('/register', async (req, res) => {
   const { email, password, name } = req.body
   if (!email || !password || !name) return res.status(400).json({ error: 'Alle Felder sind erforderlich' })
+  if (name.trim().length === 0 || name.length > 100) return res.status(400).json({ error: 'Name muss zwischen 1 und 100 Zeichen lang sein' })
   const pwError = validatePassword(password)
   if (pwError) return res.status(400).json({ error: pwError })
 
