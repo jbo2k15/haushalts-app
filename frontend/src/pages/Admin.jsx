@@ -132,8 +132,7 @@ export default function Admin() {
       isActive: task.isActive,
     })
     setEditId(task.id)
-    setShowForm(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setShowForm(false)
   }
 
   async function deleteTask(id) {
@@ -199,8 +198,98 @@ export default function Admin() {
     await api.post('/tasks/admin/reorder', { orderedIds: reordered.map(t => t.id) })
   }
 
+  const taskFormFields = (
+    <>
+      <div>
+        <label className="block text-sm text-gray-600 mb-1">Titel</label>
+        <input required className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+          value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">Typ</label>
+          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            value={form.type} onChange={e => {
+              const type = e.target.value
+              const today = new Date().toISOString().slice(0, 10)
+              setForm(f => ({ ...f, type, dueDate: type === 'once' && !f.dueDate ? today : f.dueDate }))
+            }}>
+            <option value="daily">Täglich</option>
+            <option value="weekly">Wöchentlich</option>
+            <option value="monthly">Monatlich</option>
+            <option value="once">Einmalig</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">Priorität</label>
+          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
+            <option value="high">Hoch</option>
+            <option value="normal">Normal</option>
+            <option value="low">Niedrig</option>
+          </select>
+        </div>
+      </div>
+      {form.type === 'daily' && (
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">Wochentage (leer = täglich)</label>
+          <div className="flex gap-1 flex-wrap">
+            {WEEKDAY_ORDER.map(i => (
+              <button type="button" key={i} onClick={() => toggleWeekday(i)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium ${form.weekdays.includes(i) ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+              >{WEEKDAY_LABELS[i]}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {form.type === 'weekly' && (
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">Fixer Wochentag (optional)</label>
+          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            value={form.fixedWeekday} onChange={e => setForm(f => ({ ...f, fixedWeekday: e.target.value }))}>
+            <option value="">Keiner</option>
+            {WEEKDAY_LABELS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+          </select>
+        </div>
+      )}
+      {form.type === 'monthly' && (
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">Fixer Tag im Monat (optional)</label>
+          <input type="number" min="1" max="31"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            value={form.fixedDayOfMonth} onChange={e => setForm(f => ({ ...f, fixedDayOfMonth: e.target.value }))} />
+        </div>
+      )}
+      {form.type === 'once' && (
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">Fälligkeitsdatum</label>
+          <input type="date" required
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <input type="checkbox" id="isActive" checked={form.isActive}
+          onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="accent-orange-600" />
+        <label htmlFor="isActive" className="text-sm text-gray-600">Aktiv</label>
+      </div>
+    </>
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {editId && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => { setEditId(null); setForm(EMPTY_FORM) }}>
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-md p-4 space-y-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-sm font-semibold text-gray-800">Aufgabe bearbeiten</h2>
+              <button type="button" onClick={() => { setEditId(null); setForm(EMPTY_FORM) }} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+            </div>
+            {taskFormFields}
+            <button type="submit" className="w-full bg-orange-600 text-white rounded-xl py-2 text-sm font-medium">Speichern</button>
+          </form>
+        </div>
+      )}
       <div className="max-w-lg mx-auto px-4 pb-8">
         <div className="flex items-center gap-3 py-4">
           <button onClick={() => navigate('/')} className="text-orange-600 text-sm">← Zurück</button>
@@ -236,89 +325,8 @@ export default function Admin() {
 
             {showForm && (
               <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Titel</label>
-                  <input required className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Typ</label>
-                    <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      value={form.type} onChange={e => {
-                        const type = e.target.value
-                        const today = new Date().toISOString().slice(0, 10)
-                        setForm(f => ({ ...f, type, dueDate: type === 'once' && !f.dueDate ? today : f.dueDate }))
-                      }}>
-                      <option value="daily">Täglich</option>
-                      <option value="weekly">Wöchentlich</option>
-                      <option value="monthly">Monatlich</option>
-                      <option value="once">Einmalig</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Priorität</label>
-                    <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
-                      <option value="high">Hoch</option>
-                      <option value="normal">Normal</option>
-                      <option value="low">Niedrig</option>
-                    </select>
-                  </div>
-                </div>
-
-                {form.type === 'daily' && (
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Wochentage (leer = täglich)</label>
-                    <div className="flex gap-1 flex-wrap">
-                      {WEEKDAY_ORDER.map(i => (
-                        <button type="button" key={i}
-                          onClick={() => toggleWeekday(i)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-medium ${form.weekdays.includes(i) ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-600'}`}
-                        >{WEEKDAY_LABELS[i]}</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {form.type === 'weekly' && (
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Fixer Wochentag (optional)</label>
-                    <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      value={form.fixedWeekday} onChange={e => setForm(f => ({ ...f, fixedWeekday: e.target.value }))}>
-                      <option value="">Keiner</option>
-                      {WEEKDAY_LABELS.map((d, i) => <option key={i} value={i}>{d}</option>)}
-                    </select>
-                  </div>
-                )}
-
-                {form.type === 'monthly' && (
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Fixer Tag im Monat (optional)</label>
-                    <input type="number" min="1" max="31"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      value={form.fixedDayOfMonth} onChange={e => setForm(f => ({ ...f, fixedDayOfMonth: e.target.value }))} />
-                  </div>
-                )}
-
-                {form.type === 'once' && (
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Fälligkeitsdatum</label>
-                    <input type="date" required
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="isActive" checked={form.isActive}
-                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="accent-orange-600" />
-                  <label htmlFor="isActive" className="text-sm text-gray-600">Aktiv</label>
-                </div>
-
-                <button type="submit" className="w-full bg-orange-600 text-white rounded-xl py-2 text-sm font-medium">
-                  {editId ? 'Speichern' : 'Aufgabe erstellen'}
-                </button>
+                {taskFormFields}
+                <button type="submit" className="w-full bg-orange-600 text-white rounded-xl py-2 text-sm font-medium">Aufgabe erstellen</button>
               </form>
             )}
 
