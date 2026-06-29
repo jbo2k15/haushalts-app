@@ -133,6 +133,7 @@ export default function Admin() {
     })
     setEditId(task.id)
     setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function deleteTask(id) {
