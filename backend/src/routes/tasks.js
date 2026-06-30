@@ -134,6 +134,7 @@ router.get('/', requireAuth, async (req, res) => {
     }
   }
 
+  res.set('Cache-Control', 'no-cache')
   res.json(result)
 })
 
