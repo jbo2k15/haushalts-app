@@ -9,7 +9,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, diese Woche, letzte Woche, diesen und letzten Monat
 - **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger
 - **Push-Benachrichtigungen** — Tägliche und wöchentliche Erinnerungen an offene Aufgaben (konfigurierbare Uhrzeit)
-- **Abfallkalender** — Automatische tägliche Aufgaben aus iCal-Feed; überlebende Completions bei Re-Sync
+- **Abfallkalender** — Einmalige Aufgaben aus iCal-Feed für jeden konkreten Abholtermin; laufen am Folgetag automatisch ab und erscheinen im Log als „verfallen"
 - **Urlaubsmodus** — Pausiert Benachrichtigungen für einzelne Nutzer
 - **Export / Import** — Aufgaben als JSON exportieren und importieren (max. 200 Aufgaben)
 - **Nutzerverwaltung** — Registrierung mit Admin-Freischaltung, Rollenverwaltung, Sperren/Entsperren, Löschen
@@ -161,3 +161,5 @@ docker compose up --build -d
 ## Versionierung
 
 Die aktuelle App-Version ist in `frontend/package.json` unter `version` hinterlegt und wird in den Einstellungen angezeigt. Bei größeren Änderungen bitte manuell hochzählen (Semantic Versioning: `MAJOR.MINOR.PATCH`).
+
+Release Notes werden als [GitHub Releases](https://github.com/jbo2k15/haushalts-app/releases) veröffentlicht.
