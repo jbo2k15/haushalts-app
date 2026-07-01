@@ -26,6 +26,7 @@ function hashToken(token) {
 
 function validatePassword(pw) {
   if (!pw || pw.length < 10) return 'Passwort muss mindestens 10 Zeichen haben'
+  if (pw.length > 64) return 'Passwort darf maximal 64 Zeichen haben'
   if (!/[A-Z]/.test(pw)) return 'Passwort muss mindestens einen Großbuchstaben enthalten'
   if (!/[a-z]/.test(pw)) return 'Passwort muss mindestens einen Kleinbuchstaben enthalten'
   if (!/[0-9]/.test(pw)) return 'Passwort muss mindestens eine Zahl enthalten'
@@ -130,6 +131,9 @@ router.get('/me', requireAuth, async (req, res) => {
 
 router.post('/change-password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body
+  if (!currentPassword || typeof currentPassword !== 'string') {
+    return res.status(400).json({ error: 'Aktuelles Passwort fehlt' })
+  }
   const pwError = validatePassword(newPassword)
   if (pwError) return res.status(400).json({ error: pwError })
 
@@ -165,15 +169,21 @@ router.post('/reset-password', async (req, res) => {
   const pwErr = validatePassword(newPassword)
   if (pwErr) return res.status(400).json({ error: pwErr })
 
-  const resetToken = await prisma.passwordResetToken.findUnique({ where: { token: hashToken(token) } })
-  if (!resetToken || resetToken.used || new Date() > resetToken.expiresAt) {
+  const hashedToken = hashToken(token)
+  // Atomic claim: mark used before any other work to prevent race-condition double-use
+  const claimed = await prisma.passwordResetToken.updateMany({
+    where: { token: hashedToken, used: false, expiresAt: { gt: new Date() } },
+    data: { used: true },
+  })
+  if (claimed.count === 0) {
     return res.status(400).json({ error: 'Link ungültig oder abgelaufen' })
   }
+  const resetToken = await prisma.passwordResetToken.findUnique({ where: { token: hashedToken } })
 
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
   await prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash, mustChangePassword: false } })
   await prisma.refreshToken.deleteMany({ where: { userId: resetToken.userId } })
-  await prisma.passwordResetToken.delete({ where: { token: hashToken(token) } })
+  await prisma.passwordResetToken.delete({ where: { token: hashedToken } })
 
   res.json({ message: 'Passwort erfolgreich geändert' })
 })

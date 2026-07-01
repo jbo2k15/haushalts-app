@@ -354,6 +354,9 @@ router.post('/admin/reorder', requireAuth, requireAdmin, async (req, res) => {
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
     return res.status(400).json({ error: 'Ungültige Reihenfolge' })
   }
+  if (orderedIds.length > 500) {
+    return res.status(400).json({ error: 'Zu viele Aufgaben-IDs' })
+  }
   if (!orderedIds.every(id => typeof id === 'string' && id.length > 0)) {
     return res.status(400).json({ error: 'Ungültige Aufgaben-IDs' })
   }
