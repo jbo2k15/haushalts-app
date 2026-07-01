@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router'
 import { api } from '../api/client.js'
 import PasswordStrength, { validatePassword } from '../components/PasswordStrength.jsx'
 
