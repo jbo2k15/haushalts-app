@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../api/client.js'
+import { api, getAccessToken } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import TaskBlock from '../components/TaskBlock.jsx'
 import StatsSection from '../components/StatsSection.jsx'
@@ -57,6 +57,31 @@ export default function Home() {
 
   useEffect(() => { loadTasks() }, [loadTasks])
 
+  // SSE: sofortiges Update wenn anderer Nutzer eine Aufgabe ändert
+  useEffect(() => {
+    let es = null
+    let retryTimeout = null
+
+    function connect() {
+      const token = getAccessToken()
+      if (!token) return
+      es = new EventSource(`/api/events?token=${encodeURIComponent(token)}`)
+      es.addEventListener('tasks-updated', () => loadTasks())
+      es.onerror = () => {
+        es?.close()
+        es = null
+        retryTimeout = setTimeout(connect, 5000)
+      }
+    }
+
+    connect()
+    return () => {
+      es?.close()
+      clearTimeout(retryTimeout)
+    }
+  }, [loadTasks])
+
+  // Fallback-Polling (greift wenn SSE nicht verbunden ist)
   useEffect(() => {
     const interval = setInterval(() => {
       if (!document.hidden) loadTasks()
