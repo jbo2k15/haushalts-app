@@ -10,9 +10,11 @@ const PRIORITY_COLORS = {
 const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 
 const TaskRow = memo(function TaskRow({ task, onToggle }) {
-  const [optimistic, setOptimistic] = useState(null) // 'completed' | 'skipped' | null
+  const [optimistic, setOptimistic] = useState(null) // 'completed' | 'uncompleted' | 'skipped' | null
 
-  const completed = optimistic === 'completed' ? true : optimistic === 'skipped' ? task.completed : task.completed
+  const completed = optimistic === 'completed' ? true
+    : optimistic === 'uncompleted' ? false
+    : task.completed
   const skipped = optimistic === 'skipped'
 
   const isOverdueVisible = task.isOverdue && !completed
@@ -21,12 +23,11 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
 
   async function handleClick() {
     if (optimistic) return
-    setOptimistic('completed')
+    setOptimistic(task.completed ? 'uncompleted' : 'completed')
     try {
       await api.post(`/tasks/${task.id}/complete`, {})
-      setOptimistic(null)
-      onToggle()
-    } catch {
+      await onToggle()
+    } finally {
       setOptimistic(null)
     }
   }
@@ -37,9 +38,8 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
     setOptimistic('skipped')
     try {
       await api.post(`/tasks/${task.id}/skip`, {})
-      setOptimistic(null)
-      onToggle()
-    } catch {
+      await onToggle()
+    } finally {
       setOptimistic(null)
     }
   }
