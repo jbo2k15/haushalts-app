@@ -154,13 +154,18 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
   if (task.type === 'monthly') forDate = monthStart
   if (task.type === 'once') forDate = task.dueDate
 
+  console.log(`[complete] task="${task.title}" type=${task.type} forDate=${forDate} isActive=${task.isActive}`)
+
   const existing = await prisma.taskCompletion.findUnique({
     where: { taskId_forDate: { taskId: id, forDate } },
   })
 
+  console.log(`[complete] existing=${!!existing} → ${existing ? 'UNCHECK' : 'CHECK'}`)
+
   if (existing) {
     await prisma.taskCompletion.delete({ where: { taskId_forDate: { taskId: id, forDate } } })
     await prisma.taskLog.deleteMany({ where: { taskId: id, forDate, status: 'completed' } })
+    broadcastTasksUpdated()
     return res.json({ completed: false })
   }
 
