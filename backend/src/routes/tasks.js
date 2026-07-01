@@ -18,7 +18,7 @@ const LOG_LIMIT = 100
 const VALID_TYPES = ['daily', 'weekly', 'monthly', 'once']
 const VALID_PRIORITIES = ['high', 'normal', 'low']
 
-function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, dueDate }) {
+export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, dueDate }) {
   if (!title || typeof title !== 'string' || title.trim().length === 0) return 'Titel ist erforderlich'
   if (title.length > 200) return 'Titel darf maximal 200 Zeichen haben'
   if (!VALID_TYPES.includes(type)) return 'Ungültiger Typ'
