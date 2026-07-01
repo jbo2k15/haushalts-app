@@ -96,10 +96,16 @@ router.get('/notifications', requireAuth, async (req, res) => {
   res.json({ user: settings, global })
 })
 
+function isValidTime(t) {
+  if (typeof t !== 'string' || !/^\d{2}:\d{2}$/.test(t)) return false
+  const [h, m] = t.split(':').map(Number)
+  return h >= 0 && h <= 23 && m >= 0 && m <= 59
+}
+
 function validateNotificationSettings({ dailyTime, weeklyDay, weeklyTime }) {
-  if (typeof dailyTime !== 'string' || !/^\d{2}:\d{2}$/.test(dailyTime)) return 'Ungültige tägliche Uhrzeit'
+  if (!isValidTime(dailyTime)) return 'Ungültige tägliche Uhrzeit'
   if (!Number.isInteger(weeklyDay) || weeklyDay < 0 || weeklyDay > 6) return 'Ungültiger Wochentag'
-  if (typeof weeklyTime !== 'string' || !/^\d{2}:\d{2}$/.test(weeklyTime)) return 'Ungültige wöchentliche Uhrzeit'
+  if (!isValidTime(weeklyTime)) return 'Ungültige wöchentliche Uhrzeit'
   return null
 }
 
