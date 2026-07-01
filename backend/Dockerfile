@@ -8,6 +8,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY prisma ./prisma
+COPY prisma.config.js ./
 RUN npx prisma generate
 
 COPY src ./src
