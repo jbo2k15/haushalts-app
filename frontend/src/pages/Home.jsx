@@ -90,35 +90,35 @@ export default function Home() {
   }, [loadTasks])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-lg mx-auto px-4 pb-8">
         <div className="flex items-center justify-between py-2">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Haushalt</h1>
-            <p className="text-xs text-gray-400 mt-0.5">{dateLabel}</p>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Haushalt</h1>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{dateLabel}</p>
           </div>
           <HeaderIllustration />
           <div className="relative">
             <button
-              className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-medium text-sm"
+              className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-700 dark:text-orange-400 font-medium text-sm"
               onClick={() => setMenuOpen(o => !o)}
             >
               {user?.name?.[0]?.toUpperCase()}
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-11 bg-white border border-gray-200 rounded-xl shadow-sm w-48 z-10 overflow-hidden">
-                <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/settings') }}>
+              <div className="absolute right-0 top-11 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm w-48 z-10 overflow-hidden">
+                <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/settings') }}>
                   <span>⚙️</span> Einstellungen
                 </button>
-                <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/hall-of-fame') }}>
+                <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/hall-of-fame') }}>
                   <span>🏆</span> Ruhmeshalle
                 </button>
                 {user?.role === 'admin' && (
-                  <button className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/admin') }}>
+                  <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/admin') }}>
                     <span>🛠️</span> Verwaltung
                   </button>
                 )}
-                <button className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-gray-50 border-t border-gray-100 flex items-center gap-2.5" onClick={logout}>
+                <button className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={logout}>
                   <span>🚪</span> Abmelden
                 </button>
               </div>
@@ -129,8 +129,8 @@ export default function Home() {
         {error && !loaded && (
           <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
             <div className="text-4xl">📡</div>
-            <p className="text-gray-700 font-medium">Server nicht erreichbar</p>
-            <p className="text-sm text-gray-400">Bitte überprüfe deine Internetverbindung.</p>
+            <p className="text-gray-700 dark:text-gray-300 font-medium">Server nicht erreichbar</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">Bitte überprüfe deine Internetverbindung.</p>
             <button
               onClick={loadTasks}
               className="mt-2 px-4 py-2 bg-orange-500 text-white text-sm rounded-xl font-medium"
@@ -140,7 +140,7 @@ export default function Home() {
           </div>
         )}
         {error && loaded && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm mb-4">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-400 rounded-xl p-3 text-sm mb-4">
             Verbindung unterbrochen — Daten könnten veraltet sein.
           </div>
         )}
@@ -152,8 +152,8 @@ export default function Home() {
         )}
 
         {(loaded || error) && <>
-          <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3 mb-2">
-            <p className="text-sm text-orange-800 font-medium">
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/40 rounded-2xl px-4 py-3 mb-2">
+            <p className="text-sm text-orange-800 dark:text-orange-300 font-medium">
               {getGreetingMessage(user?.name?.split(' ')[0] || '', tasks.daily)}
             </p>
           </div>

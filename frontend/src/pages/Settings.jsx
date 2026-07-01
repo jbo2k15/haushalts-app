@@ -2,12 +2,20 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
 import { urlBase64ToUint8Array } from '../lib/push.js'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 
+const THEME_OPTIONS = [
+  { value: 'system', label: 'System', icon: '💻' },
+  { value: 'light',  label: 'Hell',   icon: '☀️' },
+  { value: 'dark',   label: 'Dunkel', icon: '🌙' },
+]
+
 export default function Settings() {
   const { user, setUser } = useAuth()
+  const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushSupported, setPushSupported] = useState(false)
@@ -84,27 +92,52 @@ export default function Settings() {
     } catch {}
   }
 
+  const inputCls = 'border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400'
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-lg mx-auto px-4 pb-8">
         <div className="flex items-center gap-3 py-4">
-          <button onClick={() => navigate('/')} className="text-orange-600 text-sm">← Zurück</button>
-          <h1 className="text-xl font-semibold">Einstellungen</h1>
+          <button onClick={() => navigate('/')} className="text-orange-600 dark:text-orange-400 text-sm">← Zurück</button>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Einstellungen</h1>
         </div>
 
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4">
-            <h2 className="font-medium text-gray-800">Mein Profil</h2>
-            {nameError && <p className="text-sm text-red-600">{nameError}</p>}
+
+          {/* Erscheinungsbild */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+            <h2 className="font-medium text-gray-800 dark:text-gray-200">Erscheinungsbild</h2>
+            <div className="flex gap-2">
+              {THEME_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setTheme(opt.value)}
+                  className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-colors ${
+                    theme === opt.value
+                      ? 'bg-orange-600 border-orange-600 text-white'
+                      : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-orange-300 dark:hover:border-orange-600'
+                  }`}
+                >
+                  <span className="text-base">{opt.icon}</span>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Profil */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+            <h2 className="font-medium text-gray-800 dark:text-gray-200">Mein Profil</h2>
+            {nameError && <p className="text-sm text-red-600 dark:text-red-400">{nameError}</p>}
             <div>
-              <label className="block text-sm text-gray-600 mb-1">E-Mail</label>
-              <p className="text-sm text-gray-500 px-3 py-2 bg-gray-50 rounded-xl border border-gray-200">{user?.email}</p>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">E-Mail</label>
+              <p className="text-sm text-gray-500 dark:text-gray-400 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">{user?.email}</p>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Anzeigename</label>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Anzeigename</label>
               <input
                 type="text"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                className={`w-full ${inputCls}`}
                 value={name}
                 onChange={e => setName(e.target.value)}
               />
@@ -114,16 +147,17 @@ export default function Settings() {
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4">
-            <h2 className="font-medium text-gray-800">Push-Benachrichtigungen</h2>
+          {/* Push */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+            <h2 className="font-medium text-gray-800 dark:text-gray-200">Push-Benachrichtigungen</h2>
             {!pushSupported ? (
-              <p className="text-sm text-gray-400">Dein Browser unterstützt keine Push-Benachrichtigungen.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">Dein Browser unterstützt keine Push-Benachrichtigungen.</p>
             ) : (
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Auf diesem Gerät aktivieren</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Auf diesem Gerät aktivieren</span>
                 <button
                   onClick={togglePush}
-                  className={`w-11 h-6 rounded-full transition-colors ${pushEnabled ? 'bg-orange-600' : 'bg-gray-300'}`}
+                  className={`w-11 h-6 rounded-full transition-colors ${pushEnabled ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
                 >
                   <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${pushEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
@@ -131,36 +165,38 @@ export default function Settings() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-            <h2 className="font-medium text-gray-800">Urlaubsmodus</h2>
-            <p className="text-sm text-gray-500">Im Urlaubsmodus erhältst du keine Push-Benachrichtigungen.</p>
+          {/* Urlaub */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+            <h2 className="font-medium text-gray-800 dark:text-gray-200">Urlaubsmodus</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Im Urlaubsmodus erhältst du keine Push-Benachrichtigungen.</p>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Aktivieren</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Aktivieren</span>
               <button
                 onClick={toggleVacation}
-                className={`w-11 h-6 rounded-full transition-colors ${vacationMode ? 'bg-orange-600' : 'bg-gray-300'}`}
+                className={`w-11 h-6 rounded-full transition-colors ${vacationMode ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
               >
                 <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${vacationMode ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4">
-            <h2 className="font-medium text-gray-800">Erinnerungszeiten {user.role === 'admin' && <span className="text-xs text-gray-400 font-normal">(gilt für alle)</span>}</h2>
+          {/* Erinnerungszeiten */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+            <h2 className="font-medium text-gray-800 dark:text-gray-200">Erinnerungszeiten {user.role === 'admin' && <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">(gilt für alle)</span>}</h2>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Tägliche Erinnerung um</label>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Tägliche Erinnerung um</label>
               <input
                 type="time"
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                className={inputCls}
                 value={settings.dailyTime}
                 onChange={e => setSettings(s => ({ ...s, dailyTime: e.target.value }))}
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Wöchentliche Erinnerung am</label>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Wöchentliche Erinnerung am</label>
               <div className="flex gap-2">
                 <select
-                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className={inputCls}
                   value={settings.weeklyDay}
                   onChange={e => setSettings(s => ({ ...s, weeklyDay: Number(e.target.value) }))}
                 >
@@ -168,7 +204,7 @@ export default function Settings() {
                 </select>
                 <input
                   type="time"
-                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className={inputCls}
                   value={settings.weeklyTime}
                   onChange={e => setSettings(s => ({ ...s, weeklyTime: e.target.value }))}
                 />
@@ -183,8 +219,7 @@ export default function Settings() {
           </div>
         </div>
       </div>
-      <p className="text-center text-xs text-gray-300 pb-6">v{__APP_VERSION__}</p>
+      <p className="text-center text-xs text-gray-300 dark:text-gray-600 pb-6">v{__APP_VERSION__}</p>
     </div>
   )
 }
-
