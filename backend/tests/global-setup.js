@@ -3,9 +3,9 @@ import { existsSync, unlinkSync } from 'fs'
 
 export function setup() {
   if (existsSync('./test.db')) unlinkSync('./test.db')
-  execSync('npx prisma db push --skip-generate --force-reset', {
+  execSync('npx prisma db push --force-reset --url file:./test.db', {
     stdio: 'inherit',
-    env: { ...process.env, DATABASE_URL: 'file:./test.db', NODE_ENV: 'test' },
+    env: { ...process.env, NODE_ENV: 'test', PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION: 'ja' },
   })
 }
 

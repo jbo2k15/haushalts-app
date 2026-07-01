@@ -13,8 +13,10 @@
     "db:seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@prisma/client": "^5.14.0",
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.11.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -30,8 +32,13 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.9",
-    "prisma": "^5.14.0",
+    "prisma": "^7.8.0",
     "supertest": "^7.2.2",
     "vitest": "^4.1.9"
+  },
+  "allowScripts": {
+    "prisma@7.8.0": true,
+    "@prisma/engines@7.8.0": true,
+    "better-sqlite3@12.11.1": true
   }
 }
