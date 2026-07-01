@@ -7,7 +7,7 @@ const WASTE_TYPES = [
   { match: 'gelbe tonne', title: 'Gelbe Tonne rausstellen' },
 ]
 
-function toDateString(date) {
+export function toDateString(date) {
   const d = new Date(date)
   const year = d.getFullYear()
   const month = String(d.getMonth() + 1).padStart(2, '0')
@@ -15,7 +15,7 @@ function toDateString(date) {
   return `${year}-${month}-${day}`
 }
 
-function subtractOneDay(dateStr) {
+export function subtractOneDay(dateStr) {
   const [y, m, day] = dateStr.split('-').map(Number)
   const d = new Date(Date.UTC(y, m - 1, day - 1))
   return toDateString(d)

@@ -68,7 +68,8 @@ const DUMMY_HASH = await bcrypt.hash('dummy-timing-protection', BCRYPT_ROUNDS)
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body
-  const user = await prisma.user.findUnique({ where: { email: email?.toLowerCase() } })
+  if (!email || !password) return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
 
   // Always run bcrypt compare to prevent timing-based user enumeration
   const hash = user?.passwordHash ?? DUMMY_HASH
