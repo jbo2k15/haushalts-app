@@ -1,4 +1,4 @@
-import { memo, useState } from 'react'
+import { memo, useState, useRef } from 'react'
 import { api } from '../api/client.js'
 
 const PRIORITY_COLORS = {
@@ -11,6 +11,7 @@ const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 
 const TaskRow = memo(function TaskRow({ task, onToggle }) {
   const [optimistic, setOptimistic] = useState(null) // 'completed' | 'uncompleted' | 'skipped' | null
+  const pendingRef = useRef(false)
 
   const completed = optimistic === 'completed' ? true
     : optimistic === 'uncompleted' ? false
@@ -22,25 +23,29 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
   const hasBorder = isOverdueVisible || task.priority !== 'normal'
 
   async function handleClick() {
-    if (optimistic) return
+    if (pendingRef.current) return
+    pendingRef.current = true
     setOptimistic(task.completed ? 'uncompleted' : 'completed')
     try {
       await api.post(`/tasks/${task.id}/complete`, {})
       await onToggle()
     } finally {
       setOptimistic(null)
+      pendingRef.current = false
     }
   }
 
   async function handleSkip(e) {
     e.stopPropagation()
-    if (optimistic) return
+    if (pendingRef.current) return
+    pendingRef.current = true
     setOptimistic('skipped')
     try {
       await api.post(`/tasks/${task.id}/skip`, {})
       await onToggle()
     } finally {
       setOptimistic(null)
+      pendingRef.current = false
     }
   }
 
