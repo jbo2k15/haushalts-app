@@ -5,6 +5,17 @@ import { syncWasteCalendar } from './waste-calendar.js'
 import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
 
+async function cleanupExpiredTokens() {
+  const now = new Date()
+  const [rt, prt] = await Promise.all([
+    prisma.refreshToken.deleteMany({ where: { expiresAt: { lt: now } } }),
+    prisma.passwordResetToken.deleteMany({ where: { expiresAt: { lt: now } } }),
+  ])
+  if (rt.count > 0 || prt.count > 0) {
+    console.log(`[Cleanup] ${rt.count} abgelaufene RefreshTokens, ${prt.count} PasswordResetTokens gelöscht`)
+  }
+}
+
 async function expireDailyTasks() {
   const twoDaysAgo = twoDaysAgoString()
   const twoDaysAgoDate = new Date()
@@ -250,6 +261,7 @@ export function startScheduler() {
 
   cron.schedule('0 0 * * *', async () => {
     for (const [name, job] of [
+      ['cleanupExpiredTokens', cleanupExpiredTokens],
       ['expireDailyTasks', expireDailyTasks],
       ['expireWeeklyTasks', expireWeeklyTasks],
       ['expireMonthlyTasks', expireMonthlyTasks],

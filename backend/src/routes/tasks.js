@@ -351,13 +351,26 @@ router.post('/admin/reorder', requireAuth, requireAdmin, async (req, res) => {
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
     return res.status(400).json({ error: 'Ungültige Reihenfolge' })
   }
+  if (!orderedIds.every(id => typeof id === 'string' && id.length > 0)) {
+    return res.status(400).json({ error: 'Ungültige Aufgaben-IDs' })
+  }
+
+  // Verify all IDs exist in the database before updating
+  const existing = await prisma.task.findMany({
+    where: { id: { in: orderedIds } },
+    select: { id: true },
+  })
+  if (existing.length !== orderedIds.length) {
+    return res.status(400).json({ error: 'Unbekannte Aufgaben-ID in der Reihenfolge' })
+  }
+
   try {
     await prisma.$transaction(
       orderedIds.map((id, i) => prisma.task.update({ where: { id }, data: { sortOrder: i } }))
     )
     res.json({ message: 'Reihenfolge gespeichert' })
   } catch {
-    res.status(400).json({ error: 'Ungültige Aufgaben-ID in der Reihenfolge' })
+    res.status(400).json({ error: 'Fehler beim Speichern der Reihenfolge' })
   }
 })
 
