@@ -22,7 +22,7 @@ export default defineConfig({
         short_name: 'Haushalt',
         description: 'Haushalts-Aufgaben-App',
         theme_color: '#EA580C',
-        background_color: '#ffffff',
+        background_color: '#111827',
         display: 'standalone',
         start_url: '/',
         icons: [
