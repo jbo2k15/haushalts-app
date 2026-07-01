@@ -9,6 +9,9 @@ cd "$REPO_ROOT"
 echo "▸ Git pull..."
 git pull
 
+echo "▸ Backend-Tests..."
+(cd backend && npm ci --silent && npm test)
+
 echo "▸ Docker build & start..."
 DOCKER_BUILDKIT=1 docker compose up --build -d
 
