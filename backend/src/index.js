@@ -20,11 +20,13 @@ import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import cookieParser from 'cookie-parser'
+import jwt from 'jsonwebtoken'
 import authRoutes from './routes/auth.js'
 import taskRoutes from './routes/tasks.js'
 import userRoutes from './routes/users.js'
 import { requireAuth } from './middleware/auth.js'
 import { startScheduler } from './services/scheduler.js'
+import { addSSEClient, removeSSEClient } from './lib/sse.js'
 import prisma from './lib/prisma.js'
 
 const app = express()
@@ -66,6 +68,38 @@ app.use('/api/auth/logout',          limiter(20, 15 * 60 * 1000, 'Zu viele Anfra
 app.use('/api/auth', authRoutes)
 app.use('/api/tasks', taskRoutes)
 app.use('/api/users', userRoutes)
+
+app.get('/api/events', async (req, res) => {
+  const token = req.query.token
+  if (!token) return res.status(401).end()
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } })
+    if (!user || !user.approved) return res.status(401).end()
+  } catch {
+    return res.status(401).end()
+  }
+
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  })
+  res.flushHeaders()
+  res.write('event: connected\ndata: {}\n\n')
+
+  addSSEClient(res)
+
+  const keepalive = setInterval(() => {
+    try { res.write(': keepalive\n\n') } catch { clearInterval(keepalive) }
+  }, 25000)
+
+  req.on('close', () => {
+    clearInterval(keepalive)
+    removeSSEClient(res)
+  })
+})
 
 app.get('/api/vapid-public-key', requireAuth, (req, res) => {
   res.json({ key: process.env.VAPID_PUBLIC_KEY })

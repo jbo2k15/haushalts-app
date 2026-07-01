@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import prisma from '../lib/prisma.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
+import { broadcastTasksUpdated } from '../lib/sse.js'
 import {
   dateStringInBerlin,
   todayString,
@@ -169,6 +170,7 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
     prisma.user.update({ where: { id: req.user.id }, data: { lastActiveAt: new Date() } }),
   ])
 
+  broadcastTasksUpdated()
   return res.json({ completed: true })
 })
 
@@ -186,6 +188,7 @@ router.post('/:id/skip', requireAuth, async (req, res) => {
   }
 
   await prisma.taskLog.create({ data: { taskId: id, taskTitle: task.title, status: 'skipped', forDate: today } })
+  broadcastTasksUpdated()
   return res.json({ skipped: true })
 })
 

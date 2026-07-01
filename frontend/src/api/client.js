@@ -11,6 +11,10 @@ export function clearAccessToken() {
   accessToken = null
 }
 
+export function getAccessToken() {
+  return accessToken
+}
+
 async function doRefresh() {
   const res = await fetch(`${BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
   if (!res.ok) { accessToken = null; return false }
