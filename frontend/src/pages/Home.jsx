@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { api, getAccessToken } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import TaskBlock from '../components/TaskBlock.jsx'
