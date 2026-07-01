@@ -92,11 +92,11 @@ model Task {
 model TaskCompletion {
   id          String   @id @default(uuid())
   taskId      String
-  completedBy String
+  completedBy String?
   completedAt DateTime @default(now())
   forDate     String
   task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [completedBy], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [completedBy], references: [id], onDelete: SetNull)
 
   @@unique([taskId, forDate])
   @@index([taskId])
