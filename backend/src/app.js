@@ -39,7 +39,9 @@ export function createApp() {
     const limiter = (max, windowMs, message) => rateLimit({
       windowMs, max, message: { error: message }, standardHeaders: true, legacyHeaders: false,
     })
-    app.use('/api/', limiter(300, 15 * 60 * 1000, 'Zu viele Anfragen. Bitte warte 15 Minuten.'))
+    // Höher als früher: mehrere Haushaltsmitglieder teilen sich oft dieselbe NAT-IP,
+    // dazu kommen 30s-Polling + SSE-Reconnects pro offenem Tab.
+    app.use('/api/', limiter(1500, 15 * 60 * 1000, 'Zu viele Anfragen. Bitte warte 15 Minuten.'))
     app.use('/api/auth/login',           limiter(10, 15 * 60 * 1000, 'Zu viele Anmeldeversuche. Bitte warte 15 Minuten.'))
     app.use('/api/auth/register',        limiter(5,  60 * 60 * 1000, 'Zu viele Registrierungsversuche. Bitte warte eine Stunde.'))
     app.use('/api/auth/forgot-password', limiter(5,  60 * 60 * 1000, 'Zu viele Anfragen. Bitte warte eine Stunde.'))

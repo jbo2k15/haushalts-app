@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { api, getAccessToken } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -43,16 +43,27 @@ export default function Home() {
     return `${WEEKDAYS[now.getDay()]}, ${now.getDate()}. ${MONTHS[now.getMonth()]} ${now.getFullYear()}`
   }, [])
 
+  const loadTasksPromise = useRef(null)
+
   const loadTasks = useCallback(async () => {
-    try {
-      const data = await api.get('/tasks')
-      setTasks(data)
-      setError(false)
-      setLoaded(true)
-      setLogRefreshKey(k => k + 1)
-    } catch {
-      setError(true)
-    }
+    if (loadTasksPromise.current) return loadTasksPromise.current
+
+    const promise = (async () => {
+      try {
+        const data = await api.get('/tasks')
+        setTasks(data)
+        setError(false)
+        setLoaded(true)
+        setLogRefreshKey(k => k + 1)
+      } catch {
+        setError(true)
+      } finally {
+        loadTasksPromise.current = null
+      }
+    })()
+
+    loadTasksPromise.current = promise
+    return promise
   }, [])
 
   useEffect(() => { loadTasks() }, [loadTasks])
