@@ -24,6 +24,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
     setOptimistic('completed')
     try {
       await api.post(`/tasks/${task.id}/complete`, {})
+      setOptimistic(null)
       onToggle()
     } catch {
       setOptimistic(null)
@@ -36,6 +37,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
     setOptimistic('skipped')
     try {
       await api.post(`/tasks/${task.id}/skip`, {})
+      setOptimistic(null)
       onToggle()
     } catch {
       setOptimistic(null)
