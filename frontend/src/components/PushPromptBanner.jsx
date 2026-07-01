@@ -61,7 +61,6 @@ export default function PushPromptBanner() {
       })
       setVisible(false)
     } catch {
-      // user cancelled or error — snooze so we don't nag again today
       snoozeUntilTomorrow()
       setVisible(false)
     }
@@ -76,21 +75,21 @@ export default function PushPromptBanner() {
   if (!visible) return null
 
   return (
-    <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 mb-2">
+    <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 rounded-2xl px-4 py-3 mb-2">
       <div className="flex items-start gap-3">
         <span className="text-xl mt-0.5">🔔</span>
         <div className="flex-1 min-w-0">
           {denied ? (
             <>
-              <p className="text-sm font-medium text-orange-900">Push-Benachrichtigungen blockiert</p>
-              <p className="text-xs text-orange-700 mt-0.5">
+              <p className="text-sm font-medium text-orange-900 dark:text-orange-300">Push-Benachrichtigungen blockiert</p>
+              <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
                 Bitte erlaube Benachrichtigungen in den Browser-Einstellungen für diese Seite.
               </p>
             </>
           ) : (
             <>
-              <p className="text-sm font-medium text-orange-900">Push-Benachrichtigungen aktivieren?</p>
-              <p className="text-xs text-orange-700 mt-0.5">
+              <p className="text-sm font-medium text-orange-900 dark:text-orange-300">Push-Benachrichtigungen aktivieren?</p>
+              <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
                 Erhalte Erinnerungen an offene Aufgaben.
               </p>
             </>
@@ -107,7 +106,7 @@ export default function PushPromptBanner() {
             )}
             <button
               onClick={remindTomorrow}
-              className="text-orange-700 border border-orange-300 rounded-lg px-3 py-1.5 text-xs font-medium bg-white"
+              className="text-orange-700 dark:text-orange-400 border border-orange-300 dark:border-orange-700 rounded-lg px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800"
             >
               Morgen erinnern
             </button>
