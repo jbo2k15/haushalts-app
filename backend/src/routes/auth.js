@@ -78,7 +78,6 @@ router.post('/login', async (req, res) => {
 
   if (!user || !valid) return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
   if (!user.approved) return res.status(403).json({ error: 'Dein Account wurde noch nicht freigeschaltet' })
-  if (!valid) return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
 
   await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } })
   await issueRefreshToken(user.id, res)
