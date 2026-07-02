@@ -5,6 +5,7 @@ import { randomUUID, createHash } from 'crypto'
 import prisma from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
 import { sendPasswordResetEmail } from '../services/email.js'
+import { recordFailedLogin } from '../lib/loginMonitor.js'
 
 const router = Router()
 
@@ -83,7 +84,10 @@ router.post('/login', async (req, res) => {
   const hash = user?.passwordHash ?? DUMMY_HASH
   const valid = await bcrypt.compare(password ?? '', hash)
 
-  if (!user || !valid) return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
+  if (!user || !valid) {
+    recordFailedLogin()
+    return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
+  }
   if (!user.approved) return res.status(403).json({ error: 'Dein Account wurde noch nicht freigeschaltet' })
 
   await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } })
