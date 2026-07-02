@@ -1,6 +1,7 @@
 FROM node:20-alpine AS builder
 
 WORKDIR /app
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
