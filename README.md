@@ -15,15 +15,19 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 - **Nutzerverwaltung** — Registrierung mit Admin-Freischaltung, Rollenverwaltung, Sperren/Entsperren, Löschen
 - **Passwort-Reset** — Per E-Mail-Link; invalidiert automatisch alle aktiven Sessions
 - **PWA** — Installierbar auf Android und iOS; funktioniert nach Erstladen auch offline (statische Assets)
+- **Echtzeit-Sync** — Änderungen anderer Nutzer erscheinen sofort per Server-Sent Events, mit Fallback-Polling
+- **Sicherheit** — Rate-Limiting (pro Endpunkt), Honeypot gegen Bot-Registrierungen, timing-safe Login/Passwort-Reset, serverseitige Eingabevalidierung, Warnprotokoll bei gehäuften Login-Fehlversuchen
 
 ---
 
 ## Voraussetzungen
 
 - Docker + Docker Compose
+- Node.js 20+ und npm (für Backend-Tests und Playwright-E2E-Tests, die `deploy.sh` vor jedem Build ausführt)
 - Git
 - Cloudflare-Account (für externen Zugriff mit TLS)
 - Gmail-Account mit App-Passwort (für E-Mail-Versand)
+- Mindestens **20 GB Festplatte** und **1 GB RAM** auf dem Server — native Module (`better-sqlite3`) müssen kompiliert werden, und Docker-Builds + Test-Läufe brauchen spürbar mehr Headroom als der reine Laufzeitbetrieb
 
 ---
 
@@ -93,7 +97,32 @@ chmod +x /usr/local/bin/deploy
 deploy
 ```
 
-Das Script führt automatisch `git pull`, Docker Build & Start und den Smoke-Test aus.
+Das Script führt automatisch `git pull`, Backend-Tests, Playwright-E2E-Tests (nur bei Frontend-Änderungen), Docker Build & Start und den Smoke-Test aus. Gebaut werden nur die Images, deren Verzeichnis (`backend/` bzw. `frontend/`) sich seit dem letzten erfolgreichen Deploy tatsächlich geändert hat (Merker in `.last-deploy`, nicht versioniert).
+
+Beim allerersten Lauf lädt Playwright einmalig Chromium herunter (~115 MB) — das kann etwas dauern, wird danach aber gecached (`~/.cache/ms-playwright`). Host-seitige `node_modules` werden nach jedem Testlauf wieder gelöscht, um auf ressourcenknappen Servern Platz zu sparen.
+
+---
+
+## Tests
+
+**Backend** (Vitest, 62 Tests):
+
+```bash
+cd backend
+npm install
+npm test
+```
+
+**Frontend E2E** (Playwright, prüft u.a. dass Task-Toggles den echten Server-Zustand widerspiegeln und nicht durch den Service-Worker-Cache verfälscht werden):
+
+```bash
+cd frontend
+npm install
+npx playwright install chromium
+npm run test:e2e
+```
+
+Der E2E-Test startet automatisch einen eigenen Backend- (Port 3101) und Frontend-Preview-Server (Port 4173) gegen eine isolierte Wegwerf-Datenbank (`backend/e2e.db`) — keine Auswirkung auf die eigentliche Entwicklungs- oder Produktions-Datenbank.
 
 ---
 
