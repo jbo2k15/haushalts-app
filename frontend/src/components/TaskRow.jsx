@@ -69,6 +69,9 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
       className={`flex items-center gap-3 px-3 py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${rowBg} cursor-pointer select-none touch-manipulation`}
       style={{ borderLeft: hasBorder ? `3px solid ${borderColor}` : '3px solid transparent' }}
       onClick={handleClick}
+      data-testid="task-row"
+      data-task-title={task.title}
+      data-completed={completed}
     >
       <div className={`w-5 h-5 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors ${
         completed ? 'bg-green-500 border-green-500' : task.isOverdue ? 'border-red-400' : 'border-gray-300 dark:border-gray-500'
