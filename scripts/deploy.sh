@@ -43,22 +43,29 @@ if [ "$BACKEND_CHANGED" = false ] && [ "$FRONTEND_CHANGED" = false ]; then
   exit 0
 fi
 
+# The e2e tests spin up a real backend server, so backend deps are needed
+# whenever the frontend is tested too — not just when backend/ itself changed.
+if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
+  echo "▸ Backend-Abhängigkeiten installieren..."
+  (cd backend && npm ci --silent && npx prisma generate)
+fi
+
 if [ "$BACKEND_CHANGED" = true ]; then
   echo "▸ Backend-Tests..."
-  (cd backend && npm ci --silent && npx prisma generate && npm test)
-  # Host node_modules is only needed to run the tests above — the Docker
-  # build does its own isolated npm ci inside the container. This box has
-  # very little disk, so don't leave it lying around.
-  rm -rf backend/node_modules
+  (cd backend && npm test)
 fi
 
 if [ "$FRONTEND_CHANGED" = true ]; then
   echo "▸ Frontend E2E-Tests (Playwright)..."
   (cd frontend && npm ci --silent && npx playwright install --with-deps chromium && npm run test:e2e)
-  rm -rf frontend/node_modules frontend/dist frontend/test-results
-  # Keep ~/.cache/ms-playwright — re-downloading Chromium every deploy on
-  # this disk-constrained box would be worse than the space it costs.
 fi
+
+# Host node_modules is only needed to run the tests above — the Docker build
+# does its own isolated npm ci inside the container. This box has very
+# little disk, so don't leave them lying around. Keep ~/.cache/ms-playwright
+# though: re-downloading Chromium every deploy would be worse than the
+# space it costs.
+rm -rf backend/node_modules frontend/node_modules frontend/dist frontend/test-results
 
 SERVICES=""
 [ "$BACKEND_CHANGED" = true ] && SERVICES="$SERVICES backend"
