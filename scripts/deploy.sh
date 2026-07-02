@@ -45,7 +45,7 @@ fi
 
 if [ "$BACKEND_CHANGED" = true ]; then
   echo "▸ Backend-Tests..."
-  (cd backend && npm ci --silent && npm test)
+  (cd backend && npm ci --silent && npx prisma generate && npm test)
 fi
 
 if [ "$FRONTEND_CHANGED" = true ]; then
