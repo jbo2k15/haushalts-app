@@ -1,22 +1,12 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
-import { registerRoute } from 'workbox-routing'
-import { StaleWhileRevalidate } from 'workbox-strategies'
-import { ExpirationPlugin } from 'workbox-expiration'
 
 cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
 
-// Stale-while-revalidate für /api/tasks:
-// Cached-Antwort wird sofort zurückgegeben, im Hintergrund wird aktualisiert.
-registerRoute(
-  ({ url }) => url.pathname === '/api/tasks',
-  new StaleWhileRevalidate({
-    cacheName: 'api-tasks-v1',
-    plugins: [
-      new ExpirationPlugin({ maxEntries: 1, maxAgeSeconds: 300 }),
-    ],
-  })
-)
+// /api/tasks ist mutable Echtzeit-Zustand (Toggles, SSE-Updates) — bewusst
+// NICHT über den Service Worker cachen. Ein Stale-While-Revalidate lieferte
+// nach jedem Toggle erst die veraltete Antwort zurück und überschrieb damit
+// den optimistischen UI-Status, bis der Cache im Hintergrund nachzog.
 
 self.addEventListener('push', event => {
   if (!event.data) return
