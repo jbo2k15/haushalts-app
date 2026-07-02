@@ -159,7 +159,12 @@ router.post('/forgot-password', async (req, res) => {
   if (!isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' })
 
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
-  if (!user) return res.json({ message: 'Falls die E-Mail existiert, wurde ein Link gesendet.' })
+  if (!user) {
+    // Timing-safe: burn roughly the same time as the real path (token hashing + DB writes)
+    // would take, so response time doesn't reveal whether the email is registered.
+    await bcrypt.compare('dummy-timing-protection', DUMMY_HASH)
+    return res.json({ message: 'Falls die E-Mail existiert, wurde ein Link gesendet.' })
+  }
 
   await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } })
   const token = randomUUID()
