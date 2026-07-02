@@ -46,11 +46,18 @@ fi
 if [ "$BACKEND_CHANGED" = true ]; then
   echo "▸ Backend-Tests..."
   (cd backend && npm ci --silent && npx prisma generate && npm test)
+  # Host node_modules is only needed to run the tests above — the Docker
+  # build does its own isolated npm ci inside the container. This box has
+  # very little disk, so don't leave it lying around.
+  rm -rf backend/node_modules
 fi
 
 if [ "$FRONTEND_CHANGED" = true ]; then
   echo "▸ Frontend E2E-Tests (Playwright)..."
   (cd frontend && npm ci --silent && npx playwright install --with-deps chromium && npm run test:e2e)
+  rm -rf frontend/node_modules frontend/dist frontend/test-results
+  # Keep ~/.cache/ms-playwright — re-downloading Chromium every deploy on
+  # this disk-constrained box would be worse than the space it costs.
 fi
 
 SERVICES=""
