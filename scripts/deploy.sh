@@ -41,6 +41,11 @@ if [ "$BACKEND_CHANGED" = true ]; then
   (cd backend && npm ci --silent && npm test)
 fi
 
+if [ "$FRONTEND_CHANGED" = true ]; then
+  echo "▸ Frontend E2E-Tests (Playwright)..."
+  (cd frontend && npm ci --silent && npx playwright install --with-deps chromium && npm run test:e2e)
+fi
+
 SERVICES=""
 [ "$BACKEND_CHANGED" = true ] && SERVICES="$SERVICES backend"
 [ "$FRONTEND_CHANGED" = true ] && SERVICES="$SERVICES frontend"
