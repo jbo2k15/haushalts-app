@@ -6,7 +6,7 @@ import PasswordStrength, { validatePassword } from '../components/PasswordStreng
 const inputCls = 'w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400'
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [form, setForm] = useState({ name: '', email: '', password: '', website: '' })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -52,6 +52,12 @@ export default function Register() {
         </div>
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
           {error && <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-400 rounded-xl p-3 text-sm">{error}</div>}
+          {/* Honeypot: verstecktes Feld gegen einfache Bots, für Menschen unsichtbar */}
+          <div className="absolute -left-[9999px]" aria-hidden="true">
+            <label htmlFor="website">Website</label>
+            <input type="text" id="website" name="website" tabIndex={-1} autoComplete="off"
+              value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} />
+          </div>
           <div>
             <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Name</label>
             <input type="text" required className={inputCls}
