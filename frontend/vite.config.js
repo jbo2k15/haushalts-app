@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { readFileSync } from 'fs'
 
 const { version } = JSON.parse(readFileSync('./package.json', 'utf8'))
+const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || 'http://localhost:3001'
 
 export default defineConfig({
   define: {
@@ -43,7 +44,15 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api': { target: 'http://localhost:3001', changeOrigin: true },
+      '/api': { target: apiProxyTarget, changeOrigin: true },
+    },
+  },
+  preview: {
+    // Needed for Playwright e2e tests: `vite preview` serves the production
+    // build (with the real service worker active), but has no API proxy by
+    // default the way `vite dev` does.
+    proxy: {
+      '/api': { target: apiProxyTarget, changeOrigin: true },
     },
   },
 })
