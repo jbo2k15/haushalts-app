@@ -22,6 +22,17 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
   const borderColor = isOverdueVisible ? '#EF4444' : (PRIORITY_COLORS[task.priority] || 'transparent')
   const hasBorder = isOverdueVisible || task.priority !== 'normal'
 
+  // Touch devices often fire a delayed synthetic 'click' ~300ms after
+  // 'touchend' (double-tap-zoom detection). If that arrives after our
+  // request already finished and released the lock, it reads as a brand
+  // new click and immediately re-toggles the task. Keep the lock held for
+  // a short grace period after the request completes to absorb it.
+  const RELEASE_DELAY_MS = 400
+
+  function releaseAfterDelay() {
+    setTimeout(() => { pendingRef.current = false }, RELEASE_DELAY_MS)
+  }
+
   async function handleClick() {
     if (pendingRef.current) return
     pendingRef.current = true
@@ -31,7 +42,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
       await onToggle()
     } finally {
       setOptimistic(null)
-      pendingRef.current = false
+      releaseAfterDelay()
     }
   }
 
@@ -45,7 +56,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
       await onToggle()
     } finally {
       setOptimistic(null)
-      pendingRef.current = false
+      releaseAfterDelay()
     }
   }
 
@@ -55,7 +66,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
 
   return (
     <div
-      className={`flex items-center gap-3 px-3 py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${rowBg} cursor-pointer select-none`}
+      className={`flex items-center gap-3 px-3 py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${rowBg} cursor-pointer select-none touch-manipulation`}
       style={{ borderLeft: hasBorder ? `3px solid ${borderColor}` : '3px solid transparent' }}
       onClick={handleClick}
     >
@@ -94,7 +105,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
         <button
           onClick={handleSkip}
           title="Heute nicht nötig"
-          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-base leading-none"
+          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-base leading-none touch-manipulation"
         >
           ✕
         </button>
