@@ -54,7 +54,10 @@ async function issueRefreshToken(userId, res) {
 }
 
 router.post('/register', async (req, res) => {
-  const { email, password, name } = req.body
+  const { email, password, name, website } = req.body
+  // Honeypot: unsichtbares Feld, das nur Bots ausfüllen. Vorgetäuschter Erfolg, kein Account angelegt.
+  if (website) return res.json({ message: 'Registrierung erfolgreich. Warte auf Freischaltung durch einen Admin.' })
+
   if (!email || !password || !name) return res.status(400).json({ error: 'Alle Felder sind erforderlich' })
   if (!isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' })
   if (name.trim().length === 0 || name.length > 100) return res.status(400).json({ error: 'Name muss zwischen 1 und 100 Zeichen lang sein' })
