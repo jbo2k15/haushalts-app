@@ -24,6 +24,12 @@ function hashToken(token) {
   return createHash('sha256').update(token).digest('hex')
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function isValidEmail(email) {
+  return typeof email === 'string' && email.length <= 254 && EMAIL_REGEX.test(email)
+}
+
 function validatePassword(pw) {
   if (!pw || pw.length < 10) return 'Passwort muss mindestens 10 Zeichen haben'
   if (pw.length > 64) return 'Passwort darf maximal 64 Zeichen haben'
@@ -49,6 +55,7 @@ async function issueRefreshToken(userId, res) {
 router.post('/register', async (req, res) => {
   const { email, password, name } = req.body
   if (!email || !password || !name) return res.status(400).json({ error: 'Alle Felder sind erforderlich' })
+  if (!isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' })
   if (name.trim().length === 0 || name.length > 100) return res.status(400).json({ error: 'Name muss zwischen 1 und 100 Zeichen lang sein' })
   const pwError = validatePassword(password)
   if (pwError) return res.status(400).json({ error: pwError })
@@ -149,7 +156,9 @@ router.post('/change-password', requireAuth, async (req, res) => {
 
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body
-  const user = await prisma.user.findUnique({ where: { email: email?.toLowerCase() } })
+  if (!isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' })
+
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
   if (!user) return res.json({ message: 'Falls die E-Mail existiert, wurde ein Link gesendet.' })
 
   await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } })
