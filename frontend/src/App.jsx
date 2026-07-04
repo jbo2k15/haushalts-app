@@ -33,6 +33,16 @@ function ProtectedRoute({ children, adminOnly = false }) {
   return children
 }
 
+function VersionFooter() {
+  const { user } = useAuth()
+  if (!user) return null
+  return (
+    <p className="fixed bottom-0 inset-x-0 text-center text-[10px] text-gray-300 dark:text-gray-600 py-1 pointer-events-none z-10">
+      v{__APP_VERSION__}
+    </p>
+  )
+}
+
 function AppRoutes() {
   return (
     <Suspense fallback={<PageFallback />}>
@@ -48,6 +58,7 @@ function AppRoutes() {
         <Route path="/hall-of-fame" element={<ProtectedRoute><HallOfFame /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <VersionFooter />
     </Suspense>
   )
 }
