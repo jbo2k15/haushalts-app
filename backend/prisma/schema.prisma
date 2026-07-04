@@ -16,6 +16,7 @@ model User {
   approved           Boolean              @default(false)
   mustChangePassword Boolean              @default(false)
   vacationMode       Boolean              @default(false)
+  lastSeenVersion    String?
   lastActiveAt       DateTime?
   dayTrophies        Int                  @default(0)
   weekTrophies       Int                  @default(0)

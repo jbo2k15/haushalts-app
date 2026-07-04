@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken'
 import authRoutes from './routes/auth.js'
 import taskRoutes from './routes/tasks.js'
 import userRoutes from './routes/users.js'
+import releaseNotesRoutes from './routes/release-notes.js'
 import { requireAuth } from './middleware/auth.js'
 import { addSSEClient, removeSSEClient } from './lib/sse.js'
 import prisma from './lib/prisma.js'
@@ -54,6 +55,7 @@ export function createApp() {
   app.use('/api/auth', authRoutes)
   app.use('/api/tasks', taskRoutes)
   app.use('/api/users', userRoutes)
+  app.use('/api/release-notes', releaseNotesRoutes)
 
   app.get('/api/events', async (req, res) => {
     const token = req.query.token

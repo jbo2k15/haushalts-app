@@ -1,4 +1,5 @@
 // Shared helpers for e2e specs.
+import { expect } from '@playwright/test'
 
 export const EMAIL = 'e2e@example.com' // must match backend/scripts/e2e-seed.js
 export const PASSWORD = 'E2eTest1234!'
@@ -32,4 +33,14 @@ export async function login(page) {
   await page.locator('input[type="password"]').fill(PASSWORD)
   await page.getByRole('button', { name: 'Anmelden' }).click()
   await page.waitForURL('/')
+
+  // A fresh e2e user has no lastSeenVersion, so the release notes modal
+  // pops up on first login whenever backend/src/data/release-notes.json has
+  // an entry for the current version — dismiss it so it doesn't block
+  // clicks in tests that don't care about it.
+  const modal = page.locator('[data-testid="release-notes-modal"]')
+  if (await modal.isVisible().catch(() => false)) {
+    await page.locator('[data-testid="release-notes-dismiss"]').click()
+    await expect(modal).toBeHidden()
+  }
 }
