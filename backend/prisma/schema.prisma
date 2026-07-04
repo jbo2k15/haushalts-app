@@ -90,30 +90,35 @@ model Task {
 }
 
 model TaskCompletion {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   taskId      String
   completedBy String?
-  completedAt DateTime @default(now())
+  completedAt DateTime  @default(now())
   forDate     String
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user        User?    @relation(fields: [completedBy], references: [id], onDelete: SetNull)
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User?     @relation(fields: [completedBy], references: [id], onDelete: SetNull)
+  logs        TaskLog[]
 
-  @@unique([taskId, forDate])
-  @@index([taskId])
+  // No longer @@unique: daily tasks can be completed multiple times per day
+  // (see /complete route — non-daily types still enforce single-completion
+  // semantics at the application level via findFirst-before-create).
+  @@index([taskId, forDate])
   @@index([completedBy])
 }
 
 model TaskLog {
-  id          String   @id @default(uuid())
-  taskId      String?
-  taskTitle   String
-  status      String
-  completedBy String?
-  userName    String?
-  loggedAt    DateTime @default(now())
-  forDate     String
-  task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  user        User?    @relation(fields: [completedBy], references: [id], onDelete: SetNull)
+  id           String          @id @default(uuid())
+  taskId       String?
+  taskTitle    String
+  status       String
+  completedBy  String?
+  userName     String?
+  loggedAt     DateTime        @default(now())
+  forDate      String
+  completionId String?
+  task         Task?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  user         User?           @relation(fields: [completedBy], references: [id], onDelete: SetNull)
+  completion   TaskCompletion? @relation(fields: [completionId], references: [id], onDelete: Cascade)
 
   @@index([completedBy, status, forDate])
   @@index([loggedAt])

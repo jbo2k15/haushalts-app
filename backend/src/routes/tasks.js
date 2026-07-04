@@ -101,7 +101,11 @@ router.get('/', requireAuth, async (req, res) => {
       if (weekdays && weekdays.length > 0 && !weekdays.includes(todayWeekday)) continue
       if (skippedIds.has(task.id)) continue
 
-      const completionToday = byKey.get(`${task.id}-${today}`) || null
+      // Daily tasks can be completed multiple times per day — count all of
+      // today's completions rather than just checking existence.
+      const todaysCompletions = (byTask.get(task.id) || []).filter(c => c.forDate === today)
+      const count = todaysCompletions.length
+      const lastCompletion = todaysCompletions[todaysCompletions.length - 1] || null
       const taskCreatedDate = task.createdAt.toISOString().slice(0, 10)
       const wasDueYesterday = taskCreatedDate <= yesterday && (!weekdays || weekdays.length === 0 || weekdays.includes(yesterdayWeekday))
       const wasDueTwoDaysAgo = taskCreatedDate <= twoDaysAgo && (!weekdays || weekdays.length === 0 || weekdays.includes(twoDaysAgoWeekday))
@@ -109,8 +113,9 @@ router.get('/', requireAuth, async (req, res) => {
       result.daily.push({
         ...task,
         weekdays,
-        completed: !!completionToday,
-        completedBy: completionToday?.user?.name || null,
+        completed: count > 0,
+        count,
+        completedBy: lastCompletion?.user?.name || null,
         overdueDay1: wasDueYesterday && !byKey.has(`${task.id}-${yesterday}`),
         overdueDay2: wasDueTwoDaysAgo && !byKey.has(`${task.id}-${twoDaysAgo}`),
       })
@@ -139,6 +144,17 @@ router.get('/', requireAuth, async (req, res) => {
   res.json(result)
 })
 
+async function createCompletion(prisma, { taskId, taskTitle, forDate, userId, userName }) {
+  return prisma.$transaction(async (tx) => {
+    const completion = await tx.taskCompletion.create({ data: { taskId, completedBy: userId, forDate } })
+    await tx.taskLog.create({
+      data: { taskId, taskTitle, status: 'completed', completedBy: userId, userName, forDate, completionId: completion.id },
+    })
+    await tx.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } })
+    return completion
+  })
+}
+
 router.post('/:id/complete', requireAuth, async (req, res) => {
   const { id } = req.params
   const today = todayString()
@@ -149,30 +165,55 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
   if (!task) return res.status(404).json({ error: 'Aufgabe nicht gefunden' })
   if (!task.isActive) return res.status(400).json({ error: 'Aufgabe ist nicht aktiv' })
 
+  // Daily tasks: every click adds another completion (undone separately via
+  // /uncomplete-last) — no toggle-off here.
+  if (task.type === 'daily') {
+    await createCompletion(prisma, { taskId: id, taskTitle: task.title, forDate: today, userId: req.user.id, userName: req.user.name })
+    const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate: today } })
+    broadcastTasksUpdated()
+    return res.json({ completed: true, count })
+  }
+
   let forDate = today
   if (task.type === 'weekly') forDate = weekStart
   if (task.type === 'monthly') forDate = monthStart
   if (task.type === 'once') forDate = task.dueDate
 
-  const existing = await prisma.taskCompletion.findUnique({
-    where: { taskId_forDate: { taskId: id, forDate } },
-  })
+  const existing = await prisma.taskCompletion.findFirst({ where: { taskId: id, forDate } })
 
   if (existing) {
-    await prisma.taskCompletion.delete({ where: { taskId_forDate: { taskId: id, forDate } } })
+    await prisma.taskCompletion.delete({ where: { id: existing.id } })
     await prisma.taskLog.deleteMany({ where: { taskId: id, forDate, status: 'completed' } })
     broadcastTasksUpdated()
     return res.json({ completed: false })
   }
 
-  await prisma.$transaction([
-    prisma.taskCompletion.create({ data: { taskId: id, completedBy: req.user.id, forDate } }),
-    prisma.taskLog.create({ data: { taskId: id, taskTitle: task.title, status: 'completed', completedBy: req.user.id, userName: req.user.name, forDate } }),
-    prisma.user.update({ where: { id: req.user.id }, data: { lastActiveAt: new Date() } }),
-  ])
+  await createCompletion(prisma, { taskId: id, taskTitle: task.title, forDate, userId: req.user.id, userName: req.user.name })
 
   broadcastTasksUpdated()
   return res.json({ completed: true })
+})
+
+router.post('/:id/uncomplete-last', requireAuth, async (req, res) => {
+  const { id } = req.params
+  const today = todayString()
+
+  const task = await prisma.task.findUnique({ where: { id } })
+  if (!task || task.type !== 'daily') return res.status(400).json({ error: 'Nur für tägliche Aufgaben verfügbar' })
+  if (!task.isActive) return res.status(400).json({ error: 'Aufgabe ist nicht aktiv' })
+
+  const last = await prisma.taskCompletion.findFirst({
+    where: { taskId: id, forDate: today },
+    orderBy: { completedAt: 'desc' },
+  })
+  if (!last) return res.status(400).json({ error: 'Keine Erledigung zum Zurücknehmen vorhanden' })
+
+  // Cascades to the linked TaskLog entry (see schema: TaskLog.completionId onDelete: Cascade)
+  await prisma.taskCompletion.delete({ where: { id: last.id } })
+  const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate: today } })
+
+  broadcastTasksUpdated()
+  res.json({ completed: count > 0, count })
 })
 
 router.post('/:id/skip', requireAuth, async (req, res) => {
