@@ -1,15 +1,9 @@
 import { test, expect } from '@playwright/test'
-
-// Must match backend/scripts/e2e-seed.js
-const EMAIL = 'e2e@example.com'
-const PASSWORD = 'E2eTest1234!'
+import { attachErrorCollector, login } from './helpers.js'
 
 test('toggling a task reflects the true server state, not a stale cached response', async ({ page }) => {
-  await page.goto('/login')
-  await page.locator('input[type="email"]').fill(EMAIL)
-  await page.locator('input[type="password"]').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Anmelden' }).click()
-  await page.waitForURL('/')
+  const errors = attachErrorCollector(page)
+  await login(page)
 
   // A freshly registered service worker does NOT control the page that
   // registered it — only the NEXT navigation is controlled. The stale-cache
@@ -50,4 +44,6 @@ test('toggling a task reflects the true server state, not a stale cached respons
   const serverStateBack = bodyBack.daily.find(t => t.title === 'E2E Test Task')
   expect(serverStateBack.completed).toBe(false)
   await expect(row).toHaveAttribute('data-completed', 'false')
+
+  expect(errors).toEqual([])
 })
