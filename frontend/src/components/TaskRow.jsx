@@ -10,10 +10,17 @@ const PRIORITY_COLORS = {
 const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 
 const TaskRow = memo(function TaskRow({ task, onToggle }) {
+  const isDaily = task.type === 'daily'
+
   const [optimistic, setOptimistic] = useState(null) // 'completed' | 'uncompleted' | 'skipped' | null
+  // Daily tasks can be completed multiple times per day, so a boolean
+  // optimistic flag isn't enough — track a pending +1/-1 adjustment instead.
+  const [optimisticDelta, setOptimisticDelta] = useState(0)
   const pendingRef = useRef(false)
 
-  const completed = optimistic === 'completed' ? true
+  const count = isDaily ? Math.max(0, (task.count ?? 0) + optimisticDelta) : null
+  const completed = isDaily ? count > 0
+    : optimistic === 'completed' ? true
     : optimistic === 'uncompleted' ? false
     : task.completed
   const skipped = optimistic === 'skipped'
@@ -36,12 +43,39 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
   async function handleClick() {
     if (pendingRef.current) return
     pendingRef.current = true
+
+    if (isDaily) {
+      setOptimisticDelta(d => d + 1)
+      try {
+        await api.post(`/tasks/${task.id}/complete`, {})
+        await onToggle()
+      } finally {
+        setOptimisticDelta(0)
+        releaseAfterDelay()
+      }
+      return
+    }
+
     setOptimistic(task.completed ? 'uncompleted' : 'completed')
     try {
       await api.post(`/tasks/${task.id}/complete`, {})
       await onToggle()
     } finally {
       setOptimistic(null)
+      releaseAfterDelay()
+    }
+  }
+
+  async function handleUndo(e) {
+    e.stopPropagation()
+    if (pendingRef.current) return
+    pendingRef.current = true
+    setOptimisticDelta(d => d - 1)
+    try {
+      await api.post(`/tasks/${task.id}/uncomplete-last`, {})
+      await onToggle()
+    } finally {
+      setOptimisticDelta(0)
       releaseAfterDelay()
     }
   }
@@ -72,6 +106,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
       data-testid="task-row"
       data-task-title={task.title}
       data-completed={completed}
+      data-count={isDaily ? count : undefined}
     >
       <div className={`w-5 h-5 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors ${
         completed ? 'bg-green-500 border-green-500' : task.isOverdue ? 'border-red-400' : 'border-gray-300 dark:border-gray-500'
@@ -84,6 +119,11 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
       </div>
       <span className={`flex-1 text-sm ${completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
         {task.title}
+        {isDaily && count > 1 && (
+          <span className="ml-1.5 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded">
+            ×{count}
+          </span>
+        )}
         {task.isOnce && task.dueDate && (
           <span className="ml-1.5 text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-1.5 py-0.5 rounded">
             {task.dueDate.split('-').reverse().join('.')}
@@ -104,7 +144,17 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
           <span className="text-xs text-red-600 dark:text-red-400">überfällig</span>
         )}
       </div>
-      {task.type === 'daily' && !completed && !skipped && (
+      {isDaily && completed && (
+        <button
+          onClick={handleUndo}
+          title="Letzte Erledigung zurücknehmen"
+          data-testid="undo-completion"
+          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-base leading-none touch-manipulation"
+        >
+          −
+        </button>
+      )}
+      {isDaily && !completed && !skipped && (
         <button
           onClick={handleSkip}
           title="Heute nicht nötig"
