@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import request from 'supertest'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
@@ -54,6 +54,29 @@ describe('GET /api/tasks', () => {
   it('lehnt unauthentifizierte Anfrage ab', async () => {
     const res = await request(app).get('/api/tasks')
     expect(res.status).toBe(401)
+  })
+
+  it('zeigt eine wöchentliche Erledigung weiterhin als erledigt, wenn die Woche vor Monats-/2-Tage-Fenster beginnt', async () => {
+    // Regression: rangeStart previously only considered monthStart and
+    // twoDaysAgo, not weekStart. On a Thursday early in the month, the
+    // week's Monday can fall before both — the completion existed in the
+    // DB but was excluded from the batch query, so it read back as
+    // "not completed" right after being created.
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-02T10:00:00Z')) // Donnerstag, Woche beginnt 2026-06-29
+    try {
+      const user = await createUser()
+      const task = await createTask({ type: 'weekly' })
+
+      const completeRes = await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+      expect(completeRes.body.completed).toBe(true)
+
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      const weeklyTask = res.body.weekly.find(t => t.id === task.id)
+      expect(weeklyTask.completed).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 

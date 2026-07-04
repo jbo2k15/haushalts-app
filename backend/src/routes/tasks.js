@@ -50,7 +50,12 @@ router.get('/', requireAuth, async (req, res) => {
   // Batch-fetch all completions in one query
   const taskIds = tasks.map(t => t.id)
   const onceDueDates = tasks.filter(t => t.type === 'once' && t.dueDate).map(t => t.dueDate)
-  const rangeStart = monthStart < twoDaysAgo ? monthStart : twoDaysAgo
+  // Must cover the earliest of all three lookback windows (daily: 2 days,
+  // weekly: current week, monthly: current month) — missing weekStart here
+  // caused weekly completions to fall outside the fetched range (and thus
+  // read back as "not completed") whenever the week started before both
+  // monthStart and twoDaysAgo, e.g. early in a month on a Thu-Sun.
+  const rangeStart = [monthStart, twoDaysAgo, weekStart].reduce((min, d) => (d < min ? d : min))
 
   const skippedToday = taskIds.length === 0 ? [] : await prisma.taskLog.findMany({
     where: { taskId: { in: taskIds }, forDate: today, status: 'skipped' },
