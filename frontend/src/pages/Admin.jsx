@@ -20,8 +20,8 @@ function SortableTask({ task, onEdit, onDelete }) {
   const style = { transform: CSS.Transform.toString(transform), transition }
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0 bg-white dark:bg-gray-800">
-      <div {...attributes} {...listeners} style={{ touchAction: 'none' }} className="text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing text-lg">⠿</div>
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0 bg-white dark:bg-gray-800" data-testid="sortable-task" data-task-title={task.title}>
+      <div {...attributes} {...listeners} style={{ touchAction: 'none' }} className="text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing text-lg" data-testid="drag-handle">⠿</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</span>
