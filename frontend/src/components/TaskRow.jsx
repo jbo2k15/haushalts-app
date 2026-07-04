@@ -153,7 +153,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
           onClick={handleUndo}
           title="Letzte Erledigung zurücknehmen"
           data-testid="undo-completion"
-          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-base leading-none touch-manipulation"
+          className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full border border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg font-semibold leading-none touch-manipulation"
         >
           −
         </button>
@@ -162,7 +162,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
         <button
           onClick={handleSkip}
           title="Heute nicht nötig"
-          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-base leading-none touch-manipulation"
+          className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full border border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-sm font-semibold leading-none touch-manipulation"
         >
           ✕
         </button>
