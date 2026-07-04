@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test'
 import { attachErrorCollector, login } from './helpers.js'
 
-test('daily task can be completed multiple times and undone one at a time', async ({ page }) => {
+test('multi-completion daily task can be completed several times and undone one at a time', async ({ page }) => {
   const errors = attachErrorCollector(page)
   await login(page)
 
-  const row = page.locator('[data-testid="task-row"][data-task-title="E2E Test Task"]')
+  const row = page.locator('[data-testid="task-row"][data-task-title="E2E Multi Task"]')
   await expect(row).toHaveAttribute('data-completed', 'false')
 
   async function click(locator) {
