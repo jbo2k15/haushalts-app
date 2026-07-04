@@ -85,9 +85,25 @@ describe('POST /api/tasks/:id/complete', () => {
     expect(completion).toBeNull()
   })
 
-  it('tägliche Aufgabe: jeder Klick erhöht den Zähler statt umzuschalten', async () => {
+  it('normale tägliche Aufgabe: zweiter Klick schaltet zurück auf offen (wie bisher)', async () => {
     const user = await createUser()
-    const task = await createTask({ type: 'daily' })
+    const task = await createTask({ type: 'daily' }) // allowMultiple defaults to false
+
+    const res1 = await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+    expect(res1.status).toBe(200)
+    expect(res1.body).toEqual({ completed: true })
+
+    const res2 = await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+    expect(res2.status).toBe(200)
+    expect(res2.body).toEqual({ completed: false })
+
+    const completions = await prisma.taskCompletion.findMany({ where: { taskId: task.id } })
+    expect(completions).toHaveLength(0)
+  })
+
+  it('mehrfach erledigbare tägliche Aufgabe: jeder Klick erhöht den Zähler statt umzuschalten', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'daily', allowMultiple: true })
 
     const res1 = await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
     expect(res1.status).toBe(200)
@@ -155,7 +171,7 @@ describe('POST /api/tasks/:id/skip', () => {
 describe('POST /api/tasks/:id/uncomplete-last', () => {
   it('entfernt die zeitlich letzte Erledigung samt Log-Eintrag', async () => {
     const user = await createUser()
-    const task = await createTask({ type: 'daily' })
+    const task = await createTask({ type: 'daily', allowMultiple: true })
     await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
     await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
 
@@ -173,7 +189,7 @@ describe('POST /api/tasks/:id/uncomplete-last', () => {
 
   it('meldet completed:false wenn die letzte verbleibende Erledigung entfernt wird', async () => {
     const user = await createUser()
-    const task = await createTask({ type: 'daily' })
+    const task = await createTask({ type: 'daily', allowMultiple: true })
     await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
 
     const res = await request(app)
@@ -184,7 +200,17 @@ describe('POST /api/tasks/:id/uncomplete-last', () => {
 
   it('lehnt ab, wenn nichts zum Zurücknehmen vorhanden ist', async () => {
     const user = await createUser()
-    const task = await createTask({ type: 'daily' })
+    const task = await createTask({ type: 'daily', allowMultiple: true })
+    const res = await request(app)
+      .post(`/api/tasks/${task.id}/uncomplete-last`)
+      .set(authHeader(user.id))
+    expect(res.status).toBe(400)
+  })
+
+  it('lehnt normale (nicht mehrfach erledigbare) tägliche Aufgaben ab', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'daily' }) // allowMultiple defaults to false
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
     const res = await request(app)
       .post(`/api/tasks/${task.id}/uncomplete-last`)
       .set(authHeader(user.id))

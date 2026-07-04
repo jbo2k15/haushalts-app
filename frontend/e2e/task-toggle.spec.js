@@ -36,11 +36,11 @@ test('toggling a task reflects the true server state, not a stale cached respons
   // the next action, matching realistic user timing rather than a double-tap.
   await page.waitForTimeout(500)
 
-  // Daily tasks can be completed multiple times per day; undo it via the
-  // dedicated button (a second click on the row would add another
-  // completion, not undo the first one).
+  // Normal daily tasks (allowMultiple: false) keep the original toggle
+  // behavior — clicking again un-completes it (see multi-completion.spec.js
+  // for the "complete several times per day" variant).
   const tasksReloadBack = page.waitForResponse(r => new URL(r.url()).pathname === '/api/tasks' && r.request().method() === 'GET')
-  await row.locator('[data-testid="undo-completion"]').click()
+  await row.click()
   const responseBack = await tasksReloadBack
   const bodyBack = await responseBack.json()
   const serverStateBack = bodyBack.daily.find(t => t.title === 'E2E Test Task')

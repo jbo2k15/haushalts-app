@@ -25,6 +25,8 @@ async function main() {
       type: 'daily',
       priority: 'normal',
       sortOrder: 0,
+      // allowMultiple defaults to false — this task covers the normal,
+      // single-toggle-per-day behavior.
     },
   })
 
@@ -34,6 +36,11 @@ async function main() {
   })
   await prisma.task.create({
     data: { title: 'E2E Sort Task B', type: 'daily', priority: 'normal', sortOrder: 2 },
+  })
+
+  // Dedicated task for testing the "complete multiple times per day" feature.
+  await prisma.task.create({
+    data: { title: 'E2E Multi Task', type: 'daily', priority: 'normal', sortOrder: 3, allowMultiple: true },
   })
 
   console.log('e2e-seed: user + tasks created')

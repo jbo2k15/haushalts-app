@@ -11,15 +11,19 @@ const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 
 const TaskRow = memo(function TaskRow({ task, onToggle }) {
   const isDaily = task.type === 'daily'
+  // Only daily tasks explicitly configured for it (Admin -> "Mehrfach am
+  // Tag") get the increment/undo behavior. Regular daily tasks keep the
+  // original single toggle.
+  const isMulti = isDaily && task.allowMultiple
 
   const [optimistic, setOptimistic] = useState(null) // 'completed' | 'uncompleted' | 'skipped' | null
-  // Daily tasks can be completed multiple times per day, so a boolean
-  // optimistic flag isn't enough — track a pending +1/-1 adjustment instead.
+  // Multi-completion tasks can be completed several times per day, so a
+  // boolean optimistic flag isn't enough — track a pending +1/-1 instead.
   const [optimisticDelta, setOptimisticDelta] = useState(0)
   const pendingRef = useRef(false)
 
-  const count = isDaily ? Math.max(0, (task.count ?? 0) + optimisticDelta) : null
-  const completed = isDaily ? count > 0
+  const count = isMulti ? Math.max(0, (task.count ?? 0) + optimisticDelta) : null
+  const completed = isMulti ? count > 0
     : optimistic === 'completed' ? true
     : optimistic === 'uncompleted' ? false
     : task.completed
@@ -44,7 +48,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
     if (pendingRef.current) return
     pendingRef.current = true
 
-    if (isDaily) {
+    if (isMulti) {
       setOptimisticDelta(d => d + 1)
       try {
         await api.post(`/tasks/${task.id}/complete`, {})
@@ -106,7 +110,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
       data-testid="task-row"
       data-task-title={task.title}
       data-completed={completed}
-      data-count={isDaily ? count : undefined}
+      data-count={isMulti ? count : undefined}
     >
       <div className={`w-5 h-5 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors ${
         completed ? 'bg-green-500 border-green-500' : task.isOverdue ? 'border-red-400' : 'border-gray-300 dark:border-gray-500'
@@ -119,7 +123,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
       </div>
       <span className={`flex-1 text-sm ${completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
         {task.title}
-        {isDaily && count > 1 && (
+        {isMulti && count > 1 && (
           <span className="ml-1.5 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded">
             ×{count}
           </span>
@@ -144,7 +148,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
           <span className="text-xs text-red-600 dark:text-red-400">überfällig</span>
         )}
       </div>
-      {isDaily && completed && (
+      {isMulti && completed && (
         <button
           onClick={handleUndo}
           title="Letzte Erledigung zurücknehmen"
