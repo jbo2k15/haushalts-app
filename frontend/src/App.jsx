@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import ReleaseNotesModal from './components/ReleaseNotesModal.jsx'
 import Login from './pages/Login.jsx'
 import Home from './pages/Home.jsx'
 
@@ -43,6 +44,12 @@ function VersionFooter() {
   )
 }
 
+function ReleaseNotesGate() {
+  const { user } = useAuth()
+  if (!user || user.mustChangePassword) return null
+  return <ReleaseNotesModal />
+}
+
 function AppRoutes() {
   return (
     <Suspense fallback={<PageFallback />}>
@@ -59,6 +66,7 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <VersionFooter />
+      <ReleaseNotesGate />
     </Suspense>
   )
 }
