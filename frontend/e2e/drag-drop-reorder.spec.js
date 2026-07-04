@@ -1,8 +1,5 @@
 import { test, expect } from '@playwright/test'
-
-// Must match backend/scripts/e2e-seed.js
-const EMAIL = 'e2e@example.com'
-const PASSWORD = 'E2eTest1234!'
+import { attachErrorCollector, login } from './helpers.js'
 
 async function dailyTaskTitles(page) {
   const rows = page.locator('[data-testid="sortable-task"][data-task-title^="E2E "]')
@@ -10,11 +7,8 @@ async function dailyTaskTitles(page) {
 }
 
 test('drag-and-drop reorder persists across reload', async ({ page }) => {
-  await page.goto('/login')
-  await page.locator('input[type="email"]').fill(EMAIL)
-  await page.locator('input[type="password"]').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Anmelden' }).click()
-  await page.waitForURL('/')
+  const errors = attachErrorCollector(page)
+  await login(page)
 
   await page.goto('/admin')
   await expect(page.locator('[data-testid="sortable-task"]').first()).toBeVisible()
@@ -50,4 +44,6 @@ test('drag-and-drop reorder persists across reload', async ({ page }) => {
   await expect(page.locator('[data-testid="sortable-task"]').first()).toBeVisible()
   const afterReload = await dailyTaskTitles(page)
   expect(afterReload).toEqual(afterDrag)
+
+  expect(errors).toEqual([])
 })
