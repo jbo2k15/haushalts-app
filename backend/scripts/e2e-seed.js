@@ -14,7 +14,7 @@ async function main() {
       email: E2E_EMAIL,
       passwordHash,
       name: 'E2E Test User',
-      role: 'user',
+      role: 'admin', // needed for the drag-and-drop reorder test (admin-only route)
       approved: true,
     },
   })
@@ -24,10 +24,19 @@ async function main() {
       title: 'E2E Test Task',
       type: 'daily',
       priority: 'normal',
+      sortOrder: 0,
     },
   })
 
-  console.log('e2e-seed: user + task created')
+  // Two more same-type tasks to drag-and-drop reorder in the Admin UI.
+  await prisma.task.create({
+    data: { title: 'E2E Sort Task A', type: 'daily', priority: 'normal', sortOrder: 1 },
+  })
+  await prisma.task.create({
+    data: { title: 'E2E Sort Task B', type: 'daily', priority: 'normal', sortOrder: 2 },
+  })
+
+  console.log('e2e-seed: user + tasks created')
 }
 
 main()
