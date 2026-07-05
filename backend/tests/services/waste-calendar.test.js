@@ -1,5 +1,31 @@
 import { describe, it, expect } from 'vitest'
-import { subtractOneDay, toDateString } from '../../src/services/waste-calendar.js'
+import { subtractOneDay, toDateString, matchWasteType } from '../../src/services/waste-calendar.js'
+
+describe('matchWasteType', () => {
+  it('erkennt Papiertonne', () => {
+    expect(matchWasteType('Papiertonne')?.title).toBe('Papiertonne rausstellen')
+  })
+
+  it('erkennt Restmüll', () => {
+    expect(matchWasteType('Restmülltonne Abholung')?.title).toBe('Restmülltonne rausstellen')
+  })
+
+  it('erkennt Gelbe Tonne', () => {
+    expect(matchWasteType('Gelbe Tonne')?.title).toBe('Gelbe Tonne rausstellen')
+  })
+
+  it('erkennt Wertstofftonne als Alias für Gelbe Tonne', () => {
+    expect(matchWasteType('Wertstofftonne')?.title).toBe('Gelbe Tonne rausstellen')
+  })
+
+  it('ist nicht case-sensitiv', () => {
+    expect(matchWasteType('WERTSTOFFTONNE')?.title).toBe('Gelbe Tonne rausstellen')
+  })
+
+  it('gibt null zurück für unbekannte Begriffe', () => {
+    expect(matchWasteType('Sperrmüll')).toBeNull()
+  })
+})
 
 describe('subtractOneDay', () => {
   it('zieht einen Tag ab', () => {

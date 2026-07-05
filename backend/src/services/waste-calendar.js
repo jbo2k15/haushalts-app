@@ -5,7 +5,17 @@ const WASTE_TYPES = [
   { match: 'papier', title: 'Papiertonne rausstellen' },
   { match: 'restmüll', title: 'Restmülltonne rausstellen' },
   { match: 'gelbe tonne', title: 'Gelbe Tonne rausstellen' },
+  // "Wertstofftonne" ist in manchen Kommunen der offizielle Begriff für die
+  // gelbe Tonne und taucht so im iCal-Feed auf, statt "Gelbe Tonne".
+  { match: 'wertstoff', title: 'Gelbe Tonne rausstellen' },
 ]
+
+// Exported separately so the matching logic can be unit-tested without
+// mocking the full iCal fetch.
+export function matchWasteType(summary) {
+  const lower = summary.toLowerCase()
+  return WASTE_TYPES.find(w => lower.includes(w.match)) || null
+}
 
 export function toDateString(date) {
   const d = new Date(date)
@@ -47,8 +57,8 @@ export async function syncWasteCalendar() {
 
     for (const event of Object.values(events)) {
       if (event.type !== 'VEVENT') continue
-      const summary = (typeof event.summary === 'object' ? event.summary?.val : event.summary || '').toLowerCase()
-      const wasteType = WASTE_TYPES.find(w => summary.includes(w.match))
+      const summary = typeof event.summary === 'object' ? event.summary?.val : event.summary || ''
+      const wasteType = matchWasteType(summary)
       if (!wasteType) continue
 
       const collectionDate = toDateString(event.start)
