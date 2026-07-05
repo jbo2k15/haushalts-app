@@ -18,6 +18,11 @@ test('release notes modal shows once on first login, then stays dismissed', asyn
   const modal = page.locator('[data-testid="release-notes-modal"]')
   await expect(modal).toBeVisible()
 
+  // A brand-new user has never seen any version, so every release note up
+  // to the current one is shown stacked in one go — not just the latest.
+  const entryCount = await page.locator('[data-testid="release-note-entry"]').count()
+  expect(entryCount).toBeGreaterThan(1)
+
   const seenRequest = page.waitForResponse(r => new URL(r.url()).pathname === '/api/release-notes/seen' && r.request().method() === 'PUT')
   await page.locator('[data-testid="release-notes-dismiss"]').click()
   await seenRequest
