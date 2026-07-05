@@ -77,9 +77,8 @@ DOCKER_BUILDKIT=1 docker compose build $SERVICES
 echo "▸ Container-Start..."
 docker compose up -d
 
-echo "▸ Warte 15s auf Container-Start..."
-sleep 15
-
+# smoke-test.sh polls /api/health itself (up to 30s) before running its
+# checks, so a fixed sleep here would just waste time on top of that.
 echo "▸ Smoke Test..."
 bash scripts/smoke-test.sh
 
