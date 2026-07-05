@@ -36,7 +36,7 @@ export default function ReleaseNotesModal() {
           <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Was ist neu — v{version}</h2>
           <button onClick={dismiss} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-300">{note}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">{note}</p>
         <button
           onClick={dismiss}
           data-testid="release-notes-dismiss"
