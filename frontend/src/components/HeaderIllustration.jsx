@@ -1,6 +1,13 @@
 export default function HeaderIllustration() {
   return (
-    <svg viewBox="152 0 78 100" height="80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg viewBox="140 0 105 100" height="80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      {/* Fixed light backdrop — the illustration has transparent gaps
+          (between hair strands, face contours, etc.) that otherwise pick up
+          the page background. Without this they read as white in light mode
+          but as harsh black holes in dark mode. Wide enough to also fully
+          cover the caption text, which is wider than the original viewBox. */}
+      <rect x="141" y="-2" width="103" height="103" rx="18" fill="#FDF2E9"/>
+
       {/* Heart */}
       <path d="M191 10 Q191 6 194 6 Q197 6 197 10 Q197 14 191 17 Q185 14 185 10 Q185 6 188 6 Q191 6 191 10Z" fill="#EF4444"/>
       <circle cx="199" cy="4" r="1.3" fill="#F97316"/>
