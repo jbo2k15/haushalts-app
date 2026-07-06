@@ -18,6 +18,10 @@ const backendEnv = {
   VAPID_EMAIL: 'mailto:e2e@example.com',
   VAPID_PUBLIC_KEY: 'BCWQd_gapX4Ud_v3z5OGIEKPMvPRUZtFSgbZ1SIgAjTtROEyYhIQDnXitrITE0PnW4LDE7-bmtTR9UVf2H1PzE4',
   VAPID_PRIVATE_KEY: 'phYQBWDo3xBUIFXoMRIFqNNAGrS-D6NzirfmxrPPUU4',
+  // Redirects password-reset/approval emails to a file instead of sending
+  // real mail - see src/services/email.js. Tests read this file to get the
+  // real reset link a user would click.
+  EMAIL_TEST_CAPTURE_FILE: path.resolve(backendDir, 'e2e-emails.jsonl'),
 }
 
 export default defineConfig({
