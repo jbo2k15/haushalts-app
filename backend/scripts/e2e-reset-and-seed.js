@@ -7,6 +7,7 @@ import { execSync } from 'child_process'
 import { existsSync, unlinkSync } from 'fs'
 
 if (existsSync('./e2e.db')) unlinkSync('./e2e.db')
+if (existsSync('./e2e-emails.jsonl')) unlinkSync('./e2e-emails.jsonl')
 
 execSync('npx prisma db push --force-reset --url file:./e2e.db', {
   stdio: 'inherit',

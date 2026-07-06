@@ -7,4 +7,5 @@ dist
 test-results
 playwright-report
 frontend/e2e/.auth
+backend/e2e-emails.jsonl
 .last-deploy

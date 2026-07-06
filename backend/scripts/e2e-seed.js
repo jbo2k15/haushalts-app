@@ -7,6 +7,12 @@ import prisma from '../src/lib/prisma.js'
 export const E2E_EMAIL = 'e2e@example.com'
 export const E2E_PASSWORD = 'E2eTest1234!'
 
+// Separate account for the password-reset flow test - resetting E2E_EMAIL's
+// password would break every later spec that logs in with E2E_PASSWORD via
+// helpers.js (tests run sequentially against one shared e2e.db).
+export const E2E_PWRESET_EMAIL = 'e2e-pwreset@example.com'
+export const E2E_PWRESET_PASSWORD = 'E2ePwReset1234!'
+
 async function main() {
   const passwordHash = await bcrypt.hash(E2E_PASSWORD, 4) // low rounds, speed over security in tests
   await prisma.user.create({
@@ -15,6 +21,16 @@ async function main() {
       passwordHash,
       name: 'E2E Test User',
       role: 'admin', // needed for the drag-and-drop reorder test (admin-only route)
+      approved: true,
+    },
+  })
+
+  await prisma.user.create({
+    data: {
+      email: E2E_PWRESET_EMAIL,
+      passwordHash: await bcrypt.hash(E2E_PWRESET_PASSWORD, 4),
+      name: 'E2E Password Reset User',
+      role: 'user',
       approved: true,
     },
   })
