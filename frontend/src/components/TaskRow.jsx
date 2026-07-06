@@ -11,10 +11,11 @@ const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 
 const TaskRow = memo(function TaskRow({ task, onToggle }) {
   const isDaily = task.type === 'daily'
-  // Only daily tasks explicitly configured for it (Admin -> "Mehrfach am
-  // Tag") get the increment/undo behavior. Regular daily tasks keep the
-  // original single toggle.
-  const isMulti = isDaily && task.allowMultiple
+  // Only daily/weekly tasks explicitly configured for it (Admin -> "Mehrfach
+  // erledigbar") get the increment/undo behavior. Everything else keeps the
+  // original single toggle. Skip ("heute nicht nötig") stays daily-only —
+  // there's no equivalent "skip this week" concept.
+  const isMulti = (task.type === 'daily' || task.type === 'weekly') && task.allowMultiple
 
   const [optimistic, setOptimistic] = useState(null) // 'completed' | 'uncompleted' | 'skipped' | null
   // Multi-completion tasks can be completed several times per day, so a

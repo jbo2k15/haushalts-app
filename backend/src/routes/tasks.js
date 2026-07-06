@@ -17,6 +17,12 @@ const LOG_LIMIT = 100
 
 const VALID_TYPES = ['daily', 'weekly', 'monthly', 'once']
 const VALID_PRIORITIES = ['high', 'normal', 'low']
+// Types where "erledigt" is a per-period counter (today / current week)
+// rather than a single fixed date, so completing more than once per period
+// makes sense (e.g. "Wäsche sortieren" — at least weekly, but fine more
+// often). monthly/once tasks have a single natural due point, so multi-
+// completion isn't offered for those.
+const MULTI_ELIGIBLE_TYPES = ['daily', 'weekly']
 
 export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, dueDate, allowMultiple }) {
   if (!title || typeof title !== 'string' || title.trim().length === 0) return 'Titel ist erforderlich'
@@ -29,7 +35,7 @@ export function validateTaskInput({ title, type, priority, weekdays, fixedWeekda
   if (type === 'once') {
     if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return 'Fälligkeitsdatum ist erforderlich (YYYY-MM-DD)'
   }
-  if (allowMultiple && type !== 'daily') return '"Mehrfach am Tag" ist nur für tägliche Aufgaben verfügbar'
+  if (allowMultiple && !MULTI_ELIGIBLE_TYPES.includes(type)) return '"Mehrfach erledigbar" ist nur für tägliche oder wöchentliche Aufgaben verfügbar'
   return null
 }
 
@@ -129,11 +135,14 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     if (task.type === 'weekly') {
-      const completion = byTask.get(task.id)?.find(c => c.forDate >= weekStart) || null
+      const weekCompletions = (byTask.get(task.id) || []).filter(c => c.forDate === weekStart)
+      const count = weekCompletions.length
+      const lastCompletion = weekCompletions[weekCompletions.length - 1] || null
       result.weekly.push({
         ...task,
-        completed: !!completion,
-        completedBy: completion?.user?.name || null,
+        completed: count > 0,
+        count: task.allowMultiple ? count : (count > 0 ? 1 : 0),
+        completedBy: lastCompletion?.user?.name || null,
       })
     }
 
@@ -172,20 +181,20 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
   if (!task) return res.status(404).json({ error: 'Aufgabe nicht gefunden' })
   if (!task.isActive) return res.status(400).json({ error: 'Aufgabe ist nicht aktiv' })
 
-  // Daily tasks with allowMultiple: every click adds another completion
-  // (undone separately via /uncomplete-last) — no toggle-off here. Normal
-  // daily tasks keep the original single toggle behavior below.
-  if (task.type === 'daily' && task.allowMultiple) {
-    await createCompletion(prisma, { taskId: id, taskTitle: task.title, forDate: today, userId: req.user.id, userName: req.user.name })
-    const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate: today } })
-    broadcastTasksUpdated()
-    return res.json({ completed: true, count })
-  }
-
   let forDate = today
   if (task.type === 'weekly') forDate = weekStart
   if (task.type === 'monthly') forDate = monthStart
   if (task.type === 'once') forDate = task.dueDate
+
+  // Daily/weekly tasks with allowMultiple: every click adds another
+  // completion (undone separately via /uncomplete-last) — no toggle-off
+  // here. Everything else keeps the original single toggle behavior below.
+  if (MULTI_ELIGIBLE_TYPES.includes(task.type) && task.allowMultiple) {
+    await createCompletion(prisma, { taskId: id, taskTitle: task.title, forDate, userId: req.user.id, userName: req.user.name })
+    const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate } })
+    broadcastTasksUpdated()
+    return res.json({ completed: true, count })
+  }
 
   const existing = await prisma.taskCompletion.findFirst({ where: { taskId: id, forDate } })
 
@@ -205,22 +214,25 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
 router.post('/:id/uncomplete-last', requireAuth, async (req, res) => {
   const { id } = req.params
   const today = todayString()
+  const weekStart = currentWeekStart()
 
   const task = await prisma.task.findUnique({ where: { id } })
-  if (!task || task.type !== 'daily' || !task.allowMultiple) {
-    return res.status(400).json({ error: 'Nur für mehrfach erledigbare tägliche Aufgaben verfügbar' })
+  if (!task || !MULTI_ELIGIBLE_TYPES.includes(task.type) || !task.allowMultiple) {
+    return res.status(400).json({ error: 'Nur für mehrfach erledigbare tägliche oder wöchentliche Aufgaben verfügbar' })
   }
   if (!task.isActive) return res.status(400).json({ error: 'Aufgabe ist nicht aktiv' })
 
+  const forDate = task.type === 'weekly' ? weekStart : today
+
   const last = await prisma.taskCompletion.findFirst({
-    where: { taskId: id, forDate: today },
+    where: { taskId: id, forDate },
     orderBy: { completedAt: 'desc' },
   })
   if (!last) return res.status(400).json({ error: 'Keine Erledigung zum Zurücknehmen vorhanden' })
 
   // Cascades to the linked TaskLog entry (see schema: TaskLog.completionId onDelete: Cascade)
   await prisma.taskCompletion.delete({ where: { id: last.id } })
-  const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate: today } })
+  const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate } })
 
   broadcastTasksUpdated()
   res.json({ completed: count > 0, count })
@@ -339,7 +351,7 @@ router.post('/admin/import', requireAuth, requireAdmin, async (req, res) => {
       fixedDayOfMonth: Number.isInteger(t.fixedDayOfMonth) ? t.fixedDayOfMonth : null,
       dueDate: t.type === 'once' && t.dueDate ? t.dueDate : null,
       isActive: t.isActive !== false,
-      allowMultiple: t.type === 'daily' && t.allowMultiple === true,
+      allowMultiple: MULTI_ELIGIBLE_TYPES.includes(t.type) && t.allowMultiple === true,
       sortOrder: nextOrder + i,
     })),
   })
@@ -362,7 +374,7 @@ router.post('/admin', requireAuth, requireAdmin, async (req, res) => {
       fixedDayOfMonth: fixedDayOfMonth ?? null,
       dueDate: type === 'once' ? dueDate : null,
       isActive: isActive !== false,
-      allowMultiple: type === 'daily' && allowMultiple === true,
+      allowMultiple: MULTI_ELIGIBLE_TYPES.includes(type) && allowMultiple === true,
       sortOrder: (maxOrder._max.sortOrder || 0) + 1,
     },
   })
@@ -390,7 +402,7 @@ router.put('/admin/:id', requireAuth, requireAdmin, async (req, res) => {
       fixedDayOfMonth: fixedDayOfMonth ?? null,
       dueDate: type === 'once' ? dueDate : null,
       isActive,
-      allowMultiple: type === 'daily' && allowMultiple === true,
+      allowMultiple: MULTI_ELIGIBLE_TYPES.includes(type) && allowMultiple === true,
     },
   })
   res.json(updated)

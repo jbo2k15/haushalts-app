@@ -75,4 +75,14 @@ describe('validateTaskInput', () => {
     expect(validateTaskInput({ ...base, fixedDayOfMonth: 1 })).toBeNull()
     expect(validateTaskInput({ ...base, fixedDayOfMonth: 31 })).toBeNull()
   })
+
+  it('akzeptiert allowMultiple für tägliche und wöchentliche Aufgaben', () => {
+    expect(validateTaskInput({ ...base, type: 'daily', allowMultiple: true })).toBeNull()
+    expect(validateTaskInput({ ...base, type: 'weekly', allowMultiple: true })).toBeNull()
+  })
+
+  it('lehnt allowMultiple für monatliche und einmalige Aufgaben ab', () => {
+    expect(validateTaskInput({ ...base, type: 'monthly', allowMultiple: true })).toBeTruthy()
+    expect(validateTaskInput({ ...base, type: 'once', dueDate: '2026-07-01', allowMultiple: true })).toBeTruthy()
+  })
 })

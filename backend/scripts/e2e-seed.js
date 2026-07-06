@@ -43,6 +43,12 @@ async function main() {
     data: { title: 'E2E Multi Task', type: 'daily', priority: 'normal', sortOrder: 3, allowMultiple: true },
   })
 
+  // Same, but weekly — "Wäsche sortieren"-style: at least once a week,
+  // optionally more often.
+  await prisma.task.create({
+    data: { title: 'E2E Weekly Multi Task', type: 'weekly', priority: 'normal', sortOrder: 4, allowMultiple: true },
+  })
+
   // Waste-calendar tasks (auto-generated, not manually managed) for testing
   // the dedicated Admin "Abfallkalender" section.
   await prisma.task.create({
