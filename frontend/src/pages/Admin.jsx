@@ -13,7 +13,7 @@ const TYPE_LABELS = { daily: 'Täglich', weekly: 'Wöchentlich', monthly: 'Monat
 
 const EMPTY_FORM = { title: '', type: 'daily', priority: 'normal', weekdays: [], fixedWeekday: '', fixedDayOfMonth: '', dueDate: '', isActive: true, allowMultiple: false }
 
-const inputCls = 'w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400'
+const inputCls = 'w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-orange-400'
 
 function SortableTask({ task, onEdit, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
@@ -25,7 +25,7 @@ function SortableTask({ task, onEdit, onDelete }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</span>
-          {!task.isActive && <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded flex-shrink-0">Inaktiv</span>}
+          {!task.isActive && <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded-sm shrink-0">Inaktiv</span>}
         </div>
         <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
           {TYPE_LABELS[task.type]} · {PRIORITY_LABELS[task.priority]}
@@ -35,7 +35,7 @@ function SortableTask({ task, onEdit, onDelete }) {
           {task.allowMultiple && (task.type === 'daily' ? ' · Mehrfach am Tag' : ' · Mehrfach pro Woche')}
         </div>
       </div>
-      <div className="flex gap-2 flex-shrink-0">
+      <div className="flex gap-2 shrink-0">
         <button onClick={() => onEdit(task)} className="text-xs text-orange-600 dark:text-orange-400 hover:underline">Bearb.</button>
         <button onClick={() => onDelete(task.id)} className="text-xs text-red-500 dark:text-red-400 hover:underline">Löschen</button>
       </div>
@@ -385,7 +385,7 @@ export default function Admin() {
                     </div>
                   </div>
                   {!task.isActive && (
-                    <button onClick={() => deleteTask(task.id)} className="text-xs text-red-500 dark:text-red-400 hover:underline flex-shrink-0">Löschen</button>
+                    <button onClick={() => deleteTask(task.id)} className="text-xs text-red-500 dark:text-red-400 hover:underline shrink-0">Löschen</button>
                   )}
                 </div>
               ))}
@@ -400,7 +400,7 @@ export default function Admin() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             {users.map(userRecord => (
               <div key={userRecord.id} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
-                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-700 dark:text-orange-400 font-medium text-sm flex-shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-700 dark:text-orange-400 font-medium text-sm shrink-0 mt-0.5">
                   {userRecord.name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -412,7 +412,7 @@ export default function Admin() {
                       : 'Noch nie aktiv'}
                   </p>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="flex gap-2 shrink-0">
                   {userRecord.role === 'admin' && (
                     <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-2 py-1.5 rounded-lg font-medium">Admin</span>
                   )}
