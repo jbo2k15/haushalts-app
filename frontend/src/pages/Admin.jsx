@@ -399,7 +399,8 @@ export default function Admin() {
         {tab === 'users' && (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             {users.map(userRecord => (
-              <div key={userRecord.id} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+              <div key={userRecord.id} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                data-testid="user-row" data-user-email={userRecord.email} data-user-role={userRecord.role} data-user-approved={userRecord.approved}>
                 <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-700 dark:text-orange-400 font-medium text-sm shrink-0 mt-0.5">
                   {userRecord.name[0].toUpperCase()}
                 </div>
@@ -418,12 +419,14 @@ export default function Admin() {
                   )}
                   <button
                     onClick={() => toggleRole(userRecord.id)}
+                    data-testid="toggle-role"
                     className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg font-medium"
                   >
                     {userRecord.role === 'admin' ? '↓ Nutzer' : '↑ Admin'}
                   </button>
                   <button
                     onClick={() => toggleUser(userRecord.id)}
+                    data-testid="toggle-approve"
                     className={`text-xs px-3 py-1.5 rounded-lg font-medium ${userRecord.approved ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'}`}
                   >
                     {userRecord.approved ? 'Sperren' : 'Freischalten'}
@@ -431,6 +434,7 @@ export default function Admin() {
                   {userRecord.id !== currentUser?.id && (
                     <button
                       onClick={() => deleteUser(userRecord.id)}
+                      data-testid="delete-user"
                       className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-3 py-1.5 rounded-lg font-medium"
                     >
                       Löschen

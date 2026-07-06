@@ -35,6 +35,37 @@ async function main() {
     },
   })
 
+  // Dedicated targets for the Admin user-management test - kept separate
+  // from E2E_EMAIL/E2E_PWRESET_EMAIL so approving/deleting/role-toggling
+  // them can't affect any other spec's login.
+  await prisma.user.create({
+    data: {
+      email: 'e2e-pending@example.com',
+      passwordHash: await bcrypt.hash('E2ePending1234!', 4),
+      name: 'E2E Pending User',
+      role: 'user',
+      approved: false,
+    },
+  })
+  await prisma.user.create({
+    data: {
+      email: 'e2e-plain@example.com',
+      passwordHash: await bcrypt.hash('E2ePlain1234!', 4),
+      name: 'E2E Plain User',
+      role: 'user',
+      approved: true,
+    },
+  })
+  await prisma.user.create({
+    data: {
+      email: 'e2e-delete-me@example.com',
+      passwordHash: await bcrypt.hash('E2eDeleteMe1234!', 4),
+      name: 'E2E Delete Me',
+      role: 'user',
+      approved: true,
+    },
+  })
+
   await prisma.task.create({
     data: {
       title: 'E2E Test Task',
