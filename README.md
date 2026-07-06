@@ -5,6 +5,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 ## Funktionen
 
 - **Aufgaben** — Tägliche, wöchentliche, monatliche und einmalige Aufgaben (mit Fälligkeitsdatum); Drag & Drop zum Sortieren; tägliche Aufgaben können für den Tag übersprungen werden
+- **Mehrfach erledigbare Aufgaben** — Tägliche und wöchentliche Aufgaben können bei Bedarf per Verwaltung so konfiguriert werden, dass sie mehrmals pro Tag/Woche erledigt werden können, mit Zähler und der Möglichkeit, die letzte Erledigung zurückzunehmen
 - **Aufgabenlog** — Protokoll aller erledigten, abgelaufenen, übersprungenen und gelöschten Aufgaben (bis 100 Einträge)
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, diese Woche, letzte Woche, diesen und letzten Monat
 - **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger
@@ -23,7 +24,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 ## Voraussetzungen
 
 - Docker + Docker Compose
-- Node.js 20+ und npm (für Backend-Tests und Playwright-E2E-Tests, die `deploy.sh` vor jedem Build ausführt)
+- Node.js 22+ und npm (für Backend-Tests und Playwright-E2E-Tests, die `deploy.sh` vor jedem Build ausführt)
 - Git
 - Cloudflare-Account (für externen Zugriff mit TLS)
 - Gmail-Account mit App-Passwort (für E-Mail-Versand)
@@ -105,7 +106,7 @@ Beim allerersten Lauf lädt Playwright einmalig Chromium herunter (~115 MB) — 
 
 ## Tests
 
-**Backend** (Vitest, 62 Tests):
+**Backend** (Vitest, 103 Tests):
 
 ```bash
 cd backend
