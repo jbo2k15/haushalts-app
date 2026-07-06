@@ -92,7 +92,7 @@ export default function Settings() {
     } catch {}
   }
 
-  const inputCls = 'border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400'
+  const inputCls = 'border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-orange-400'
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -159,7 +159,7 @@ export default function Settings() {
                   onClick={togglePush}
                   className={`w-11 h-6 rounded-full transition-colors ${pushEnabled ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
                 >
-                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${pushEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                  <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-0.5 ${pushEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
             )}
@@ -175,7 +175,7 @@ export default function Settings() {
                 onClick={toggleVacation}
                 className={`w-11 h-6 rounded-full transition-colors ${vacationMode ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
               >
-                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${vacationMode ? 'translate-x-5' : 'translate-x-0'}`} />
+                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-0.5 ${vacationMode ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
           </div>

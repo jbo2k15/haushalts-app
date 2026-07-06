@@ -117,7 +117,7 @@ export default function Home() {
               {user?.name?.[0]?.toUpperCase()}
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-11 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm w-48 z-10 overflow-hidden">
+              <div className="absolute right-0 top-11 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs w-48 z-10 overflow-hidden">
                 <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/settings') }}>
                   <span>⚙️</span> Einstellungen
                 </button>

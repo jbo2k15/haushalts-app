@@ -29,7 +29,7 @@ export default function LogSection({ refreshKey }) {
           {logs.map(log => (
             <div key={log.id} className="flex items-center gap-3 px-4 py-2.5">
               <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{log.taskTitle}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
                 log.status === 'completed' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                 : log.status === 'skipped' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
                 : log.taskId === null ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
@@ -40,8 +40,8 @@ export default function LogSection({ refreshKey }) {
                 : log.taskId === null ? 'gelöscht'
                 : 'verfallen'}
               </span>
-              {log.userName && <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{log.userName}</span>}
-              <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{formatDate(log.loggedAt)}</span>
+              {log.userName && <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{log.userName}</span>}
+              <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{formatDate(log.loggedAt)}</span>
             </div>
           ))}
         </div>

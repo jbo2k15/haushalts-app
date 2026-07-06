@@ -57,7 +57,7 @@ export default function HallOfFame() {
               const s = BADGE_STYLES[icon]
               return (
                 <div key={label} className="flex items-start gap-3">
-                  <span className={`inline-flex flex-col items-center border rounded-xl px-2 py-1 flex-shrink-0 w-14 ${s.bg} ${s.border}`}>
+                  <span className={`inline-flex flex-col items-center border rounded-xl px-2 py-1 shrink-0 w-14 ${s.bg} ${s.border}`}>
                     <span className={s.iconSize}>{icon}</span>
                     <span className={`text-xs font-semibold leading-none ${s.text}`}>{s.label}</span>
                   </span>
@@ -86,7 +86,7 @@ export default function HallOfFame() {
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
               {ranked.map((userStat, i) => (
                 <div key={userStat.id} className="flex items-center gap-3 px-4 py-3.5">
-                  <span className="text-xl w-7 text-center flex-shrink-0">
+                  <span className="text-xl w-7 text-center shrink-0">
                     {podium[i] ?? <span className="text-sm text-gray-400 dark:text-gray-500">{i + 1}.</span>}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -95,7 +95,7 @@ export default function HallOfFame() {
                       {userStat.dayTrophies + userStat.weekTrophies + userStat.monthTrophies} Pokal{userStat.dayTrophies + userStat.weekTrophies + userStat.monthTrophies !== 1 ? 'e' : ''} gesamt
                     </p>
                   </div>
-                  <div className="flex gap-1.5 flex-shrink-0">
+                  <div className="flex gap-1.5 shrink-0">
                     <TrophyBadge icon="🥉" count={userStat.dayTrophies} />
                     <TrophyBadge icon="🥈" count={userStat.weekTrophies} />
                     <TrophyBadge icon="🥇" count={userStat.monthTrophies} />
@@ -114,7 +114,7 @@ export default function HallOfFame() {
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
               {stats.filter(userStat => userStat.dayTrophies === 0 && userStat.weekTrophies === 0 && userStat.monthTrophies === 0).map(userStat => (
                 <div key={userStat.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="text-xl w-7 text-center flex-shrink-0 text-gray-300 dark:text-gray-600">—</span>
+                  <span className="text-xl w-7 text-center shrink-0 text-gray-300 dark:text-gray-600">—</span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">{userStat.name}</span>
                 </div>
               ))}
