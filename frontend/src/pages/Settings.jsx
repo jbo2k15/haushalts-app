@@ -112,6 +112,7 @@ export default function Settings() {
                 <button
                   key={opt.value}
                   onClick={() => setTheme(opt.value)}
+                  data-testid={`theme-${opt.value}`}
                   className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-colors ${
                     theme === opt.value
                       ? 'bg-orange-600 border-orange-600 text-white'
@@ -137,12 +138,13 @@ export default function Settings() {
               <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Anzeigename</label>
               <input
                 type="text"
+                data-testid="name-input"
                 className={`w-full ${inputCls}`}
                 value={name}
                 onChange={e => setName(e.target.value)}
               />
             </div>
-            <button onClick={saveName} className="bg-orange-600 text-white rounded-xl px-4 py-2 text-sm font-medium">
+            <button onClick={saveName} data-testid="save-name" className="bg-orange-600 text-white rounded-xl px-4 py-2 text-sm font-medium">
               {nameSaved ? 'Gespeichert ✓' : 'Name speichern'}
             </button>
           </div>
@@ -173,6 +175,8 @@ export default function Settings() {
               <span className="text-sm text-gray-600 dark:text-gray-400">Aktivieren</span>
               <button
                 onClick={toggleVacation}
+                data-testid="vacation-toggle"
+                data-vacation-enabled={vacationMode}
                 className={`w-11 h-6 rounded-full transition-colors ${vacationMode ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
               >
                 <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-0.5 ${vacationMode ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -187,6 +191,7 @@ export default function Settings() {
               <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Tägliche Erinnerung um</label>
               <input
                 type="time"
+                data-testid="daily-time"
                 className={inputCls}
                 value={settings.dailyTime}
                 onChange={e => setSettings(s => ({ ...s, dailyTime: e.target.value }))}
@@ -196,6 +201,7 @@ export default function Settings() {
               <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Wöchentliche Erinnerung am</label>
               <div className="flex gap-2">
                 <select
+                  data-testid="weekly-day"
                   className={inputCls}
                   value={settings.weeklyDay}
                   onChange={e => setSettings(s => ({ ...s, weeklyDay: Number(e.target.value) }))}
@@ -204,6 +210,7 @@ export default function Settings() {
                 </select>
                 <input
                   type="time"
+                  data-testid="weekly-time"
                   className={inputCls}
                   value={settings.weeklyTime}
                   onChange={e => setSettings(s => ({ ...s, weeklyTime: e.target.value }))}
@@ -212,6 +219,7 @@ export default function Settings() {
             </div>
             <button
               onClick={saveSettings}
+              data-testid="save-notification-settings"
               className="bg-orange-600 text-white rounded-xl px-4 py-2 text-sm font-medium"
             >
               {saved ? 'Gespeichert ✓' : 'Speichern'}
