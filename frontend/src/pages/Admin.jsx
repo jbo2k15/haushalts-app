@@ -32,7 +32,7 @@ function SortableTask({ task, onEdit, onDelete }) {
           {task.fixedWeekday != null && ` · ${WEEKDAY_LABELS[task.fixedWeekday]}`}
           {task.fixedDayOfMonth != null && ` · ${task.fixedDayOfMonth}.`}
           {task.weekdays?.length > 0 && ` · ${task.weekdays.map(d => WEEKDAY_LABELS[d]).join(', ')}`}
-          {task.allowMultiple && ' · Mehrfach am Tag'}
+          {task.allowMultiple && (task.type === 'daily' ? ' · Mehrfach am Tag' : ' · Mehrfach pro Woche')}
         </div>
       </div>
       <div className="flex gap-2 flex-shrink-0">
@@ -104,7 +104,7 @@ export default function Admin() {
       fixedWeekday: form.type === 'weekly' && form.fixedWeekday !== '' ? Number(form.fixedWeekday) : null,
       fixedDayOfMonth: form.type === 'monthly' && form.fixedDayOfMonth !== '' ? Number(form.fixedDayOfMonth) : null,
       dueDate: form.type === 'once' ? form.dueDate : null,
-      allowMultiple: form.type === 'daily' && form.allowMultiple,
+      allowMultiple: (form.type === 'daily' || form.type === 'weekly') && form.allowMultiple,
     }
     try {
       if (editId) {
@@ -248,11 +248,13 @@ export default function Admin() {
           </div>
         </div>
       )}
-      {form.type === 'daily' && (
+      {(form.type === 'daily' || form.type === 'weekly') && (
         <div className="flex items-center gap-2">
           <input type="checkbox" id="allowMultiple" checked={form.allowMultiple}
             onChange={e => setForm(f => ({ ...f, allowMultiple: e.target.checked }))} className="accent-orange-600" />
-          <label htmlFor="allowMultiple" className="text-sm text-gray-600 dark:text-gray-400">Mehrfach am Tag erledigbar</label>
+          <label htmlFor="allowMultiple" className="text-sm text-gray-600 dark:text-gray-400">
+            {form.type === 'daily' ? 'Mehrfach am Tag erledigbar' : 'Mehrfach in der Woche erledigbar'}
+          </label>
         </div>
       )}
       {form.type === 'weekly' && (

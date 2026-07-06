@@ -78,6 +78,28 @@ describe('GET /api/tasks', () => {
       vi.useRealTimers()
     }
   })
+
+  it('zeigt den Zähler für eine mehrfach erledigbare wöchentliche Aufgabe', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'weekly', allowMultiple: true })
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+
+    const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+    const weeklyTask = res.body.weekly.find(t => t.id === task.id)
+    expect(weeklyTask.completed).toBe(true)
+    expect(weeklyTask.count).toBe(2)
+  })
+
+  it('zeigt count:1 für eine normale (nicht mehrfach erledigbare) erledigte wöchentliche Aufgabe', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'weekly' })
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+
+    const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+    const weeklyTask = res.body.weekly.find(t => t.id === task.id)
+    expect(weeklyTask.count).toBe(1)
+  })
 })
 
 describe('POST /api/tasks/:id/complete', () => {
@@ -144,6 +166,23 @@ describe('POST /api/tasks/:id/complete', () => {
 
     const logs = await prisma.taskLog.findMany({ where: { taskId: task.id, status: 'completed' } })
     expect(logs).toHaveLength(3)
+  })
+
+  it('mehrfach erledigbare wöchentliche Aufgabe: jeder Klick erhöht den Zähler statt umzuschalten', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'weekly', allowMultiple: true })
+
+    const res1 = await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+    expect(res1.status).toBe(200)
+    expect(res1.body).toEqual({ completed: true, count: 1 })
+
+    const res2 = await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+    expect(res2.body).toEqual({ completed: true, count: 2 })
+
+    const completions = await prisma.taskCompletion.findMany({ where: { taskId: task.id } })
+    expect(completions).toHaveLength(2)
+    // Alle Erledigungen einer Woche teilen sich dasselbe forDate (Wochenbeginn).
+    expect(new Set(completions.map(c => c.forDate)).size).toBe(1)
   })
 
   it('lehnt inaktive Aufgabe ab', async () => {
@@ -240,13 +279,35 @@ describe('POST /api/tasks/:id/uncomplete-last', () => {
     expect(res.status).toBe(400)
   })
 
-  it('lehnt nicht-tägliche Aufgaben ab', async () => {
+  it('lehnt nicht mehrfach erledigbare wöchentliche Aufgaben ab', async () => {
     const user = await createUser()
-    const task = await createTask({ type: 'weekly' })
+    const task = await createTask({ type: 'weekly' }) // allowMultiple defaults to false
     const res = await request(app)
       .post(`/api/tasks/${task.id}/uncomplete-last`)
       .set(authHeader(user.id))
     expect(res.status).toBe(400)
+  })
+
+  it('lehnt monatliche und einmalige Aufgaben ab, auch mit allowMultiple:true im Payload', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'monthly' })
+    const res = await request(app)
+      .post(`/api/tasks/${task.id}/uncomplete-last`)
+      .set(authHeader(user.id))
+    expect(res.status).toBe(400)
+  })
+
+  it('entfernt die letzte Erledigung einer mehrfach erledigbaren wöchentlichen Aufgabe', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'weekly', allowMultiple: true })
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+
+    const res = await request(app)
+      .post(`/api/tasks/${task.id}/uncomplete-last`)
+      .set(authHeader(user.id))
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ completed: true, count: 1 })
   })
 })
 

@@ -14,7 +14,7 @@ test('drag-and-drop reorder persists across reload', async ({ page }) => {
   await expect(page.locator('[data-testid="sortable-task"]').first()).toBeVisible()
 
   const before = await dailyTaskTitles(page)
-  expect(before).toEqual(['E2E Test Task', 'E2E Sort Task A', 'E2E Sort Task B', 'E2E Multi Task'])
+  expect(before).toEqual(['E2E Test Task', 'E2E Sort Task A', 'E2E Sort Task B', 'E2E Multi Task', 'E2E Weekly Multi Task'])
 
   // Drag "E2E Sort Task B" above "E2E Test Task" using raw mouse events —
   // @dnd-kit's MouseSensor listens to native mouse events, not HTML5 dragstart,
