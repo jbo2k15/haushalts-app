@@ -28,68 +28,11 @@ router.put('/me/vacation', requireAuth, async (req, res) => {
   res.json(updated)
 })
 
-router.post('/:id/role', requireAuth, requireAdmin, async (req, res) => {
-  const { id } = req.params
-  if (id === req.user.id) return res.status(400).json({ error: 'Du kannst deinen eigenen Admin-Status nicht ändern' })
-
-  const target = await prisma.user.findUnique({ where: { id } })
-  if (!target) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
-
-  if (target.role === 'admin') {
-    const adminCount = await prisma.user.count({ where: { role: 'admin' } })
-    if (adminCount <= 1) return res.status(400).json({ error: 'Es muss mindestens ein Admin vorhanden sein' })
-  }
-
-  const updated = await prisma.user.update({
-    where: { id },
-    data: { role: target.role === 'admin' ? 'user' : 'admin' },
-    select: { id: true, name: true, role: true },
-  })
-  res.json(updated)
-})
-
-router.get('/', requireAuth, requireAdmin, async (req, res) => {
-  const users = await prisma.user.findMany({
-    select: { id: true, email: true, name: true, role: true, approved: true, createdAt: true, lastActiveAt: true },
-    orderBy: { createdAt: 'asc' },
-  })
-  res.json(users)
-})
-
-router.post('/:id/approve', requireAuth, requireAdmin, async (req, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.params.id } })
-  if (!user) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
-
-  const wasApproved = user.approved
-  const updated = await prisma.user.update({
-    where: { id: req.params.id },
-    data: { approved: !user.approved },
-    select: { id: true, email: true, name: true, approved: true },
-  })
-
-  if (!wasApproved && updated.approved) {
-    try { await sendApprovalEmail(updated.email, updated.name) } catch {}
-  }
-
-  res.json(updated)
-})
-
-router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
-  const { id } = req.params
-  if (id === req.user.id) return res.status(400).json({ error: 'Du kannst deinen eigenen Account nicht löschen' })
-
-  const target = await prisma.user.findUnique({ where: { id } })
-  if (!target) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
-
-  if (target.role === 'admin') {
-    const adminCount = await prisma.user.count({ where: { role: 'admin' } })
-    if (adminCount <= 1) return res.status(400).json({ error: 'Es muss mindestens ein Admin vorhanden sein' })
-  }
-
-  await prisma.user.delete({ where: { id } })
-  res.json({ message: 'Nutzer gelöscht' })
-})
-
+// Alle Routen mit literalem Pfad muessen vor den generischen /:id-Routen
+// registriert werden - sonst faengt z.B. DELETE /:id einen Aufruf wie
+// DELETE /push-subscription mit id="push-subscription" ab und verlangt
+// faelschlich Admin-Rechte (requireAdmin auf /:id) statt der eigentlichen
+// requireAuth-only-Logik der Ziel-Route.
 router.get('/notifications', requireAuth, async (req, res) => {
   const settings = await prisma.notificationSettings.findUnique({ where: { userId: req.user.id } })
   const global = await prisma.notificationSettings.findFirst({ where: { userId: null } })
@@ -151,6 +94,68 @@ router.delete('/push-subscription', requireAuth, async (req, res) => {
   const { endpoint } = req.body
   await prisma.pushSubscription.deleteMany({ where: { endpoint, userId: req.user.id } })
   res.json({ message: 'Subscription entfernt' })
+})
+
+router.post('/:id/role', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params
+  if (id === req.user.id) return res.status(400).json({ error: 'Du kannst deinen eigenen Admin-Status nicht ändern' })
+
+  const target = await prisma.user.findUnique({ where: { id } })
+  if (!target) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+
+  if (target.role === 'admin') {
+    const adminCount = await prisma.user.count({ where: { role: 'admin' } })
+    if (adminCount <= 1) return res.status(400).json({ error: 'Es muss mindestens ein Admin vorhanden sein' })
+  }
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: { role: target.role === 'admin' ? 'user' : 'admin' },
+    select: { id: true, name: true, role: true },
+  })
+  res.json(updated)
+})
+
+router.get('/', requireAuth, requireAdmin, async (req, res) => {
+  const users = await prisma.user.findMany({
+    select: { id: true, email: true, name: true, role: true, approved: true, createdAt: true, lastActiveAt: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  res.json(users)
+})
+
+router.post('/:id/approve', requireAuth, requireAdmin, async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.params.id } })
+  if (!user) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+
+  const wasApproved = user.approved
+  const updated = await prisma.user.update({
+    where: { id: req.params.id },
+    data: { approved: !user.approved },
+    select: { id: true, email: true, name: true, approved: true },
+  })
+
+  if (!wasApproved && updated.approved) {
+    try { await sendApprovalEmail(updated.email, updated.name) } catch {}
+  }
+
+  res.json(updated)
+})
+
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params
+  if (id === req.user.id) return res.status(400).json({ error: 'Du kannst deinen eigenen Account nicht löschen' })
+
+  const target = await prisma.user.findUnique({ where: { id } })
+  if (!target) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+
+  if (target.role === 'admin') {
+    const adminCount = await prisma.user.count({ where: { role: 'admin' } })
+    if (adminCount <= 1) return res.status(400).json({ error: 'Es muss mindestens ein Admin vorhanden sein' })
+  }
+
+  await prisma.user.delete({ where: { id } })
+  res.json({ message: 'Nutzer gelöscht' })
 })
 
 export default router
