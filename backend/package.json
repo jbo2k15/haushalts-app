@@ -39,5 +39,8 @@
     "prisma@7.8.0": true,
     "@prisma/engines@7.8.0": true,
     "better-sqlite3@12.11.1": true
+  },
+  "overrides": {
+    "@prisma/dev": "^0.24.14"
   }
 }
