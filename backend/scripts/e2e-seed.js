@@ -13,6 +13,12 @@ export const E2E_PASSWORD = 'E2eTest1234!'
 export const E2E_PWRESET_EMAIL = 'e2e-pwreset@example.com'
 export const E2E_PWRESET_PASSWORD = 'E2ePwReset1234!'
 
+// Separate account for the Settings-page test - it changes name and
+// vacation mode, which would otherwise leak into other specs (e.g. the
+// name shows up in StatsSection on Home).
+export const E2E_SETTINGS_EMAIL = 'e2e-settings@example.com'
+export const E2E_SETTINGS_PASSWORD = 'E2eSettings1234!'
+
 async function main() {
   const passwordHash = await bcrypt.hash(E2E_PASSWORD, 4) // low rounds, speed over security in tests
   await prisma.user.create({
@@ -30,6 +36,16 @@ async function main() {
       email: E2E_PWRESET_EMAIL,
       passwordHash: await bcrypt.hash(E2E_PWRESET_PASSWORD, 4),
       name: 'E2E Password Reset User',
+      role: 'user',
+      approved: true,
+    },
+  })
+
+  await prisma.user.create({
+    data: {
+      email: E2E_SETTINGS_EMAIL,
+      passwordHash: await bcrypt.hash(E2E_SETTINGS_PASSWORD, 4),
+      name: 'E2E Settings User',
       role: 'user',
       approved: true,
     },
