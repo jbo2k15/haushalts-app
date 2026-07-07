@@ -5,5 +5,6 @@
   "1.6.0": "Neu in Version 1.6.0:\n\nDie Illustration im Kopfbereich sieht im Dunkelmodus jetzt korrekt aus. Beim Login werden jetzt alle verpassten Neuerungen angezeigt, falls mehrere Updates übersprungen wurden.",
   "1.7.0": "Neu in Version 1.7.0:\n\nAuch wöchentliche Aufgaben können jetzt (falls in der Verwaltung aktiviert) mehrmals pro Woche erledigt werden — mit Zähler und der Möglichkeit, eine Erledigung wieder zurückzunehmen.",
   "1.7.2": "Neu in Version 1.7.2:\n\nIm Hintergrund wurde technisch aufgeräumt (aktualisierte Basis-Komponenten, kleinere Sicherheits- und Wartungsverbesserungen) — für dich als Nutzer ändert sich nichts an der Bedienung.",
-  "1.7.3": "Neu in Version 1.7.3:\n\nIm Hintergrund wurde die automatisierte Testabdeckung deutlich erweitert (u.a. Nutzerverwaltung, Passwort-Zurücksetzen, Echtzeit-Synchronisation) — für dich als Nutzer ändert sich nichts an der Bedienung."
+  "1.7.3": "Neu in Version 1.7.3:\n\nIm Hintergrund wurde die automatisierte Testabdeckung deutlich erweitert (u.a. Nutzerverwaltung, Passwort-Zurücksetzen, Echtzeit-Synchronisation) — für dich als Nutzer ändert sich nichts an der Bedienung.",
+  "1.8.0": "Neu in Version 1.8.0:\n\nDu kannst jetzt zwischen der Startseite und der Ruhmeshalle hin- und herwischen — einfach nach links oder rechts ziehen. Ein kurzer Tipp zeigt dir das beim ersten Mal.\n\nAußerdem: Falls Push-Benachrichtigungen bei dir zwischenzeitlich nicht mehr funktioniert haben, wirst du jetzt wieder zuverlässig daran erinnert, sie neu zu aktivieren."
 }
