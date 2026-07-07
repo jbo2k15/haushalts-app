@@ -9,3 +9,13 @@
 - [x] **Backend: 3× moderate Vulnerabilities** in der Prisma/@hono/node-server-Kette (GHSA-92pp-h63x-v22m) — erledigt (2026-07-06), ohne Downgrade. `prisma@7.8.0` pinnt `@prisma/dev@0.24.3` (verwundbar, `@hono/node-server@1.19.11`). Ab `@prisma/dev@0.24.9` ist `@hono/node-server` bereits auf `^1.19.14` gepatcht. Fix per `overrides`-Eintrag in `backend/package.json` (`"@prisma/dev": "^0.24.14"`), ohne `prisma` selbst zu verändern. `npm audit`: 0 Vulnerabilities. 103 Backend-Tests + 11 E2E-Tests grün.
 
 Details und Entscheidungshistorie: siehe lokale Notizen zum wöchentlichen Security-/Dependency-Scan (nicht Teil dieses Repos).
+
+## Feature-Ideen (für später, noch nicht angefangen)
+
+- [ ] **Swipe-Navigation zur Ruhmeshalle** — per Links-/Rechts-Wischen (Touch-Geste) von der Home-Seite zur Hall-of-Fame-Seite wechseln können.
+- [ ] **Mehrere Haushalte** — Große Änderung, Anforderungen noch nicht geschärft. Eckpunkte aus erstem Gespräch:
+  - Getrennte Aufgaben und Statistiken pro Haushalt
+  - Ein Nutzer kann Mitglied in mehreren Haushalten sein
+  - Nutzer kann zwischen seinen Haushalten wechseln
+  - Beitritt zu einem Haushalt nur per Einladung (kein offener Self-Signup pro Haushalt)
+  - Vor Umsetzung: Anforderungen im Detail klären (u.a. Rollen/Rechte pro Haushalt, Einladungs-Mechanismus, Datenmodell-Migration für bestehende Nutzer/Aufgaben, Auswirkung auf Admin-Verwaltung, Ruhmeshalle und Push-Benachrichtigungen)
