@@ -3,6 +3,14 @@
 ## Sicherheit — dringend
 
 - [ ] **VAPID-Schlüsselpaar rotieren** (GitGuardian-Meldung, gepusht 2026-07-04). Das echte VAPID-Schlüsselpaar aus `backend/.env` war fälschlich als "Dummy"-Wert in `backend/vitest.config.js` und `frontend/playwright.config.js` hartcodiert und damit im öffentlichen Repo sichtbar — der Code-Fix (eigene Wegwerf-Schlüssel für die Tests) ist bereits erledigt (2026-07-07). **Noch zu tun:** neues Schlüsselpaar erzeugen (`cd backend && npx web-push generate-vapid-keys`) und in `backend/.env` **lokal und auf dem Produktionsserver** eintragen, danach Backend neu starten. Ohne Rotation bleibt der alte, öffentlich gewesene Schlüssel weiter aktiv nutzbar.
+- [ ] **Server-Resync nach Git-History-Rewrite** (2026-07-07): Ein lokaler Windows-Benutzername wurde per `git filter-branch` rückwirkend aus der gesamten TODO.md-Historie inkl. Tags entfernt und per Force-Push aktualisiert (verifiziert: 0 Treffer in einem frischen Klon). Da sich dadurch alle Commit-Hashes geändert haben, muss auf dem Produktionsserver einmalig nachgezogen werden:
+  ```bash
+  cd /opt/haushalts-app
+  git fetch origin
+  git reset --hard origin/main
+  rm -f .last-deploy
+  ```
+  Kein Datenverlust zu erwarten (betrifft nur den lokalen Git-Zustand, nicht App-Datenbank/Container). **Noch zu tun:** `git fetch` + Reset auf dem Server ausführen.
 
 ## Aus wöchentlichem Security-/Dependency-Scan (2026-07-06)
 
