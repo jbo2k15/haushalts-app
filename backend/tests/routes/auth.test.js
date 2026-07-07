@@ -216,3 +216,76 @@ describe('POST /api/auth/reset-password', () => {
     expect(second.status).toBe(400)
   })
 })
+
+describe('POST /api/auth/refresh', () => {
+  it('gibt mit gültigem Refresh-Cookie ein neues Access-Token aus und rotiert den Refresh-Token', async () => {
+    const agent = request.agent(app)
+    await createUser({ email: 'refresh@test.com' })
+    const login = await agent.post('/api/auth/login').send({ email: 'refresh@test.com', password: 'Test1234!x' })
+    expect(login.status).toBe(200)
+    const oldTokenCount = await prisma.refreshToken.count()
+    expect(oldTokenCount).toBe(1)
+
+    const res = await agent.post('/api/auth/refresh')
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveProperty('token')
+    expect(res.body.user.email).toBe('refresh@test.com')
+
+    // Rotation: still exactly one active refresh token for the user, but a new one.
+    const tokens = await prisma.refreshToken.count()
+    expect(tokens).toBe(1)
+  })
+
+  it('lehnt Anfrage ohne Refresh-Cookie ab', async () => {
+    const res = await request(app).post('/api/auth/refresh')
+    expect(res.status).toBe(401)
+  })
+
+  it('lehnt einen unbekannten Refresh-Token ab', async () => {
+    const res = await request(app).post('/api/auth/refresh').set('Cookie', 'refresh_token=does-not-exist')
+    expect(res.status).toBe(401)
+  })
+
+  it('lehnt einen abgelaufenen Refresh-Token ab und löscht das Cookie', async () => {
+    const user = await createUser({ email: 'refreshexpired@test.com' })
+    const rawToken = 'raw-refresh-expired'
+    await prisma.refreshToken.create({
+      data: { userId: user.id, token: hashToken(rawToken), expiresAt: new Date(Date.now() - 1000) },
+    })
+    const res = await request(app).post('/api/auth/refresh').set('Cookie', `refresh_token=${rawToken}`)
+    expect(res.status).toBe(401)
+  })
+
+  it('lehnt einen gültigen Token ab, wenn der Nutzer inzwischen nicht mehr freigeschaltet ist', async () => {
+    const user = await createUser({ email: 'refreshunapproved@test.com' })
+    const rawToken = 'raw-refresh-unapproved'
+    await prisma.refreshToken.create({
+      data: { userId: user.id, token: hashToken(rawToken), expiresAt: new Date(Date.now() + 100000) },
+    })
+    await prisma.user.update({ where: { id: user.id }, data: { approved: false } })
+    const res = await request(app).post('/api/auth/refresh').set('Cookie', `refresh_token=${rawToken}`)
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('POST /api/auth/logout', () => {
+  it('löscht den Refresh-Token aus der Datenbank', async () => {
+    const agent = request.agent(app)
+    await createUser({ email: 'logout@test.com' })
+    await agent.post('/api/auth/login').send({ email: 'logout@test.com', password: 'Test1234!x' })
+    expect(await prisma.refreshToken.count()).toBe(1)
+
+    const res = await agent.post('/api/auth/logout')
+    expect(res.status).toBe(200)
+    expect(await prisma.refreshToken.count()).toBe(0)
+
+    // The cleared cookie means a subsequent refresh attempt fails too.
+    const refreshAfterLogout = await agent.post('/api/auth/refresh')
+    expect(refreshAfterLogout.status).toBe(401)
+  })
+
+  it('funktioniert auch ohne vorhandenes Refresh-Cookie (keine Fehlermeldung)', async () => {
+    const res = await request(app).post('/api/auth/logout')
+    expect(res.status).toBe(200)
+  })
+})

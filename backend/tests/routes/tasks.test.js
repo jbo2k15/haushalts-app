@@ -228,6 +228,214 @@ describe('POST /api/tasks/:id/skip', () => {
       .set(authHeader(user.id))
     expect(res.status).toBe(400)
   })
+
+  it('nimmt einen Skip beim zweiten Aufruf wieder zurück (Toggle)', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'daily' })
+    const first = await request(app).post(`/api/tasks/${task.id}/skip`).set(authHeader(user.id))
+    expect(first.body.skipped).toBe(true)
+
+    const second = await request(app).post(`/api/tasks/${task.id}/skip`).set(authHeader(user.id))
+    expect(second.status).toBe(200)
+    expect(second.body.skipped).toBe(false)
+
+    const logs = await prisma.taskLog.findMany({ where: { taskId: task.id, status: 'skipped' } })
+    expect(logs).toHaveLength(0)
+  })
+
+  it('lehnt skip für inaktive Aufgabe ab', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'daily', isActive: false })
+    const res = await request(app).post(`/api/tasks/${task.id}/skip`).set(authHeader(user.id))
+    expect(res.status).toBe(400)
+  })
+
+  it('gibt 400 für unbekannte Aufgabe zurück', async () => {
+    const user = await createUser()
+    const res = await request(app).post('/api/tasks/does-not-exist/skip').set(authHeader(user.id))
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /api/tasks/log', () => {
+  it('gibt Log-Einträge absteigend nach Zeit sortiert zurück', async () => {
+    const user = await createUser()
+    const task = await createTask()
+    await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'completed', completedBy: user.id, userName: user.name, forDate: '2026-06-01' } })
+    await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'skipped', forDate: '2026-06-02' } })
+
+    const res = await request(app).get('/api/tasks/log').set(authHeader(user.id))
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveLength(2)
+    expect(new Date(res.body[0].loggedAt).getTime()).toBeGreaterThanOrEqual(new Date(res.body[1].loggedAt).getTime())
+  })
+
+  it('lehnt unauthentifizierte Anfrage ab', async () => {
+    const res = await request(app).get('/api/tasks/log')
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('GET /api/tasks/stats', () => {
+  it('gibt Statistik nur für freigeschaltete Nutzer zurück', async () => {
+    const user = await createUser({ dayTrophies: 2, weekTrophies: 1, monthTrophies: 0 })
+    await createUser({ email: 'pending@test.com', approved: false })
+
+    const res = await request(app).get('/api/tasks/stats').set(authHeader(user.id))
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveLength(1)
+    expect(res.body[0]).toMatchObject({ name: 'Test User', dayTrophies: 2, weekTrophies: 1, monthTrophies: 0 })
+    expect(res.body[0]).toHaveProperty('curDay')
+    expect(res.body[0]).toHaveProperty('curWeek')
+    expect(res.body[0]).toHaveProperty('curMonth')
+  })
+
+  it('lehnt unauthentifizierte Anfrage ab', async () => {
+    const res = await request(app).get('/api/tasks/stats')
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('POST /api/tasks/admin', () => {
+  it('erstellt eine neue Aufgabe als Admin', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post('/api/tasks/admin').set(authHeader(admin.id))
+      .send({ title: 'Neue Aufgabe', type: 'daily', priority: 'high' })
+    expect(res.status).toBe(200)
+    expect(res.body.title).toBe('Neue Aufgabe')
+    expect(res.body.priority).toBe('high')
+  })
+
+  it('vergibt aufsteigende sortOrder-Werte', async () => {
+    const admin = await createUser({ role: 'admin' })
+    await createTask({ sortOrder: 5 })
+    const res = await request(app).post('/api/tasks/admin').set(authHeader(admin.id))
+      .send({ title: 'Nächste Aufgabe', type: 'daily' })
+    expect(res.body.sortOrder).toBe(6)
+  })
+
+  it('lehnt ungültige Eingaben ab', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post('/api/tasks/admin').set(authHeader(admin.id))
+      .send({ title: '', type: 'daily' })
+    expect(res.status).toBe(400)
+  })
+
+  it('lehnt Zugriff für Nicht-Admins ab', async () => {
+    const user = await createUser()
+    const res = await request(app).post('/api/tasks/admin').set(authHeader(user.id))
+      .send({ title: 'Aufgabe', type: 'daily' })
+    expect(res.status).toBe(403)
+  })
+})
+
+describe('PUT /api/tasks/admin/:id', () => {
+  it('aktualisiert eine bestehende Aufgabe', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const task = await createTask({ title: 'Alt', priority: 'low' })
+    const res = await request(app).put(`/api/tasks/admin/${task.id}`).set(authHeader(admin.id))
+      .send({ title: 'Neu', type: 'daily', priority: 'high', isActive: true })
+    expect(res.status).toBe(200)
+    expect(res.body.title).toBe('Neu')
+    expect(res.body.priority).toBe('high')
+  })
+
+  it('lehnt Bearbeiten einer auto-generierten Aufgabe ab', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const task = await createTask({ isAutoGenerated: true })
+    const res = await request(app).put(`/api/tasks/admin/${task.id}`).set(authHeader(admin.id))
+      .send({ title: 'Neu', type: 'daily', priority: 'high', isActive: true })
+    expect(res.status).toBe(403)
+  })
+
+  it('gibt 404 für unbekannte Aufgabe zurück', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).put('/api/tasks/admin/does-not-exist').set(authHeader(admin.id))
+      .send({ title: 'Neu', type: 'daily' })
+    expect(res.status).toBe(404)
+  })
+
+  it('lehnt ungültige Eingaben ab', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const task = await createTask()
+    const res = await request(app).put(`/api/tasks/admin/${task.id}`).set(authHeader(admin.id))
+      .send({ title: 'Neu', type: 'nonsense' })
+    expect(res.status).toBe(400)
+  })
+
+  it('lehnt Zugriff für Nicht-Admins ab', async () => {
+    const user = await createUser()
+    const task = await createTask()
+    const res = await request(app).put(`/api/tasks/admin/${task.id}`).set(authHeader(user.id))
+      .send({ title: 'Neu', type: 'daily' })
+    expect(res.status).toBe(403)
+  })
+})
+
+describe('POST /api/tasks/admin/import', () => {
+  it('importiert gültige Aufgaben', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post('/api/tasks/admin/import').set(authHeader(admin.id))
+      .send([{ title: 'Import A', type: 'daily' }, { title: 'Import B', type: 'weekly' }])
+    expect(res.status).toBe(200)
+    expect(res.body.message).toBe('2 Aufgaben importiert')
+    const tasks = await prisma.task.findMany({ where: { title: { in: ['Import A', 'Import B'] } } })
+    expect(tasks).toHaveLength(2)
+  })
+
+  it('lehnt kaputtes Format ab (kein Array)', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post('/api/tasks/admin/import').set(authHeader(admin.id))
+      .send({ title: 'Kein Array' })
+    expect(res.status).toBe(400)
+  })
+
+  it('lehnt ein leeres Array ab', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post('/api/tasks/admin/import').set(authHeader(admin.id)).send([])
+    expect(res.status).toBe(400)
+  })
+
+  it('lehnt mehr als 200 Aufgaben ab', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const tooMany = Array.from({ length: 201 }, (_, i) => ({ title: `Aufgabe ${i}`, type: 'daily' }))
+    const res = await request(app).post('/api/tasks/admin/import').set(authHeader(admin.id)).send(tooMany)
+    expect(res.status).toBe(400)
+  })
+
+  it('überspringt ungültige Einträge, importiert aber die gültigen', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post('/api/tasks/admin/import').set(authHeader(admin.id))
+      .send([{ title: 'Gültig', type: 'daily' }, { title: '', type: 'daily' }, { title: 'Auch gültig', type: 'weekly' }])
+    expect(res.status).toBe(200)
+    expect(res.body.message).toBe('2 Aufgaben importiert')
+  })
+
+  it('meldet 0 importierte Aufgaben, wenn alle Einträge ungültig sind', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post('/api/tasks/admin/import').set(authHeader(admin.id))
+      .send([{ title: '', type: 'daily' }])
+    expect(res.status).toBe(200)
+    expect(res.body.message).toBe('0 Aufgaben importiert')
+  })
+
+  it('erlaubt doppelte Titel (kein Uniqueness-Constraint)', async () => {
+    const admin = await createUser({ role: 'admin' })
+    await createTask({ title: 'Duplikat' })
+    const res = await request(app).post('/api/tasks/admin/import').set(authHeader(admin.id))
+      .send([{ title: 'Duplikat', type: 'daily' }])
+    expect(res.status).toBe(200)
+    expect(res.body.message).toBe('1 Aufgaben importiert')
+    const tasks = await prisma.task.findMany({ where: { title: 'Duplikat' } })
+    expect(tasks).toHaveLength(2)
+  })
+
+  it('lehnt Zugriff für Nicht-Admins ab', async () => {
+    const user = await createUser()
+    const res = await request(app).post('/api/tasks/admin/import').set(authHeader(user.id))
+      .send([{ title: 'Aufgabe', type: 'daily' }])
+    expect(res.status).toBe(403)
+  })
 })
 
 describe('POST /api/tasks/:id/uncomplete-last', () => {
