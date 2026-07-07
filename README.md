@@ -106,7 +106,7 @@ Beim allerersten Lauf lädt Playwright einmalig Chromium herunter (~115 MB) — 
 
 ## Tests
 
-**Backend** (Vitest, 103 Tests):
+**Backend** (Vitest, 203 Tests):
 
 ```bash
 cd backend
