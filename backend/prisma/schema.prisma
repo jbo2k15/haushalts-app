@@ -17,6 +17,7 @@ model User {
   mustChangePassword Boolean              @default(false)
   vacationMode       Boolean              @default(false)
   lastSeenVersion    String?
+  hasSeenSwipeTip    Boolean              @default(false)
   lastActiveAt       DateTime?
   dayTrophies        Int                  @default(0)
   weekTrophies       Int                  @default(0)

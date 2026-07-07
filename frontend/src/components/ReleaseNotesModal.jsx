@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client.js'
+import { useModalGate } from '../context/ModalGateContext.jsx'
 
 export default function ReleaseNotesModal() {
   const [notes, setNotes] = useState([])
+  const { setModalOpen } = useModalGate()
 
   useEffect(() => {
     api.get('/release-notes')
@@ -11,6 +13,13 @@ export default function ReleaseNotesModal() {
       })
       .catch(() => {})
   }, [])
+
+  // Reports to PageCarousel so it can disable swipe navigation while this
+  // is up - two competing gesture surfaces at once is asking for bugs.
+  useEffect(() => {
+    setModalOpen(notes.length > 0)
+    return () => setModalOpen(false)
+  }, [notes.length, setModalOpen])
 
   async function dismiss() {
     setNotes([])
