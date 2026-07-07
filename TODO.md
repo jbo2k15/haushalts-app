@@ -1,5 +1,9 @@
 # Offene Aufgaben
 
+## Sicherheit — dringend
+
+- [ ] **VAPID-Schlüsselpaar rotieren** (GitGuardian-Meldung, gepusht 2026-07-04). Das echte VAPID-Schlüsselpaar aus `backend/.env` war fälschlich als "Dummy"-Wert in `backend/vitest.config.js` und `frontend/playwright.config.js` hartcodiert und damit im öffentlichen Repo sichtbar — der Code-Fix (eigene Wegwerf-Schlüssel für die Tests) ist bereits erledigt (2026-07-07). **Noch zu tun:** neues Schlüsselpaar erzeugen (`cd backend && npx web-push generate-vapid-keys`) und in `backend/.env` **lokal und auf dem Produktionsserver** eintragen, danach Backend neu starten. Ohne Rotation bleibt der alte, öffentlich gewesene Schlüssel weiter aktiv nutzbar.
+
 ## Aus wöchentlichem Security-/Dependency-Scan (2026-07-06)
 
 - [x] **Major-Update `vite` 7 → 8 + `@vitejs/plugin-react` 4 → 6** (frontend) — erledigt (2026-07-06). Installiert mit `--legacy-peer-deps` (der ERESOLVE-Konflikt betraf nur eine ungenutzte optionale Peer-Dependency von `@vitejs/plugin-react@6`, `@rolldown/plugin-babel`, die `@babel/core@8-rc` verlangt, während `vite-plugin-pwa` an `@babel/core@7` hängt — npm installiert beide Versionen parallel, keine echte Inkompatibilität). Build + volle 11er-E2E-Suite (inkl. Service-Worker-Verhalten) grün.
