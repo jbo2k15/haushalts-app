@@ -36,8 +36,18 @@ export default function Settings() {
     }).catch(() => {})
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.pushManager.getSubscription().then(sub => setPushEnabled(!!sub))
+      navigator.serviceWorker.ready.then(async reg => {
+        const sub = await reg.pushManager.getSubscription()
+        if (!sub) return setPushEnabled(false)
+        // The browser keeps a subscription regardless of whether the server
+        // still recognizes it (e.g. after a VAPID key rotation) - confirm
+        // with the backend so the toggle reflects reality.
+        try {
+          const { exists } = await api.get(`/users/push-subscription?endpoint=${encodeURIComponent(sub.endpoint)}`)
+          setPushEnabled(exists)
+        } catch {
+          setPushEnabled(true)
+        }
       })
     }
   }, [])
@@ -52,6 +62,12 @@ export default function Settings() {
       }
       setPushEnabled(false)
     } else {
+      // A stale subscription from before a VAPID key rotation can still be
+      // present even though pushEnabled reads false server-side - browsers
+      // refuse to subscribe() with a new applicationServerKey while one is
+      // already active, so drop it first.
+      const existing = await reg.pushManager.getSubscription()
+      if (existing) await existing.unsubscribe()
       const keyData = await api.get('/vapid-public-key')
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
