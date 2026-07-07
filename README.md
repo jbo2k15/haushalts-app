@@ -8,7 +8,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 - **Mehrfach erledigbare Aufgaben** — Tägliche und wöchentliche Aufgaben können bei Bedarf per Verwaltung so konfiguriert werden, dass sie mehrmals pro Tag/Woche erledigt werden können, mit Zähler und der Möglichkeit, die letzte Erledigung zurückzunehmen
 - **Aufgabenlog** — Protokoll aller erledigten, abgelaufenen, übersprungenen und gelöschten Aufgaben (bis 100 Einträge)
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, diese Woche, letzte Woche, diesen und letzten Monat
-- **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger
+- **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger; per Wisch-Geste (links/rechts, Touch oder Maus) direkt von der Startseite erreichbar
 - **Push-Benachrichtigungen** — Tägliche und wöchentliche Erinnerungen an offene Aufgaben (konfigurierbare Uhrzeit)
 - **Abfallkalender** — Einmalige Aufgaben aus iCal-Feed für jeden konkreten Abholtermin; laufen am Folgetag automatisch ab und erscheinen im Log als „verfallen"
 - **Urlaubsmodus** — Pausiert Benachrichtigungen für einzelne Nutzer
@@ -106,7 +106,7 @@ Beim allerersten Lauf lädt Playwright einmalig Chromium herunter (~115 MB) — 
 
 ## Tests
 
-**Backend** (Vitest, 203 Tests):
+**Backend** (Vitest, 217 Tests):
 
 ```bash
 cd backend
