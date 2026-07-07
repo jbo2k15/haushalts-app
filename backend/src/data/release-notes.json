@@ -4,5 +4,6 @@
   "1.5.1": "Neu in Version 1.5.1:\n\nDer Abfallkalender erkennt jetzt auch \"Wertstofftonne\" korrekt und legt Erinnerungen nur noch für den jeweils nächsten Termin an — genau einen Tag vorher, nicht mehr Wochen im Voraus.",
   "1.6.0": "Neu in Version 1.6.0:\n\nDie Illustration im Kopfbereich sieht im Dunkelmodus jetzt korrekt aus. Beim Login werden jetzt alle verpassten Neuerungen angezeigt, falls mehrere Updates übersprungen wurden.",
   "1.7.0": "Neu in Version 1.7.0:\n\nAuch wöchentliche Aufgaben können jetzt (falls in der Verwaltung aktiviert) mehrmals pro Woche erledigt werden — mit Zähler und der Möglichkeit, eine Erledigung wieder zurückzunehmen.",
-  "1.7.2": "Neu in Version 1.7.2:\n\nIm Hintergrund wurde technisch aufgeräumt (aktualisierte Basis-Komponenten, kleinere Sicherheits- und Wartungsverbesserungen) — für dich als Nutzer ändert sich nichts an der Bedienung."
+  "1.7.2": "Neu in Version 1.7.2:\n\nIm Hintergrund wurde technisch aufgeräumt (aktualisierte Basis-Komponenten, kleinere Sicherheits- und Wartungsverbesserungen) — für dich als Nutzer ändert sich nichts an der Bedienung.",
+  "1.7.3": "Neu in Version 1.7.3:\n\nIm Hintergrund wurde die automatisierte Testabdeckung deutlich erweitert (u.a. Nutzerverwaltung, Passwort-Zurücksetzen, Echtzeit-Synchronisation) — für dich als Nutzer ändert sich nichts an der Bedienung."
 }
