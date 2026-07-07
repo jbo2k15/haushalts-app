@@ -19,6 +19,12 @@ export const E2E_PWRESET_PASSWORD = 'E2ePwReset1234!'
 export const E2E_SETTINGS_EMAIL = 'e2e-settings@example.com'
 export const E2E_SETTINGS_PASSWORD = 'E2eSettings1234!'
 
+// Dedicated account for the swipe-tip onboarding test - every other seeded
+// user below has hasSeenSwipeTip pre-set to true so the tip banner (fixed,
+// bottom of Home) can't interfere with unrelated specs.
+export const E2E_SWIPE_EMAIL = 'e2e-swipe@example.com'
+export const E2E_SWIPE_PASSWORD = 'E2eSwipe1234!'
+
 async function main() {
   const passwordHash = await bcrypt.hash(E2E_PASSWORD, 4) // low rounds, speed over security in tests
   await prisma.user.create({
@@ -28,6 +34,7 @@ async function main() {
       name: 'E2E Test User',
       role: 'admin', // needed for the drag-and-drop reorder test (admin-only route)
       approved: true,
+      hasSeenSwipeTip: true,
     },
   })
 
@@ -38,6 +45,7 @@ async function main() {
       name: 'E2E Password Reset User',
       role: 'user',
       approved: true,
+      hasSeenSwipeTip: true,
     },
   })
 
@@ -48,6 +56,18 @@ async function main() {
       name: 'E2E Settings User',
       role: 'user',
       approved: true,
+      hasSeenSwipeTip: true,
+    },
+  })
+
+  await prisma.user.create({
+    data: {
+      email: E2E_SWIPE_EMAIL,
+      passwordHash: await bcrypt.hash(E2E_SWIPE_PASSWORD, 4),
+      name: 'E2E Swipe User',
+      role: 'user',
+      approved: true,
+      // hasSeenSwipeTip left at its default (false) on purpose.
     },
   })
 

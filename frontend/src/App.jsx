@@ -2,10 +2,11 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
+import { ModalGateProvider } from './context/ModalGateContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import ReleaseNotesModal from './components/ReleaseNotesModal.jsx'
 import Login from './pages/Login.jsx'
-import Home from './pages/Home.jsx'
+import PageCarousel from './components/PageCarousel.jsx'
 
 const Register = lazy(() => import('./pages/Register.jsx'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'))
@@ -13,7 +14,6 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'))
 const Admin = lazy(() => import('./pages/Admin.jsx'))
 const Settings = lazy(() => import('./pages/Settings.jsx'))
 const ChangePassword = lazy(() => import('./pages/ChangePassword.jsx'))
-const HallOfFame = lazy(() => import('./pages/HallOfFame.jsx'))
 
 function PageFallback() {
   return (
@@ -59,10 +59,13 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        {/* Home and Hall of Fame are swipeable slides of the same carousel -
+            both routes render it so direct navigation/bookmarks to either
+            URL still work, PageCarousel itself decides which slide is active. */}
+        <Route path="/" element={<ProtectedRoute><PageCarousel /></ProtectedRoute>} />
+        <Route path="/hall-of-fame" element={<ProtectedRoute><PageCarousel /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/hall-of-fame" element={<ProtectedRoute><HallOfFame /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <VersionFooter />
@@ -76,9 +79,11 @@ export default function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <AppRoutes />
-          </BrowserRouter>
+          <ModalGateProvider>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <AppRoutes />
+            </BrowserRouter>
+          </ModalGateProvider>
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

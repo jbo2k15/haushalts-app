@@ -99,7 +99,7 @@ router.post('/login', async (req, res) => {
 
   res.json({
     token: accessToken,
-    user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword, vacationMode: user.vacationMode },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword, vacationMode: user.vacationMode, hasSeenSwipeTip: user.hasSeenSwipeTip },
   })
 })
 
@@ -124,7 +124,7 @@ router.post('/refresh', async (req, res) => {
 
   res.json({
     token: accessToken,
-    user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword, vacationMode: user.vacationMode },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword, vacationMode: user.vacationMode, hasSeenSwipeTip: user.hasSeenSwipeTip },
   })
 })
 
@@ -138,8 +138,8 @@ router.post('/logout', async (req, res) => {
 })
 
 router.get('/me', requireAuth, async (req, res) => {
-  const { id, email, name, role, mustChangePassword } = req.user
-  res.json({ id, email, name, role, mustChangePassword })
+  const { id, email, name, role, mustChangePassword, hasSeenSwipeTip } = req.user
+  res.json({ id, email, name, role, mustChangePassword, hasSeenSwipeTip })
 })
 
 router.post('/change-password', requireAuth, async (req, res) => {

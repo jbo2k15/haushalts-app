@@ -87,6 +87,21 @@ describe('PUT /api/users/me/vacation', () => {
   })
 })
 
+describe('PUT /api/users/me/swipe-tip-seen', () => {
+  it('markiert den Swipe-Tipp als gesehen', async () => {
+    const user = await createUser({ hasSeenSwipeTip: false })
+    const res = await request(app).put('/api/users/me/swipe-tip-seen').set(authHeader(user.id))
+    expect(res.status).toBe(200)
+    const updated = await prisma.user.findUnique({ where: { id: user.id } })
+    expect(updated.hasSeenSwipeTip).toBe(true)
+  })
+
+  it('lehnt unauthentifizierte Anfrage ab', async () => {
+    const res = await request(app).put('/api/users/me/swipe-tip-seen')
+    expect(res.status).toBe(401)
+  })
+})
+
 describe('GET /api/users', () => {
   it('gibt die Nutzerliste für Admins zurück', async () => {
     const admin = await createUser({ role: 'admin' })

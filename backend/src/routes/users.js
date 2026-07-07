@@ -28,6 +28,14 @@ router.put('/me/vacation', requireAuth, async (req, res) => {
   res.json(updated)
 })
 
+// Marks the one-time "swipe between pages" onboarding tip as seen - stored
+// server-side (not localStorage) so it stays dismissed across devices, same
+// approach as lastSeenVersion for release notes.
+router.put('/me/swipe-tip-seen', requireAuth, async (req, res) => {
+  await prisma.user.update({ where: { id: req.user.id }, data: { hasSeenSwipeTip: true } })
+  res.json({ message: 'Gespeichert' })
+})
+
 // Alle Routen mit literalem Pfad muessen vor den generischen /:id-Routen
 // registriert werden - sonst faengt z.B. DELETE /:id einen Aufruf wie
 // DELETE /push-subscription mit id="push-subscription" ab und verlangt
