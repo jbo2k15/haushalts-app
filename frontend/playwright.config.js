@@ -14,10 +14,13 @@ const backendEnv = {
   PORT: '3101',
   // Self-contained dummy values so the e2e server doesn't depend on
   // whatever backend/.env happens to contain on this machine (push
-  // notifications aren't exercised by these tests).
+  // notifications aren't exercised by these tests). Throwaway key pair
+  // generated solely for this config - never reuse a real/production VAPID
+  // key here (see GitGuardian incident 2026-07-04, a prior real key was
+  // accidentally committed this way).
   VAPID_EMAIL: 'mailto:e2e@example.com',
-  VAPID_PUBLIC_KEY: 'BCWQd_gapX4Ud_v3z5OGIEKPMvPRUZtFSgbZ1SIgAjTtROEyYhIQDnXitrITE0PnW4LDE7-bmtTR9UVf2H1PzE4',
-  VAPID_PRIVATE_KEY: 'phYQBWDo3xBUIFXoMRIFqNNAGrS-D6NzirfmxrPPUU4',
+  VAPID_PUBLIC_KEY: 'BCGSItv4U1A-EAkl33PpH3dmm7mX5_SdBSNPlcR4rAtashbqQqfA1LTgZXeY-vamwLminn_vAuf84LSb9bq2cQk',
+  VAPID_PRIVATE_KEY: 'rqniHb-bdoCv3EyI5joV7DInDpwc7O-wPGTN1ZJy9zU',
   // Redirects password-reset/approval emails to a file instead of sending
   // real mail - see src/services/email.js. Tests read this file to get the
   // real reset link a user would click.
