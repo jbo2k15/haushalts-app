@@ -33,7 +33,16 @@ export default function PushPromptBanner() {
       const sub = await reg.pushManager.getSubscription()
       if (!sub || permission !== 'granted') {
         setVisible(true)
+        return
       }
+      // The browser keeps a subscription object regardless of whether the
+      // server still recognizes it (e.g. after a VAPID key rotation the
+      // old subscription is dead server-side, but getSubscription() above
+      // has no way to know that) - confirm with the backend too.
+      try {
+        const { exists } = await api.get(`/users/push-subscription?endpoint=${encodeURIComponent(sub.endpoint)}`)
+        if (!exists) setVisible(true)
+      } catch {}
     }
     check()
   }, [])
@@ -48,6 +57,12 @@ export default function PushPromptBanner() {
         return
       }
       const reg = await navigator.serviceWorker.ready
+      // A stale subscription from before a VAPID key rotation (still
+      // present in the browser even though the server no longer has it)
+      // must be dropped first - browsers refuse to subscribe() with a new
+      // applicationServerKey while one is already active.
+      const existing = await reg.pushManager.getSubscription()
+      if (existing) await existing.unsubscribe()
       const keyData = await api.get('/vapid-public-key')
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,

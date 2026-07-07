@@ -334,6 +334,46 @@ describe('PUT /api/users/notifications/global', () => {
   })
 })
 
+describe('GET /api/users/push-subscription', () => {
+  it('meldet exists:true für eine vorhandene eigene Subscription', async () => {
+    const user = await createUser()
+    await prisma.pushSubscription.create({ data: { userId: user.id, endpoint: 'https://push.example.com/mine', p256dh: 'k', auth: 'a' } })
+    const res = await request(app).get('/api/users/push-subscription').set(authHeader(user.id))
+      .query({ endpoint: 'https://push.example.com/mine' })
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ exists: true })
+  })
+
+  it('meldet exists:false, wenn der Server die Subscription nicht kennt (z.B. nach VAPID-Rotation)', async () => {
+    const user = await createUser()
+    const res = await request(app).get('/api/users/push-subscription').set(authHeader(user.id))
+      .query({ endpoint: 'https://push.example.com/unknown' })
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ exists: false })
+  })
+
+  it('meldet exists:false für eine fremde Subscription (kein Leak über Nutzergrenzen)', async () => {
+    const owner = await createUser({ email: 'owner@test.com' })
+    const other = await createUser({ email: 'other@test.com' })
+    await prisma.pushSubscription.create({ data: { userId: owner.id, endpoint: 'https://push.example.com/owner-only', p256dh: 'k', auth: 'a' } })
+    const res = await request(app).get('/api/users/push-subscription').set(authHeader(other.id))
+      .query({ endpoint: 'https://push.example.com/owner-only' })
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ exists: false })
+  })
+
+  it('lehnt eine Anfrage ohne Endpoint ab', async () => {
+    const user = await createUser()
+    const res = await request(app).get('/api/users/push-subscription').set(authHeader(user.id))
+    expect(res.status).toBe(400)
+  })
+
+  it('lehnt unauthentifizierte Anfrage ab', async () => {
+    const res = await request(app).get('/api/users/push-subscription').query({ endpoint: 'https://push.example.com/x' })
+    expect(res.status).toBe(401)
+  })
+})
+
 describe('POST /api/users/push-subscription', () => {
   it('speichert eine neue Subscription', async () => {
     const user = await createUser()

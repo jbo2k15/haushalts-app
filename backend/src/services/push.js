@@ -22,7 +22,11 @@ export async function sendPushToUser(userId, payload) {
       console.log(`[Push] ✓ Gesendet an ...${sub.endpoint.slice(-20)}`)
     } catch (err) {
       console.error(`[Push] Fehler beim Senden an ...${sub.endpoint.slice(-20)}: ${err.statusCode} ${err.message}`)
-      if (err.statusCode === 410 || err.statusCode === 404) {
+      // 410/404: push service says the subscription itself is gone.
+      // 401/403: our VAPID keys no longer match what the subscription was
+      // created with (e.g. after a key rotation) - the endpoint will never
+      // accept a push from us again either, so it's just as dead.
+      if ([401, 403, 404, 410].includes(err.statusCode)) {
         await prisma.pushSubscription.delete({ where: { id: sub.id } })
       }
     }

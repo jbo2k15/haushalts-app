@@ -75,6 +75,13 @@ router.put('/notifications/global', requireAuth, requireAdmin, async (req, res) 
   res.json(settings)
 })
 
+router.get('/push-subscription', requireAuth, async (req, res) => {
+  const { endpoint } = req.query
+  if (typeof endpoint !== 'string' || !endpoint) return res.status(400).json({ error: 'Ungültiger Endpoint' })
+  const sub = await prisma.pushSubscription.findFirst({ where: { endpoint, userId: req.user.id } })
+  res.json({ exists: !!sub })
+})
+
 router.post('/push-subscription', requireAuth, async (req, res) => {
   const { endpoint, p256dh, auth } = req.body
   if (typeof endpoint !== 'string' || !endpoint.startsWith('https://') || endpoint.length > 500)
