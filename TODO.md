@@ -6,7 +6,6 @@
 
 ## Feature-Ideen (für später, noch nicht angefangen)
 
-- [ ] **Swipe-Navigation zur Ruhmeshalle** — per Links-/Rechts-Wischen (Touch-Geste) von der Home-Seite zur Hall-of-Fame-Seite wechseln können.
 - [ ] **Mehrere Haushalte** — Große Änderung, Anforderungen noch nicht geschärft. Eckpunkte aus erstem Gespräch:
   - Getrennte Aufgaben und Statistiken pro Haushalt
   - Ein Nutzer kann Mitglied in mehreren Haushalten sein
@@ -18,6 +17,7 @@
 
 ## Erledigt (Archiv)
 
+- ✅ Swipe-Navigation zwischen Home und Ruhmeshalle (v1.8.0, 2026-07-07)
 - ✅ VAPID-Schlüsselpaar rotiert nach GitGuardian-Meldung (2026-07-07) — Details: Commit "Security: geleakten VAPID-Schluessel aus Test-Configs entfernen"
 - ✅ Server-Resync nach Git-History-Rewrite (2026-07-07)
 - ✅ Push-Subscriptions erkennen jetzt Ungültigkeit nach VAPID-Rotation (2026-07-07)
