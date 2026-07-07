@@ -92,7 +92,19 @@ export default function PageCarousel() {
         <div className="flex -ml-4">
           {PAGES.map(({ path, Component }) => (
             <div className="min-w-0 shrink-0 grow-0 basis-[94%] pl-4" key={path}>
-              <Component />
+              {/* Each slide scrolls independently instead of the shared
+                  page/window scroll - without this, both slides sit in the
+                  same flex row and get stretched to the taller one's height
+                  (Hall of Fame would end up as tall as a long task list),
+                  and scrolling deep into one page before swiping would land
+                  on a visually "empty" area of the other. A fixed viewport
+                  height + its own overflow fixes both: each page keeps its
+                  natural height, and since both stay mounted the whole
+                  time, each one's scroll position is remembered for free
+                  (it's just that DOM node's own scrollTop). */}
+              <div className="h-dvh overflow-y-auto" data-testid="carousel-slide-scroll" data-slide-path={path}>
+                <Component />
+              </div>
             </div>
           ))}
         </div>
