@@ -85,7 +85,7 @@ export default function HallOfFame() {
           ) : (
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
               {ranked.map((userStat, i) => (
-                <div key={userStat.id} className="flex items-center gap-3 px-4 py-3.5">
+                <div key={userStat.id} className="flex items-center gap-3 px-4 py-3.5" data-testid="hof-ranked-row" data-user-name={userStat.name} data-rank={i + 1}>
                   <span className="text-xl w-7 text-center shrink-0">
                     {podium[i] ?? <span className="text-sm text-gray-400 dark:text-gray-500">{i + 1}.</span>}
                   </span>
@@ -113,7 +113,7 @@ export default function HallOfFame() {
             </div>
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
               {stats.filter(userStat => userStat.dayTrophies === 0 && userStat.weekTrophies === 0 && userStat.monthTrophies === 0).map(userStat => (
-                <div key={userStat.id} className="flex items-center gap-3 px-4 py-3">
+                <div key={userStat.id} className="flex items-center gap-3 px-4 py-3" data-testid="hof-no-trophies-row" data-user-name={userStat.name}>
                   <span className="text-xl w-7 text-center shrink-0 text-gray-300 dark:text-gray-600">—</span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">{userStat.name}</span>
                 </div>
