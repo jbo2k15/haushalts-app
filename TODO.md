@@ -11,7 +11,6 @@
 
 ## Feature-Ideen (für später, noch nicht angefangen)
 
-- [ ] **Navigation überdenken: "← Zurück"-Button in der Ruhmeshalle vs. Menü-Eintrag** — Seit es die Wisch-Navigation gibt, stellt sich die Frage, ob der "← Zurück"-Button in der Ruhmeshalle noch gebraucht wird (man kann ja zurückwischen). Alternative Idee: stattdessen einen festen Menü-Eintrag ergänzen, der direkt zur aktuellen Aufgabenübersicht (Home) springt — dann gäbe es nur zwei konstante Navigationswege: Wischen und das Menü. Noch nicht entschieden, erst UX-Abwägung nötig (u.a.: brauchen andere Seiten wie Settings/Admin dann auch einen "Home"-Menüpunkt statt eigenem Zurück-Button, für Konsistenz?).
 - [ ] **Mehrere Haushalte** — Große Änderung, Anforderungen noch nicht geschärft. Eckpunkte aus erstem Gespräch:
   - Getrennte Aufgaben und Statistiken pro Haushalt
   - Ein Nutzer kann Mitglied in mehreren Haushalten sein
@@ -23,6 +22,7 @@
 
 ## Erledigt (Archiv)
 
+- ✅ Navigation vereinheitlicht: "← Zurück"-Buttons auf Admin/Settings/Ruhmeshalle durch gemeinsames Menü ersetzt (nur noch Wischen + Menü als Navigationswege) (2026-07-07)
 - ✅ Release-Notes-Modal richtet sich jetzt nach der tatsächlich laufenden Frontend-Version statt nach der Backend-Version (2026-07-07)
 - ✅ Swipe-Navigation zwischen Home und Ruhmeshalle (v1.8.0, 2026-07-07)
 - ✅ VAPID-Schlüsselpaar rotiert nach GitGuardian-Meldung (2026-07-07) — Details: Commit "Security: geleakten VAPID-Schluessel aus Test-Configs entfernen"
