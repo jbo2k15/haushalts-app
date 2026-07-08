@@ -66,11 +66,18 @@ export default function PageCarousel() {
   useEffect(() => {
     if (!emblaApi) return
     function onSelect() {
-      const index = emblaApi.selectedScrollSnap()
+      // selectedScrollSnap() should always be within [0, PAGES.length), but
+      // loop:true clones slides internally to fill the loop - normalize
+      // defensively so an unexpected raw index can't silently skip the URL
+      // update below and leave the address bar out of sync with what's
+      // actually visible (that mismatch is what a Reload/Pull-to-Refresh
+      // would then reload).
+      const rawIndex = emblaApi.selectedScrollSnap()
+      const index = ((rawIndex % PAGES.length) + PAGES.length) % PAGES.length
       setSelectedIndex(index)
       if (syncingFromUrl.current) { syncingFromUrl.current = false; return }
       const target = PAGES[index]
-      if (target && target.path !== locationRef.current.pathname) navigateRef.current(target.path, { replace: true })
+      if (target.path !== locationRef.current.pathname) navigateRef.current(target.path, { replace: true })
     }
     emblaApi.on('select', onSelect)
     return () => emblaApi.off('select', onSelect)
