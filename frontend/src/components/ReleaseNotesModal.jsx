@@ -7,7 +7,14 @@ export default function ReleaseNotesModal() {
   const { setModalOpen } = useModalGate()
 
   useEffect(() => {
-    api.get('/release-notes')
+    // Tell the backend which version this browser is actually running - the
+    // service worker only takes over a new bundle once the app is fully
+    // closed and reopened, so the frontend can lag behind an already-
+    // redeployed backend for a while. Without this, the modal (and what
+    // counts as "seen") would be driven by the backend's version instead of
+    // what's really on screen, showing notes for features that haven't
+    // actually loaded yet.
+    api.get(`/release-notes?clientVersion=${encodeURIComponent(__APP_VERSION__)}`)
       .then(data => {
         if (data.notes?.length > 0) setNotes(data.notes)
       })
@@ -24,7 +31,7 @@ export default function ReleaseNotesModal() {
   async function dismiss() {
     setNotes([])
     try {
-      await api.put('/release-notes/seen', {})
+      await api.put('/release-notes/seen', { clientVersion: __APP_VERSION__ })
     } catch {}
   }
 

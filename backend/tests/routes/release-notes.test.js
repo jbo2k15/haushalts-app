@@ -85,6 +85,30 @@ describe('GET /api/release-notes', () => {
     const res = await request(app).get('/api/release-notes')
     expect(res.status).toBe(401)
   })
+
+  it('begrenzt Notizen auf eine niedrigere clientVersion (Frontend hinkt hinterher)', async () => {
+    // Simuliert einen Browser, dessen Service Worker die neue Version noch
+    // nicht uebernommen hat - das Backend darf dann keine Notizen fuer
+    // Versionen zeigen, die der Browser tatsaechlich noch gar nicht faehrt.
+    const user = await createUser()
+    const res = await request(app).get('/api/release-notes').set(authHeader(user.id)).query({ clientVersion: '1.4.0' })
+    expect(res.status).toBe(200)
+    expect(res.body.version).toBe('1.4.0')
+    expect(res.body.notes).toEqual([{ version: '1.4.0', note: allNotes['1.4.0'] }])
+  })
+
+  it('ignoriert eine clientVersion, die neuer als die Server-Version ist', async () => {
+    const user = await createUser()
+    const res = await request(app).get('/api/release-notes').set(authHeader(user.id)).query({ clientVersion: '99.0.0' })
+    expect(res.body.version).toBe(version)
+    expect(res.body.notes).toHaveLength(notesUpToCurrent)
+  })
+
+  it('ignoriert eine ungültig formatierte clientVersion', async () => {
+    const user = await createUser()
+    const res = await request(app).get('/api/release-notes').set(authHeader(user.id)).query({ clientVersion: 'not-a-version' })
+    expect(res.body.version).toBe(version)
+  })
 })
 
 describe('PUT /api/release-notes/seen', () => {
@@ -99,5 +123,25 @@ describe('PUT /api/release-notes/seen', () => {
   it('lehnt unauthentifizierte Anfrage ab', async () => {
     const res = await request(app).put('/api/release-notes/seen')
     expect(res.status).toBe(401)
+  })
+
+  it('markiert nur bis zur niedrigeren clientVersion als gesehen, wenn das Frontend hinterherhinkt', async () => {
+    const user = await createUser()
+    const res = await request(app).put('/api/release-notes/seen').set(authHeader(user.id)).send({ clientVersion: '1.4.0' })
+    expect(res.status).toBe(200)
+    const updated = await prisma.user.findUnique({ where: { id: user.id } })
+    expect(updated.lastSeenVersion).toBe('1.4.0')
+
+    // Notizen für Versionen zwischen 1.4.0 und der echten Server-Version
+    // bleiben absichtlich ungesehen, bis das Frontend tatsächlich nachzieht.
+    const after = await request(app).get('/api/release-notes').set(authHeader(user.id))
+    expect(after.body.notes.length).toBe(notesUpToCurrent - 1)
+  })
+
+  it('ignoriert eine ungültig formatierte clientVersion und fällt auf die Server-Version zurück', async () => {
+    const user = await createUser()
+    await request(app).put('/api/release-notes/seen').set(authHeader(user.id)).send({ clientVersion: 'not-a-version' })
+    const updated = await prisma.user.findUnique({ where: { id: user.id } })
+    expect(updated.lastSeenVersion).toBe(version)
   })
 })
