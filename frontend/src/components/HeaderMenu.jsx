@@ -14,7 +14,11 @@ export default function HeaderMenu() {
 
   function go(path) {
     setOpen(false)
-    navigate(path)
+    // Replace, not push - keeps history consistent with the carousel's own
+    // swipe navigation (see PageCarousel.jsx), which also only replaces.
+    // Mixing push and replace between the menu and swiping created extra
+    // history entries that could point at a stale URL.
+    navigate(path, { replace: true })
   }
 
   return (
