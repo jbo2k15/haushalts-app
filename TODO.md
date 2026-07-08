@@ -12,6 +12,7 @@
 
 ## Feature-Ideen (für später, noch nicht angefangen)
 
+- [ ] **Navigation überdenken: "← Zurück"-Button in der Ruhmeshalle vs. Menü-Eintrag** — Seit es die Wisch-Navigation gibt, stellt sich die Frage, ob der "← Zurück"-Button in der Ruhmeshalle noch gebraucht wird (man kann ja zurückwischen). Alternative Idee: stattdessen einen festen Menü-Eintrag ergänzen, der direkt zur aktuellen Aufgabenübersicht (Home) springt — dann gäbe es nur zwei konstante Navigationswege: Wischen und das Menü. Noch nicht entschieden, erst UX-Abwägung nötig (u.a.: brauchen andere Seiten wie Settings/Admin dann auch einen "Home"-Menüpunkt statt eigenem Zurück-Button, für Konsistenz?).
 - [ ] **Mehrere Haushalte** — Große Änderung, Anforderungen noch nicht geschärft. Eckpunkte aus erstem Gespräch:
   - Getrennte Aufgaben und Statistiken pro Haushalt
   - Ein Nutzer kann Mitglied in mehreren Haushalten sein
