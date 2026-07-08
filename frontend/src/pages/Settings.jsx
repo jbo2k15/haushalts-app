@@ -4,6 +4,7 @@ import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { urlBase64ToUint8Array } from '../lib/push.js'
+import HeaderMenu from '../components/HeaderMenu.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 
@@ -113,9 +114,9 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-lg mx-auto px-4 pb-8">
-        <div className="flex items-center gap-3 py-4">
-          <button onClick={() => navigate('/')} className="text-orange-600 dark:text-orange-400 text-sm">← Zurück</button>
+        <div className="flex items-center justify-between py-4">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Einstellungen</h1>
+          <HeaderMenu />
         </div>
 
         <div className="space-y-4">

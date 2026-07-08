@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router'
 import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import HeaderMenu from '../components/HeaderMenu.jsx'
 
 const WEEKDAY_LABELS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0] // Mo–So
@@ -44,7 +44,6 @@ function SortableTask({ task, onEdit, onDelete }) {
 }
 
 export default function Admin() {
-  const navigate = useNavigate()
   const { user: currentUser } = useAuth()
   const [tasks, setTasks] = useState([])
   const [users, setUsers] = useState([])
@@ -306,9 +305,9 @@ export default function Admin() {
         </div>
       )}
       <div className="max-w-lg mx-auto px-4 pb-8">
-        <div className="flex items-center gap-3 py-4">
-          <button onClick={() => navigate('/')} className="text-orange-600 dark:text-orange-400 text-sm">← Zurück</button>
+        <div className="flex items-center justify-between py-4">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Verwaltung</h1>
+          <HeaderMenu />
         </div>
 
         <div className="flex gap-2 mb-4">
