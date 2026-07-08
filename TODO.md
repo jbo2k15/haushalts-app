@@ -18,6 +18,7 @@
 
 ## Erledigt (Archiv)
 
+- ✅ Reload/Pull-to-Refresh in der installierten PWA landete manchmal auf der falschen Seite — zwei Ursachen behoben: (1) `PageCarousel.jsx` initialisierte Embla immer bei Slide 0 (Home) und scrollte erst danach zur tatsächlichen Route, das erzeugte einen sichtbaren Flash der Aufgabenübersicht vor jedem Wechsel zur Ruhmeshalle — jetzt per `startIndex` (einmalig in einem Ref eingefroren) korrekt initialisiert; (2) der "Ruhmeshalle"-Button und alle HeaderMenu-Einträge navigierten per Push statt Replace, anders als die Wisch-Navigation, was zusätzliche History-Einträge erzeugte — jetzt durchgängig `replace: true`. Auf dem Gerät des Nutzers verifiziert (2026-07-08)
 - ✅ Pull-to-Refresh in der installierten PWA landete nach Zurückwischen manchmal wieder auf der Ruhmeshalle — Ursache: der Embla-`onSelect`-Handler in `PageCarousel.jsx` übersprang das URL-Update, wenn `selectedScrollSnap()` (durch `loop: true` und dessen interne Klon-Slides) einen Index außerhalb von `PAGES` lieferte; Adressleiste blieb dann auf dem alten Pfad stehen, obwohl visuell schon Home zu sehen war. Fix: Index wird jetzt per Modulo auf den gültigen Bereich normalisiert, URL-Update läuft nicht mehr über eine stillschweigend übersprungene Bedingung (2026-07-08)
 - ✅ Navigation vereinheitlicht: "← Zurück"-Buttons auf Admin/Settings/Ruhmeshalle durch gemeinsames Menü ersetzt (nur noch Wischen + Menü als Navigationswege) (2026-07-07)
 - ✅ Release-Notes-Modal richtet sich jetzt nach der tatsächlich laufenden Frontend-Version statt nach der Backend-Version (2026-07-07)
