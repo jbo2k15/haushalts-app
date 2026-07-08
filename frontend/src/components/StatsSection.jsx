@@ -26,7 +26,7 @@ export default function StatsSection({ refreshKey }) {
           <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Statistik</span>
         </div>
         <button
-          onClick={() => navigate('/hall-of-fame')}
+          onClick={() => navigate('/hall-of-fame', { replace: true })}
           className="text-xs text-orange-600 dark:text-orange-400 font-medium"
         >
           🏆 Ruhmeshalle

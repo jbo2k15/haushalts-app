@@ -40,9 +40,20 @@ export default function PageCarousel() {
   // so toggling it doesn't require emblaApi.reInit() - reInit tears down
   // and rebuilds the whole engine, which drops any 'select' listeners
   // attached via emblaApi.on() in the process.
+  // Without an explicit startIndex, Embla always initializes at slide 0
+  // (Home) and only scrolls to the actual page afterwards, via the
+  // location-sync effect below - on a page load that starts at /hall-of-fame
+  // (direct link, bookmark, or reload) that produces a visible flash of Home
+  // before it animates over to Hall of Fame. Frozen in a ref (read once, on
+  // first render only) rather than recomputed from location on every
+  // render - a changing startIndex value after mount makes embla-carousel-
+  // react reInit() the engine on navigation, which (see comment above)
+  // silently drops the 'select' listener registered below.
+  const initialIndexRef = useRef(Math.max(0, PAGES.findIndex(p => p.path === location.pathname)))
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
     align: 'start',
+    startIndex: initialIndexRef.current,
     watchDrag: () => !modalOpenRef.current,
   })
   const [selectedIndex, setSelectedIndex] = useState(() => Math.max(0, PAGES.findIndex(p => p.path === location.pathname)))
