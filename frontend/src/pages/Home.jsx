@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import { useNavigate } from 'react-router'
 import { api, getAccessToken } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import TaskBlock from '../components/TaskBlock.jsx'
@@ -7,6 +6,7 @@ import StatsSection from '../components/StatsSection.jsx'
 import LogSection from '../components/LogSection.jsx'
 import PushPromptBanner from '../components/PushPromptBanner.jsx'
 import HeaderIllustration from '../components/HeaderIllustration.jsx'
+import HeaderMenu from '../components/HeaderMenu.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
@@ -30,12 +30,10 @@ function getGreetingMessage(firstName, dailyTasks) {
 }
 
 export default function Home() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const [tasks, setTasks] = useState({ once: [], daily: [], weekly: [], monthly: [] })
   const [error, setError] = useState(false)
   const [loaded, setLoaded] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [logRefreshKey, setLogRefreshKey] = useState(0)
 
   const dateLabel = useMemo(() => {
@@ -109,32 +107,7 @@ export default function Home() {
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{dateLabel}</p>
           </div>
           <HeaderIllustration />
-          <div className="relative">
-            <button
-              className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-700 dark:text-orange-400 font-medium text-sm"
-              onClick={() => setMenuOpen(o => !o)}
-            >
-              {user?.name?.[0]?.toUpperCase()}
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-11 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs w-48 z-10 overflow-hidden">
-                <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/settings') }}>
-                  <span>⚙️</span> Einstellungen
-                </button>
-                <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/hall-of-fame') }}>
-                  <span>🏆</span> Ruhmeshalle
-                </button>
-                {user?.role === 'admin' && (
-                  <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => { setMenuOpen(false); navigate('/admin') }}>
-                    <span>🛠️</span> Verwaltung
-                  </button>
-                )}
-                <button className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={logout}>
-                  <span>🚪</span> Abmelden
-                </button>
-              </div>
-            )}
-          </div>
+          <HeaderMenu />
         </div>
 
         {error && !loaded && (
