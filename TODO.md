@@ -8,7 +8,6 @@
 ## Bugs (für später)
 
 - [ ] **Browser-Reload springt zurück auf die Ruhmeshalle** — Reproduktion: von Home zur Ruhmeshalle wischen, wieder zurück zu Home wischen, dann die Seite manuell neu laden (F5/Reload) — statt auf Home zu bleiben, landet man wieder auf der Ruhmeshalle. Vermutung: `navigate(path, { replace: true })` in `PageCarousel.jsx` aktualisiert die URL evtl. nicht zuverlässig genug für einen echten Browser-Reload (Unterschied zwischen sichtbarem Inhalt und tatsächlicher Adresszeile/History-Eintrag), oder der Service Worker liefert für den Reload eine gecachte, veraltete Route aus. Noch nicht untersucht.
-- [ ] **Release-Notes-Modal erscheint vor dem Versions-Update im Footer** — Nach einem Deploy zeigt die App beim nächsten Start bereits das "Was ist neu"-Modal für die neue Version, aber die Versionsnummer im Footer bleibt auf dem alten Stand, bis die App komplett geschlossen und neu geöffnet wird (typisches PWA-/Service-Worker-Update-Timing: der neue Service Worker samt neuem `__APP_VERSION__` übernimmt erst nach vollständigem Neustart, während der Release-Notes-Fetch vom Server bereits die neue Version kennt). Ziel: Modal soll erst erscheinen, wenn die App tatsächlich auf der neuen Version läuft (Footer und Modal synchron). Noch nicht untersucht — vermutlich muss der Service-Worker-Update-Lifecycle (`skipWaiting`/`controllerchange`) mit der Anzeige des Modals verknüpft werden.
 
 ## Feature-Ideen (für später, noch nicht angefangen)
 
@@ -24,6 +23,7 @@
 
 ## Erledigt (Archiv)
 
+- ✅ Release-Notes-Modal richtet sich jetzt nach der tatsächlich laufenden Frontend-Version statt nach der Backend-Version (2026-07-07)
 - ✅ Swipe-Navigation zwischen Home und Ruhmeshalle (v1.8.0, 2026-07-07)
 - ✅ VAPID-Schlüsselpaar rotiert nach GitGuardian-Meldung (2026-07-07) — Details: Commit "Security: geleakten VAPID-Schluessel aus Test-Configs entfernen"
 - ✅ Server-Resync nach Git-History-Rewrite (2026-07-07)
