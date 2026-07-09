@@ -8,6 +8,11 @@
   - Access-Token in der SSE-URL (`/api/events?token=…`): bei EventSource technisch nötig (kein Header möglich), durch nginx `access_log off` + 15-min-Gültigkeit entschärft. Restrisiko Browser-History/Zwischen-Proxies. Alternative wäre ein kurzlebiges Einmal-Ticket statt des Access-Tokens — nur umsetzen, wenn der Aufwand gerechtfertigt scheint.
   - `loginMonitor` warnt nur bei exakt `=== THRESHOLD` (genau 20 Fehlversuche), nicht ab 20 — bei 21+ keine weitere Warnung. Falls als Dauer-Alarm gedacht: `>=` mit Cooldown, sonst Kosmetik.
   - `POST /users/push-subscription` löscht jede Subscription mit dem gegebenen `endpoint` und legt sie für den aktuellen User neu an — ein authentifizierter Nutzer, der den (geheimen, geräte-spezifischen) Endpoint eines anderen kennt, könnte ihn übernehmen. Praktisch kaum ausnutzbar; sauberer wäre, ein Übernehmen nur zuzulassen, wenn der Endpoint noch keinem anderen User gehört.
+  - **User-Enumeration via `POST /auth/register` (409 "E-Mail bereits registriert")** — verrät, ob eine Adresse registriert ist. Entschärft durch Admin-Freischaltung + Honeypot + Rate-Limit (5/h). Fix würde generische Erfolgsmeldung wie bei forgot-password erfordern, verschlechtert aber die UX (Nutzer sieht nicht, dass die Mail schon vergeben ist) — Abwägung, bewusst offen.
+  - **Timing-Enumeration `POST /auth/forgot-password`** — der reale Pfad `await`et den SMTP-Versand, der Fake-Pfad nur einen `bcrypt.compare`; die Antwortzeit kann verraten, ob die Adresse existiert. Fix: Mailversand feuern ohne zu awaiten (fire-and-forget), damit die Antwortzeit konstant ist.
+  - **`PUT /tasks/admin/:id` ohne `priority`/`isActive`-Default** — anders als `POST /admin` wird `priority` direkt übernommen (kein `|| 'normal'`); fehlt es im Body, kann ein undefinierter Wert durchrutschen. Reine Datenqualität, admin-only.
+  - **`dueDate`-Regex akzeptiert unmögliche Daten** — `/^\d{4}-\d{2}-\d{2}$/` lässt z. B. `2026-99-99` zu. Datenqualität, admin-only; Fix: echte Kalendervalidierung.
+  - **4xx-`err.message`-Leak im globalen Error-Handler** — Antworten <500 geben `err.message` zurück (inkl. Body-Parser-Fehlern). Aktuell nur eigene deutsche Validierungstexte, nichts Sensibles; bei künftigen Handlern darauf achten, keine internen Details in `err.message` <500 zu schreiben.
 
 ## Feature-Ideen (für später, noch nicht angefangen)
 
