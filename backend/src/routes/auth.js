@@ -80,7 +80,12 @@ const DUMMY_HASH = await bcrypt.hash('dummy-timing-protection', BCRYPT_ROUNDS)
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body
-  if (!email || !password) return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
+  // Muss typgeprüft werden, bevor email.toLowerCase() aufgerufen wird - ein
+  // Nicht-String (Objekt/Array/Zahl) würde sonst eine TypeError-Exception und
+  // damit einen 500 auslösen statt eines sauberen 401.
+  if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
+    return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
+  }
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
 
   // Always run bcrypt compare to prevent timing-based user enumeration
