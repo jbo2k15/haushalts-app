@@ -13,7 +13,10 @@ export async function requireAuth(req, res, next) {
 
   try {
     const token = header.slice(7)
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    // algorithms explizit auf HS256 festnageln - ohne Whitelist würde
+    // jsonwebtoken theoretisch weitere Verfahren akzeptieren (Algorithm-
+    // Confusion). Wir signieren ausschließlich mit HS256 (siehe signAccessToken).
+    const payload = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] })
     const user = await prisma.user.findUnique({ where: { id: payload.userId } })
     if (!user || !user.approved) return res.status(401).json({ error: 'Nicht autorisiert' })
     if (user.mustChangePassword && !PW_CHANGE_ALLOWED.has(req.originalUrl.split('?')[0])) {

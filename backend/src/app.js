@@ -61,9 +61,12 @@ export function createApp() {
     const token = req.query.token
     if (!token) return res.status(401).end()
     try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET)
+      const payload = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] })
       const user = await prisma.user.findUnique({ where: { id: payload.userId } })
       if (!user || !user.approved) return res.status(401).end()
+      // Wie requireAuth: solange das Passwort geändert werden muss, keine
+      // Live-Verbindung aufbauen (Konsistenz mit dem mustChangePassword-Gate).
+      if (user.mustChangePassword) return res.status(403).end()
     } catch {
       return res.status(401).end()
     }
