@@ -52,6 +52,18 @@ describe('POST /api/auth/login', () => {
     expect(res.status).toBe(401)
   })
 
+  it('lehnt nicht-String email/password mit 401 ab (kein 500 durch toLowerCase auf Objekt)', async () => {
+    for (const body of [
+      { email: { contains: '@' }, password: 'x' },
+      { email: ['a@b.co'], password: 'x' },
+      { email: 123, password: 'x' },
+      { email: 'a@b.co', password: { x: 1 } },
+    ]) {
+      const res = await request(app).post('/api/auth/login').send(body)
+      expect(res.status).toBe(401)
+    }
+  })
+
   it('lehnt nicht freigeschalteten Account ab', async () => {
     await createUser({ email: 'pending@test.com', approved: false })
     const res = await request(app)
