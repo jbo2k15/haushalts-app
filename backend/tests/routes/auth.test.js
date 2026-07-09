@@ -112,6 +112,39 @@ describe('Geschützte Routen', () => {
   })
 })
 
+describe('mustChangePassword wird serverseitig erzwungen', () => {
+  async function loginWithForcedChange() {
+    await createUser({ email: 'forced@test.com', mustChangePassword: true })
+    const res = await request(app).post('/api/auth/login').send({ email: 'forced@test.com', password: 'Test1234!x' })
+    return res.body.token
+  }
+
+  it('blockiert normale API-Routen mit 403, solange das Passwort geändert werden muss', async () => {
+    const token = await loginWithForcedChange()
+    const res = await request(app).get('/api/tasks').set('Authorization', `Bearer ${token}`)
+    expect(res.status).toBe(403)
+    expect(res.body.mustChangePassword).toBe(true)
+  })
+
+  it('erlaubt /api/auth/me trotz erzwungener Passwortänderung', async () => {
+    const token = await loginWithForcedChange()
+    const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`)
+    expect(res.status).toBe(200)
+  })
+
+  it('erlaubt das Ändern des Passworts und gibt danach normale Routen frei', async () => {
+    const token = await loginWithForcedChange()
+    const change = await request(app).post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: 'Test1234!x', newPassword: 'NeuesPasswort1234!' })
+    expect(change.status).toBe(200)
+
+    const relogin = await request(app).post('/api/auth/login').send({ email: 'forced@test.com', password: 'NeuesPasswort1234!' })
+    const res = await request(app).get('/api/tasks').set('Authorization', `Bearer ${relogin.body.token}`)
+    expect(res.status).toBe(200)
+  })
+})
+
 describe('POST /api/auth/forgot-password', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -190,6 +223,9 @@ describe('POST /api/auth/reset-password', () => {
   })
 
   it('lehnt einen unbekannten Token ab', async () => {
+    const missing = await request(app).post('/api/auth/reset-password').send({ newPassword: 'NeuesPasswort1234!' })
+    expect(missing.status).toBe(400)
+
     const res = await request(app).post('/api/auth/reset-password').send({ token: 'does-not-exist', newPassword: 'NeuesPasswort1234!' })
     expect(res.status).toBe(400)
   })

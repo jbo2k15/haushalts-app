@@ -5,6 +5,14 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   process.exit(1)
 }
 
+// FRONTEND_URL steuert die CORS-Origin (und die Links in E-Mails). Fehlt sie,
+// spiegelt das cors-Paket "*" - in Produktion ein Konfigurationsfehler, der
+// nicht still durchrutschen soll.
+if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+  console.error('FATAL: FRONTEND_URL fehlt. Starte nicht.')
+  process.exit(1)
+}
+
 const _origLog = console.log.bind(console)
 const _origError = console.error.bind(console)
 function ts() {

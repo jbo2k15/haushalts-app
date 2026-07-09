@@ -189,6 +189,7 @@ router.post('/forgot-password', async (req, res) => {
 
 router.post('/reset-password', async (req, res) => {
   const { token, newPassword } = req.body
+  if (typeof token !== 'string' || !token) return res.status(400).json({ error: 'Link ungültig oder abgelaufen' })
   const pwErr = validatePassword(newPassword)
   if (pwErr) return res.status(400).json({ error: pwErr })
 
