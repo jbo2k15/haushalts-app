@@ -33,7 +33,7 @@ export default function HeaderMenu() {
       {open && (
         <div className="absolute right-0 top-11 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs w-48 z-10 overflow-hidden" data-testid="header-menu">
           <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5" onClick={() => go('/')}>
-            <span>📋</span> Zur Aufgabenübersicht
+            <span>📋</span> Aufgabenübersicht
           </button>
           <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => go('/settings')}>
             <span>⚙️</span> Einstellungen

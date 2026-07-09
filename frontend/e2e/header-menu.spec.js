@@ -29,7 +29,7 @@ test('header menu on Hall of Fame has no leftover "Zurück" button and can navig
   await toggle.click()
   await expect(menu).toBeVisible()
 
-  await menu.getByRole('button', { name: 'Zur Aufgabenübersicht' }).click()
+  await menu.getByRole('button', { name: 'Aufgabenübersicht' }).click()
   await expect(page).toHaveURL('/')
 
   expect(errors).toEqual([])
@@ -46,7 +46,7 @@ for (const path of ['/admin', '/settings']) {
     await page.locator('[data-testid="header-menu-toggle"]').click()
     await expect(page.locator('[data-testid="header-menu"]')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Zur Aufgabenübersicht' }).click()
+    await page.getByRole('button', { name: 'Aufgabenübersicht' }).click()
     await expect(page).toHaveURL('/')
     await expect(page.locator('[data-testid="header-menu"]')).toHaveCount(0)
 
