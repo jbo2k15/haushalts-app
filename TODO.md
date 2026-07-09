@@ -7,6 +7,14 @@
 
 ## Feature-Ideen (für später, noch nicht angefangen)
 
+- [ ] **Fairness-Transparenz in der Ruhmeshalle** (erweiterte Variante mit Gewichtung) — Recherche zu Erwachsenen-/Paar-Chore-Apps (evenus.app, FairShare, Chore Chores, FairChore) zeigt: die Ruhmeshalle optimiert aktuell auf Wettbewerb (Pokale, Sieger), nicht auf Fairness (wer trägt wie viel bei). Idee: zusätzliche Karte auf der Ruhmeshalle-Seite, unterhalb der bestehenden Legende:
+  - Gestapelter Balken zeigt den prozentualen Anteil erledigter Aufgaben pro Person über ein rollierendes Fenster (z. B. 30 Tage)
+  - Trend-Satz darunter, der einordnet, ob sich die Verteilung verbessert/verschlechtert hat ggü. dem Vormonat
+  - Kleiner Wochenverlauf (gestapelte Mini-Balken pro Kalenderwoche), damit einzelne Ausreißerwochen (Urlaub, Krankheit) nicht als dauerhafte Schieflage fehlinterpretiert werden
+  - Erweiterte Variante (statt reiner Zählung): jede Aufgabe bekommt ein optionales Schwierigkeits-/Aufwandsgewicht (z. B. 1–3), damit "Müll rausbringen" nicht gleich zählt wie "Bad putzen" — erfordert neues `difficulty`-Feld am Task-Modell (Migration) plus Verwaltungs-UI zum Setzen des Werts
+  - Mockup wurde in einer Konversation mit Claude Code erstellt (2026-07-09) — Balken in Grün/Coral je Person, zwei Stat-Kärtchen "erledigt + Ø Schwierigkeit" pro Person, darunter 4-Wochen-Verlauf als Mini-Balkendiagramm; visuell im bestehenden App-Stil (abgerundete Karten, gleiche Farbpalette)
+  - Offene Fragen vor Umsetzung (siehe laufende Diskussion): Umgang mit Urlaubsmodus/Abwesenheit in der Berechnung, Sichtbarkeit/Opt-in (Fairness-Zahlen können auch Konflikte auslösen statt sie zu lösen), rollierendes Zeitfenster (7 vs. 30 Tage), Verhalten bei mehr als 2 Haushaltsmitgliedern, wer das Schwierigkeitsgewicht pro Aufgabe festlegen darf
+
 - [ ] **Mehrere Haushalte** — Große Änderung, Anforderungen noch nicht geschärft. Eckpunkte aus erstem Gespräch:
   - Getrennte Aufgaben und Statistiken pro Haushalt
   - Ein Nutzer kann Mitglied in mehreren Haushalten sein
