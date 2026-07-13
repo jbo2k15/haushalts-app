@@ -57,6 +57,17 @@ describe('validateTaskInput', () => {
     expect(validateTaskInput({ ...base, type: 'once', dueDate: '2026-07-01' })).toBeNull()
   })
 
+  it('lehnt formal korrekte, aber unmögliche Kalenderdaten ab', () => {
+    expect(validateTaskInput({ ...base, type: 'once', dueDate: '2026-99-99' })).toBeTruthy()
+    expect(validateTaskInput({ ...base, type: 'once', dueDate: '2026-02-30' })).toBeTruthy()
+    expect(validateTaskInput({ ...base, type: 'once', dueDate: '2026-13-01' })).toBeTruthy()
+    expect(validateTaskInput({ ...base, type: 'once', dueDate: '2026-00-10' })).toBeTruthy()
+  })
+
+  it('akzeptiert einen gültigen Schalttag', () => {
+    expect(validateTaskInput({ ...base, type: 'once', dueDate: '2028-02-29' })).toBeNull()
+  })
+
   it('lehnt ungültige Wochentage ab', () => {
     expect(validateTaskInput({ ...base, weekdays: [7] })).toBeTruthy()
     expect(validateTaskInput({ ...base, weekdays: [-1] })).toBeTruthy()
