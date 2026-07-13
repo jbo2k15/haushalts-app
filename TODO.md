@@ -9,10 +9,8 @@
 - [ ] **`npm ci`-Deprecation-Warnungen beim Docker-Build** (2026-07-07 beim Deploy aufgefallen) — `source-map@0.8.0-beta.0` + `glob@11.1.0` kommen aus `vite-plugin-pwa@1.3.0` → `workbox-build@7.4.1` (beide aktuellste Version, gehört zur selben "wartet auf Upstream"-Situation wie oben). `prebuild-install@7.1.3` kommt aus `better-sqlite3@12.11.1` (ebenfalls aktuellste Version). Reines Warnrauschen tief in der Kette, kein `npm audit`-Finding, nicht behebbar ohne Upstream-Release — bei künftigen Scans nur prüfen, ob eine neuere Version verfügbar ist.
 - [ ] **Security-Review-Restbefunde (niedrig, aus Review am 2026-07-09)** — die kritischen/mittleren Härtungen (mustChangePassword serverseitig, FRONTEND_URL-Startup-Check, reset-password Token-Validierung, SMTP requireTLS) wurden bereits umgesetzt. Rest bewusst offen gelassen, geringe Priorität:
   - Access-Token in der SSE-URL (`/api/events?token=…`): bei EventSource technisch nötig (kein Header möglich), durch nginx `access_log off` + 15-min-Gültigkeit entschärft. Restrisiko Browser-History/Zwischen-Proxies. Alternative wäre ein kurzlebiges Einmal-Ticket statt des Access-Tokens — nur umsetzen, wenn der Aufwand gerechtfertigt scheint.
-  - `loginMonitor` warnt nur bei exakt `=== THRESHOLD` (genau 20 Fehlversuche), nicht ab 20 — bei 21+ keine weitere Warnung. Falls als Dauer-Alarm gedacht: `>=` mit Cooldown, sonst Kosmetik.
   - `POST /users/push-subscription` löscht jede Subscription mit dem gegebenen `endpoint` und legt sie für den aktuellen User neu an — ein authentifizierter Nutzer, der den (geheimen, geräte-spezifischen) Endpoint eines anderen kennt, könnte ihn übernehmen. Praktisch kaum ausnutzbar; sauberer wäre, ein Übernehmen nur zuzulassen, wenn der Endpoint noch keinem anderen User gehört.
   - **User-Enumeration via `POST /auth/register` (409 "E-Mail bereits registriert")** — verrät, ob eine Adresse registriert ist. Entschärft durch Admin-Freischaltung + Honeypot + Rate-Limit (5/h). Fix würde generische Erfolgsmeldung wie bei forgot-password erfordern, verschlechtert aber die UX (Nutzer sieht nicht, dass die Mail schon vergeben ist) — Abwägung, **bewusst offen gelassen** (2026-07-09).
-  - **4xx-`err.message`-Leak im globalen Error-Handler** — Antworten <500 geben `err.message` zurück (inkl. Body-Parser-Fehlern). Aktuell nur eigene deutsche Validierungstexte, nichts Sensibles; bei künftigen Handlern darauf achten, keine internen Details in `err.message` <500 zu schreiben.
 
 ## Feature-Ideen (für später, noch nicht angefangen)
 
@@ -43,6 +41,7 @@
 
 ## Erledigt (Archiv)
 
+- ✅ Security-Restbefunde L5 + L9 gefixt (Parallel-Lauf Opus 4.8, Commit `687ec02`, 2026-07-13): `loginMonitor` nutzt `>=` statt `==` und meldet einmal pro Schwellenüberschreitung statt bei jedem Versuch (Reset nach Fensterablauf); Error-Handler gibt bei Body-Parser-Fehlern eine generische "Ungültige Anfrage" zurück statt interner Meldungen. Unit-Tests ergänzt.
 - ✅ Flaky E2E-Test `header-menu.spec.js:57` stabilisiert — Race behoben: nach dem Wechsel auf `/settings` wird jetzt auf das vollständige Unmount des Carousels (`[data-slide-path]` count 0) gewartet, bevor der einzelne Top-Level-Menü-Toggle geklickt wird. Verifiziert mit `--repeat-each=5` (20/20 grün) (2026-07-13)
 - ✅ Patch/Minor-Updates aus dem Wochen-Check eingespielt: helmet 8.2.0→8.3.0 (backend), postcss 8.5.16→8.5.18 + vite 8.1.3→8.1.4 (frontend). 0 Vulns, 228 Backend + 34 E2E grün (2026-07-13)
 - ✅ Security-Härtung (niedrige Pentest-Restbefunde, gebündelt): forgot-password verschickt die Mail jetzt fire-and-forget (kein Timing-Enumeration-Leak mehr), dueDate-Validierung prüft gegen echten Kalender (lehnt 2026-99-99 / 2026-02-30 ab), PUT /tasks/admin/:id setzt priority/isActive-Defaults wie POST (2026-07-09)
