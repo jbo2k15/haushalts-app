@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#
+# gitleaks Pre-Commit-Hook — verhindert das versehentliche Committen von Secrets.
+# Aktiviert via:  git config core.hooksPath .githooks   (siehe scripts/setup-hooks.sh)
+#
+# Umgehen im Notfall (bewusst!):  git commit --no-verify
+# Einzelfund erlauben:            Kommentar "gitleaks:allow" an die Zeile,
+#                                 oder Fingerprint in .gitleaksignore eintragen.
+
+set -euo pipefail
+
+# gitleaks auf dem PATH bevorzugen, sonst bekannte winget-Installationspfade.
+find_gitleaks() {
+  if command -v gitleaks >/dev/null 2>&1; then
+    echo "gitleaks"; return 0
+  fi
+  local base="${LOCALAPPDATA:-$HOME/AppData/Local}"
+  local candidates=(
+    "$base/Microsoft/WinGet/Links/gitleaks.exe"
+    "$base/Microsoft/WinGet/Packages/Gitleaks.Gitleaks_Microsoft.Winget.Source_8wekyb3d8bbwe/gitleaks.exe"
+  )
+  local c
+  for c in "${candidates[@]}"; do
+    if [ -x "$c" ]; then echo "$c"; return 0; fi
+  done
+  return 1
+}
+
+GITLEAKS="$(find_gitleaks || true)"
+if [ -z "$GITLEAKS" ]; then
+  echo "⚠️  gitleaks nicht gefunden — Secret-Scan übersprungen." >&2
+  echo "    Installieren:  winget install --id Gitleaks.Gitleaks -e" >&2
+  # Hook darf den Commit nicht wegen fehlendem Tool blockieren.
+  exit 0
+fi
+
+echo "🔍 gitleaks: prüfe gestagte Änderungen auf Secrets…"
+if "$GITLEAKS" git --staged --redact --no-banner --exit-code 1; then
+  echo "✅ gitleaks: keine Secrets gefunden."
+  exit 0
+else
+  echo "" >&2
+  echo "🛑 COMMIT ABGEBROCHEN — gitleaks hat mögliche Secrets gefunden (siehe oben)." >&2
+  echo "   • Echtes Secret? Aus dem Diff entfernen (z. B. in .env auslagern)." >&2
+  echo "   • Falschmeldung? 'gitleaks:allow' an die Zeile oder Fingerprint in .gitleaksignore." >&2
+  echo "   • Notfall-Umgehung: git commit --no-verify" >&2
+  exit 1
+fi
