@@ -106,7 +106,16 @@ export function createApp() {
   app.use((err, req, res, next) => {
     const status = err.status || err.statusCode || 500
     if (status >= 500) console.error(`${req.method} ${req.path} →`, err.message)
-    res.status(status).json({ error: status >= 500 ? 'Interner Serverfehler' : err.message })
+    // Body-Parser-/Framework-Fehler (kaputtes JSON, zu großer Body, …) tragen
+    // ein err.type und würden sonst interne Meldungen wie "Unexpected token o
+    // in JSON at position 1" nach außen geben. Für die geben wir eine generische
+    // Meldung zurück; anwendungseigene 4xx-Meldungen bleiben erhalten.
+    const isParserError = typeof err.type === 'string'
+    const message =
+      status >= 500 ? 'Interner Serverfehler'
+      : isParserError ? 'Ungültige Anfrage'
+      : err.message
+    res.status(status).json({ error: message })
   })
 
   return app

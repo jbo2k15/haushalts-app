@@ -51,6 +51,19 @@ describe('GET /api/vapid-public-key', () => {
   })
 })
 
+describe('Fehlerbehandlung', () => {
+  it('gibt bei kaputtem JSON eine generische Meldung zurück (kein Parser-Detail-Leak)', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .set('Content-Type', 'application/json')
+      .send('{"email": "a@b.c", ')
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBe('Ungültige Anfrage')
+    // Interne Parser-Meldung darf nicht durchsickern.
+    expect(res.body.error).not.toMatch(/JSON|token|position/i)
+  })
+})
+
 describe('GET /api/events/ticket', () => {
   it('lehnt unauthentifizierte Anfrage ab', async () => {
     const res = await request(app).get('/api/events/ticket')
