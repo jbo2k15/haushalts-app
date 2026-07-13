@@ -2,6 +2,11 @@
 
 ## Sicherheit / Wartung
 
+- [ ] **Patch/Minor-Updates aus dem Wochen-Check (2026-07-13)** — `npm audit` sauber (0 Vulns Backend+Frontend), keine Major-Updates offen. Drei unkritische Updates innerhalb bestehender Caret-Ranges (`Wanted==Latest`, per `npm update` einspielbar):
+  - Backend: `helmet` 8.2.0 → 8.3.0 (minor)
+  - Frontend: `postcss` 8.5.16 → 8.5.18 (patch), `vite` 8.1.3 → 8.1.4 (patch)
+  - Kein Sicherheitsdruck; beim nächsten regulären Release mitnehmen oder als kleines Wartungs-Update einspielen. Node 22 (Maintenance LTS) in beiden Dockerfiles; Wechsel auf Node 24 (Active LTS) optional, kein Zwang.
+
 - [ ] **Deprecation-Warnung `inlineDynamicImports` von `vite-plugin-pwa`** (frontend) — seit Vite 8 setzt `vite-plugin-pwa@1.3.0` (aktuellste Version) beim internen Service-Worker-Build noch die alte Rollup-Option `output.inlineDynamicImports: true` statt Vites neuer `build.codeSplitting: false`. Hartcodiert im Plugin, nicht über unsere `vite.config.js` überschreibbar. Nur eine Warnung, keine Fehlfunktion. Beheben, sobald `vite-plugin-pwa` ein Vite-8-Kompatibilitäts-Release bringt — Changelog bei nächstem Scan prüfen.
 - [ ] **`npm ci`-Deprecation-Warnungen beim Docker-Build** (2026-07-07 beim Deploy aufgefallen) — `source-map@0.8.0-beta.0` + `glob@11.1.0` kommen aus `vite-plugin-pwa@1.3.0` → `workbox-build@7.4.1` (beide aktuellste Version, gehört zur selben "wartet auf Upstream"-Situation wie oben). `prebuild-install@7.1.3` kommt aus `better-sqlite3@12.11.1` (ebenfalls aktuellste Version). Reines Warnrauschen tief in der Kette, kein `npm audit`-Finding, nicht behebbar ohne Upstream-Release — bei künftigen Scans nur prüfen, ob eine neuere Version verfügbar ist.
 - [ ] **Security-Review-Restbefunde (niedrig, aus Review am 2026-07-09)** — die kritischen/mittleren Härtungen (mustChangePassword serverseitig, FRONTEND_URL-Startup-Check, reset-password Token-Validierung, SMTP requireTLS) wurden bereits umgesetzt. Rest bewusst offen gelassen, geringe Priorität:
