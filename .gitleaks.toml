@@ -1,0 +1,17 @@
+# gitleaks-Konfiguration für haushalts-app.
+# Erweitert das eingebaute Standard-Regelset (kein Neuaufbau nötig).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Bekannte, ungefährliche Platzhalter und Beispieldateien"
+# Beispiel-/Dokumentationsdateien enthalten nur Platzhalter, keine echten Secrets.
+paths = [
+  '''\.env\.example$''',
+  '''(^|/)README\.md$''',
+]
+# Platzhalter-Werte aus .env.example explizit erlauben, falls eine Regel doch greift.
+regexes = [
+  '''change-this-to-a-random-secret''',
+  '''your-(gmail-app-password|vapid-(public|private)-key)''',
+]

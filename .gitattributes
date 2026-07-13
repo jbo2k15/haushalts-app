@@ -1,0 +1,4 @@
+# Shell-Skripte und Git-Hooks müssen LF-Zeilenenden behalten, sonst brechen sie
+# unter bash (git-bash/Linux). Verhindert CRLF-Konvertierung durch core.autocrlf.
+*.sh            text eol=lf
+.githooks/**    text eol=lf
