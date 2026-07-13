@@ -87,12 +87,18 @@ describe('POST /api/auth/register', () => {
     expect(res.body.message).toContain('Registrierung')
   })
 
-  it('lehnt doppelte E-Mail ab', async () => {
+  it('behandelt doppelte E-Mail enumerierungssicher (kein 409, kein zweiter Account)', async () => {
     await createUser({ email: 'dup@test.com' })
     const res = await request(app)
       .post('/api/auth/register')
       .send({ email: 'dup@test.com', password: 'Sicher1234!', name: 'Neu' })
-    expect(res.status).toBe(409)
+    // Gleiche generische Erfolgsantwort wie bei echter Registrierung, damit die
+    // Existenz der E-Mail nicht enumerierbar ist.
+    expect(res.status).toBe(200)
+    expect(res.body.message).toContain('Registrierung')
+    // Es darf kein zweiter Account mit derselben Adresse entstehen.
+    const count = await prisma.user.count({ where: { email: 'dup@test.com' } })
+    expect(count).toBe(1)
   })
 
   it('lehnt schwaches Passwort ab', async () => {

@@ -65,7 +65,15 @@ router.post('/register', async (req, res) => {
   if (pwError) return res.status(400).json({ error: pwError })
 
   const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
-  if (existing) return res.status(409).json({ error: 'E-Mail bereits registriert' })
+  if (existing) {
+    // Enumerierungssicher: KEINE abweichende Antwort (früher 409), die verrät,
+    // ob die Adresse bereits registriert ist. Es wird kein zweiter Account
+    // angelegt; wir geben dieselbe generische Erfolgsmeldung wie unten zurück
+    // und verbrennen mit einem bcrypt.hash ungefähr denselben Zeitaufwand wie
+    // der echte Pfad, damit auch die Antwortzeit nichts verrät (Timing-Enum).
+    await bcrypt.hash(password, BCRYPT_ROUNDS)
+    return res.json({ message: 'Registrierung erfolgreich. Warte auf Freischaltung durch einen Admin.' })
+  }
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
   await prisma.user.create({
