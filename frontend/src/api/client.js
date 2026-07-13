@@ -57,8 +57,23 @@ async function request(method, path, body, retry = true) {
   return res.json()
 }
 
+// Deduplizierung gleichzeitig laufender identischer GETs: zwei parallel
+// gemountete Komponenten (z.B. StatsSection in Home und HallOfFame, beide im
+// Carousel dauerhaft gemountet) fragen dieselbe URL sonst doppelt ab. Teilen
+// sich dieselbe in-flight-Promise; nach dem Auflösen wird der Eintrag entfernt,
+// spätere Aufrufe lösen also wieder einen frischen Request aus (kein Caching).
+const inflightGets = new Map()
+
 export const api = {
-  get: (path) => request('GET', path),
+  get: (path) => {
+    const existing = inflightGets.get(path)
+    if (existing) return existing
+    const p = request('GET', path).finally(() => {
+      if (inflightGets.get(path) === p) inflightGets.delete(path)
+    })
+    inflightGets.set(path, p)
+    return p
+  },
   post: (path, body) => request('POST', path, body),
   put: (path, body) => request('PUT', path, body),
   delete: (path, body) => request('DELETE', path, body),
