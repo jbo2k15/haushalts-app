@@ -65,7 +65,12 @@ test('header menu on Home navigates to Settings, Hall of Fame and Admin', async 
   await homeSlide.getByRole('button', { name: 'Einstellungen' }).click()
   await expect(page).toHaveURL('/settings')
 
-  // Settings isn't part of the carousel, so its menu is a single top-level instance.
+  // Settings isn't part of the carousel, so its menu is a single top-level
+  // instance - but toHaveURL passes the moment the URL flips, before React
+  // necessarily unmounts the carousel. Wait for both carousel slides to be
+  // gone first, otherwise their two HeaderMenu instances can still be in the
+  // DOM and the unscoped locator below trips strict mode (seen on the server).
+  await expect(page.locator('[data-slide-path]')).toHaveCount(0)
   await page.locator('[data-testid="header-menu-toggle"]').click()
   await page.getByRole('button', { name: 'Ruhmeshalle' }).click()
   await expect(page).toHaveURL(/\/hall-of-fame/)
