@@ -284,38 +284,40 @@ function getUTCRangeForBerlinDay(dateStr) {
 
 const EXCLUDE_ONCE = { OR: [{ taskId: null }, { task: { type: { not: 'once' } } }] }
 
-async function countCompletedTaskLogsOnDate(userId, date) {
-  return prisma.taskLog.count({
-    where: { completedBy: userId, status: 'completed', loggedAt: getUTCRangeForBerlinDay(date), ...EXCLUDE_ONCE },
+// Erledigte Logs pro Nutzer in einem Zeitfenster zählen - ein groupBy über
+// completedBy statt je Nutzer eine eigene count-Query (früher 3×N Queries pro
+// /stats-Aufruf, jetzt 3 unabhängig von der Nutzerzahl). completedBy: not null,
+// weil groupBy sonst eine null-Gruppe (z.B. verfallene Logs) mitzählen würde.
+async function completedCountsByUser(where) {
+  const groups = await prisma.taskLog.groupBy({
+    by: ['completedBy'],
+    where: { status: 'completed', completedBy: { not: null }, ...EXCLUDE_ONCE, ...where },
+    _count: true,
   })
-}
-
-async function countCompletedTaskLogs(userId, from) {
-  return prisma.taskLog.count({
-    where: { completedBy: userId, status: 'completed', forDate: { gte: from }, ...EXCLUDE_ONCE },
-  })
+  return Object.fromEntries(groups.map(g => [g.completedBy, g._count]))
 }
 
 router.get('/stats', requireAuth, async (req, res) => {
   const curWeekStart = currentWeekStart()
   const curMonthStart = currentMonthStart()
   const today = todayString()
-  const users = await prisma.user.findMany({ where: { approved: true } })
 
-  res.json(await Promise.all(users.map(async (userRecord) => {
-    const [curDay, curWeek, curMonth] = await Promise.all([
-      countCompletedTaskLogsOnDate(userRecord.id, today),
-      countCompletedTaskLogs(userRecord.id, curWeekStart),
-      countCompletedTaskLogs(userRecord.id, curMonthStart),
-    ])
-    return {
-      id: userRecord.id,
-      name: userRecord.name,
-      curDay, curWeek, curMonth,
-      dayTrophies: userRecord.dayTrophies,
-      weekTrophies: userRecord.weekTrophies,
-      monthTrophies: userRecord.monthTrophies,
-    }
+  const [users, dayCounts, weekCounts, monthCounts] = await Promise.all([
+    prisma.user.findMany({ where: { approved: true } }),
+    completedCountsByUser({ loggedAt: getUTCRangeForBerlinDay(today) }),
+    completedCountsByUser({ forDate: { gte: curWeekStart } }),
+    completedCountsByUser({ forDate: { gte: curMonthStart } }),
+  ])
+
+  res.json(users.map(u => ({
+    id: u.id,
+    name: u.name,
+    curDay: dayCounts[u.id] || 0,
+    curWeek: weekCounts[u.id] || 0,
+    curMonth: monthCounts[u.id] || 0,
+    dayTrophies: u.dayTrophies,
+    weekTrophies: u.weekTrophies,
+    monthTrophies: u.monthTrophies,
   })))
 })
 
