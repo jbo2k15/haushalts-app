@@ -2,10 +2,6 @@
 
 ## Sicherheit / Wartung
 
-- [ ] **Patch/Minor-Updates aus dem Wochen-Check (2026-07-13)** — `npm audit` sauber (0 Vulns Backend+Frontend), keine Major-Updates offen. Drei unkritische Updates innerhalb bestehender Caret-Ranges (`Wanted==Latest`, per `npm update` einspielbar):
-  - Backend: `helmet` 8.2.0 → 8.3.0 (minor)
-  - Frontend: `postcss` 8.5.16 → 8.5.18 (patch), `vite` 8.1.3 → 8.1.4 (patch)
-  - Kein Sicherheitsdruck; beim nächsten regulären Release mitnehmen oder als kleines Wartungs-Update einspielen. Node 22 (Maintenance LTS) in beiden Dockerfiles; Wechsel auf Node 24 (Active LTS) optional, kein Zwang.
 
 - [ ] **Deprecation-Warnung `inlineDynamicImports` von `vite-plugin-pwa`** (frontend) — seit Vite 8 setzt `vite-plugin-pwa@1.3.0` (aktuellste Version) beim internen Service-Worker-Build noch die alte Rollup-Option `output.inlineDynamicImports: true` statt Vites neuer `build.codeSplitting: false`. Hartcodiert im Plugin, nicht über unsere `vite.config.js` überschreibbar. Nur eine Warnung, keine Fehlfunktion. Beheben, sobald `vite-plugin-pwa` ein Vite-8-Kompatibilitäts-Release bringt — Changelog bei nächstem Scan prüfen.
 - [ ] **`npm ci`-Deprecation-Warnungen beim Docker-Build** (2026-07-07 beim Deploy aufgefallen) — `source-map@0.8.0-beta.0` + `glob@11.1.0` kommen aus `vite-plugin-pwa@1.3.0` → `workbox-build@7.4.1` (beide aktuellste Version, gehört zur selben "wartet auf Upstream"-Situation wie oben). `prebuild-install@7.1.3` kommt aus `better-sqlite3@12.11.1` (ebenfalls aktuellste Version). Reines Warnrauschen tief in der Kette, kein `npm audit`-Finding, nicht behebbar ohne Upstream-Release — bei künftigen Scans nur prüfen, ob eine neuere Version verfügbar ist.
@@ -45,6 +41,7 @@
 
 ## Erledigt (Archiv)
 
+- ✅ Patch/Minor-Updates aus dem Wochen-Check eingespielt: helmet 8.2.0→8.3.0 (backend), postcss 8.5.16→8.5.18 + vite 8.1.3→8.1.4 (frontend). 0 Vulns, 228 Backend + 34 E2E grün (2026-07-13)
 - ✅ Security-Härtung (niedrige Pentest-Restbefunde, gebündelt): forgot-password verschickt die Mail jetzt fire-and-forget (kein Timing-Enumeration-Leak mehr), dueDate-Validierung prüft gegen echten Kalender (lehnt 2026-99-99 / 2026-02-30 ab), PUT /tasks/admin/:id setzt priority/isActive-Defaults wie POST (2026-07-09)
 - ✅ Reload/Pull-to-Refresh in der installierten PWA landete manchmal auf der falschen Seite — zwei Ursachen behoben: (1) `PageCarousel.jsx` initialisierte Embla immer bei Slide 0 (Home) und scrollte erst danach zur tatsächlichen Route, das erzeugte einen sichtbaren Flash der Aufgabenübersicht vor jedem Wechsel zur Ruhmeshalle — jetzt per `startIndex` (einmalig in einem Ref eingefroren) korrekt initialisiert; (2) der "Ruhmeshalle"-Button und alle HeaderMenu-Einträge navigierten per Push statt Replace, anders als die Wisch-Navigation, was zusätzliche History-Einträge erzeugte — jetzt durchgängig `replace: true`. Auf dem Gerät des Nutzers verifiziert (2026-07-08)
 - ✅ Pull-to-Refresh in der installierten PWA landete nach Zurückwischen manchmal wieder auf der Ruhmeshalle — Ursache: der Embla-`onSelect`-Handler in `PageCarousel.jsx` übersprang das URL-Update, wenn `selectedScrollSnap()` (durch `loop: true` und dessen interne Klon-Slides) einen Index außerhalb von `PAGES` lieferte; Adressleiste blieb dann auf dem alten Pfad stehen, obwohl visuell schon Home zu sehen war. Fix: Index wird jetzt per Modulo auf den gültigen Bereich normalisiert, URL-Update läuft nicht mehr über eine stillschweigend übersprungene Bedingung (2026-07-08)
