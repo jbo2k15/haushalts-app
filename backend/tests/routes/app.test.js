@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import prisma from '../../src/lib/prisma.js'
 import { createApp } from '../../src/app.js'
+import { issueTicket } from '../../src/lib/sseTickets.js'
 
 const app = createApp()
 const JWT_SECRET = process.env.JWT_SECRET
@@ -50,27 +51,70 @@ describe('GET /api/vapid-public-key', () => {
   })
 })
 
+describe('GET /api/events/ticket', () => {
+  it('lehnt unauthentifizierte Anfrage ab', async () => {
+    const res = await request(app).get('/api/events/ticket')
+    expect(res.status).toBe(401)
+  })
+
+  it('gibt ein Ticket für einen authentifizierten Nutzer zurück', async () => {
+    const user = await createUser({ email: 'ticket@test.com' })
+    const res = await request(app).get('/api/events/ticket').set(authHeader(user.id))
+    expect(res.status).toBe(200)
+    expect(typeof res.body.ticket).toBe('string')
+    expect(res.body.ticket.length).toBeGreaterThan(20)
+  })
+})
+
 describe('GET /api/events (SSE)', () => {
-  it('lehnt eine Anfrage ohne Token ab', async () => {
+  it('lehnt eine Anfrage ohne Ticket ab', async () => {
     const res = await request(app).get('/api/events')
     expect(res.status).toBe(401)
   })
 
-  it('lehnt eine Anfrage mit ungültigem Token ab', async () => {
-    const res = await request(app).get('/api/events').query({ token: 'ungueltig' })
+  it('lehnt eine Anfrage mit ungültigem Ticket ab', async () => {
+    const res = await request(app).get('/api/events').query({ ticket: 'ungueltig' })
     expect(res.status).toBe(401)
   })
 
-  it('lehnt eine Anfrage für einen nicht freigeschalteten Nutzer ab', async () => {
+  it('lehnt ein Ticket ab, dessen Nutzer nicht (mehr) freigeschaltet ist', async () => {
+    // Ticket direkt ausstellen (der Endpoint würde einen nicht freigeschalteten
+    // Nutzer gar nicht erst durchlassen) und die Prüfung beim Verbindungsaufbau
+    // testen: die Freischaltung wird erneut kontrolliert.
     const user = await createUser({ email: 'pending@test.com', approved: false })
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '15m' })
-    const res = await request(app).get('/api/events').query({ token })
+    const ticket = issueTicket(user.id)
+    const res = await request(app).get('/api/events').query({ ticket })
     expect(res.status).toBe(401)
   })
 
-  it('öffnet einen event-stream für einen gültigen, freigeschalteten Nutzer', async () => {
+  it('lehnt die zweite Verwendung desselben Tickets ab (single-use)', async () => {
+    const user = await createUser({ email: 'onceonly@test.com' })
+    const ticket = issueTicket(user.id)
+    // Erste Einlösung öffnet den Stream (Verbindung bleibt offen) - über einen
+    // echten Port, danach sofort trennen.
+    const server = app.listen(0)
+    try {
+      const { port } = server.address()
+      await new Promise((resolve) => {
+        const req = http.get(`http://127.0.0.1:${port}/api/events?ticket=${ticket}`, res => {
+          expect(res.statusCode).toBe(200)
+          req.destroy()
+          resolve()
+        })
+        req.on('error', () => resolve())
+      })
+    } finally {
+      server.close()
+    }
+    // Zweite Einlösung desselben Tickets muss scheitern.
+    const res = await request(app).get('/api/events').query({ ticket })
+    expect(res.status).toBe(401)
+  })
+
+  it('öffnet einen event-stream für ein gültiges Ticket', async () => {
     const user = await createUser({ email: 'sse@test.com' })
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '15m' })
+    const ticketRes = await request(app).get('/api/events/ticket').set(authHeader(user.id))
+    const ticket = ticketRes.body.ticket
 
     // The connection stays open indefinitely (SSE + a 25s keepalive interval),
     // so this can't be driven through supertest's normal request/response
@@ -81,7 +125,7 @@ describe('GET /api/events (SSE)', () => {
     try {
       const { port } = server.address()
       await new Promise((resolve, reject) => {
-        const req = http.get(`http://127.0.0.1:${port}/api/events?token=${token}`, res => {
+        const req = http.get(`http://127.0.0.1:${port}/api/events?ticket=${ticket}`, res => {
           expect(res.statusCode).toBe(200)
           expect(res.headers['content-type']).toContain('text/event-stream')
           res.once('data', chunk => {

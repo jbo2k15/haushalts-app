@@ -3,13 +3,13 @@ import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import cookieParser from 'cookie-parser'
-import jwt from 'jsonwebtoken'
 import authRoutes from './routes/auth.js'
 import taskRoutes from './routes/tasks.js'
 import userRoutes from './routes/users.js'
 import releaseNotesRoutes from './routes/release-notes.js'
 import { requireAuth } from './middleware/auth.js'
 import { addSSEClient, removeSSEClient } from './lib/sse.js'
+import { issueTicket, consumeTicket } from './lib/sseTickets.js'
 import prisma from './lib/prisma.js'
 
 export function createApp() {
@@ -57,15 +57,27 @@ export function createApp() {
   app.use('/api/users', userRoutes)
   app.use('/api/release-notes', releaseNotesRoutes)
 
+  // Kurzlebiges Einmal-Ticket für die SSE-Verbindung ausgeben. requireAuth
+  // stellt sicher, dass nur freigeschaltete Nutzer ohne offenen Passwortwechsel
+  // ein Ticket erhalten. Das Ticket (statt des Access-Tokens) wandert gleich in
+  // die EventSource-URL - siehe Hinweis am /api/events-Handler.
+  app.get('/api/events/ticket', requireAuth, (req, res) => {
+    res.json({ ticket: issueTicket(req.user.id) })
+  })
+
   app.get('/api/events', async (req, res) => {
-    const token = req.query.token
-    if (!token) return res.status(401).end()
+    // Auth über ein kurzlebiges Einmal-Ticket im Query-String statt über den
+    // Access-Token: EventSource kann keine Header setzen, und Werte in der URL
+    // können über Browser-History/Referer/Proxy-Logs leaken. Ein Ticket ist
+    // nur ~30 s gültig und einmal einlösbar, minimiert das Leak-Risiko also.
+    const userId = consumeTicket(req.query.ticket)
+    if (!userId) return res.status(401).end()
     try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] })
-      const user = await prisma.user.findUnique({ where: { id: payload.userId } })
+      // Zustand beim Verbindungsaufbau erneut prüfen (das Ticket wurde bis zu
+      // 30 s vorher ausgestellt): Freischaltung könnte entzogen oder ein
+      // Passwortwechsel erzwungen worden sein.
+      const user = await prisma.user.findUnique({ where: { id: userId } })
       if (!user || !user.approved) return res.status(401).end()
-      // Wie requireAuth: solange das Passwort geändert werden muss, keine
-      // Live-Verbindung aufbauen (Konsistenz mit dem mustChangePassword-Gate).
       if (user.mustChangePassword) return res.status(403).end()
     } catch {
       return res.status(401).end()
