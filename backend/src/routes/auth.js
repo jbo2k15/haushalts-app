@@ -184,10 +184,12 @@ router.post('/forgot-password', async (req, res) => {
   await prisma.passwordResetToken.create({ data: { userId: user.id, token: hashToken(token), expiresAt } })
 
   const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`
-  // Token is already persisted - a transient SMTP failure shouldn't turn into
-  // a 500 for the user (they can just try again), so swallow like the
-  // approval email does.
-  try { await sendPasswordResetEmail(user.email, user.name, resetLink) } catch {}
+  // Fire-and-forget: der Token ist bereits persistiert (ein transienter
+  // SMTP-Fehler soll keinen 500 auslösen, der Nutzer kann es neu versuchen).
+  // Bewusst NICHT awaited - der variable SMTP-Versand würde sonst die
+  // Antwortzeit des realen Pfads gegenüber dem Fake-Pfad verlängern und so
+  // verraten, ob die Adresse existiert (Timing-Enumeration).
+  sendPasswordResetEmail(user.email, user.name, resetLink).catch(() => {})
 
   res.json({ message: 'Falls die E-Mail existiert, wurde ein Link gesendet.' })
 })

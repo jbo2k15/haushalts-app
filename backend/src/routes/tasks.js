@@ -34,6 +34,12 @@ export function validateTaskInput({ title, type, priority, weekdays, fixedWeekda
   if (fixedDayOfMonth != null && !(Number.isInteger(fixedDayOfMonth) && fixedDayOfMonth >= 1 && fixedDayOfMonth <= 31)) return 'Ungültiger Tag im Monat'
   if (type === 'once') {
     if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return 'Fälligkeitsdatum ist erforderlich (YYYY-MM-DD)'
+    // Das Regex allein lässt unmögliche Daten wie 2026-99-99 oder 2026-02-30
+    // durch - gegen einen echten Kalender prüfen (Round-Trip: wenn Date die
+    // Werte normalisiert/verschiebt, war das Datum ungültig).
+    const [y, m, d] = dueDate.split('-').map(Number)
+    const dt = new Date(Date.UTC(y, m - 1, d))
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return 'Ungültiges Fälligkeitsdatum'
   }
   if (allowMultiple && !MULTI_ELIGIBLE_TYPES.includes(type)) return '"Mehrfach erledigbar" ist nur für tägliche oder wöchentliche Aufgaben verfügbar'
   return null
@@ -396,12 +402,14 @@ router.put('/admin/:id', requireAuth, requireAdmin, async (req, res) => {
     data: {
       title: title.trim(),
       type,
-      priority,
+      // Gleiche Defaults wie POST /admin, damit ein Body ohne priority/isActive
+      // keinen undefinierten Wert durchreicht.
+      priority: priority || 'normal',
       weekdays: Array.isArray(weekdays) && weekdays.length ? JSON.stringify(weekdays) : null,
       fixedWeekday: fixedWeekday ?? null,
       fixedDayOfMonth: fixedDayOfMonth ?? null,
       dueDate: type === 'once' ? dueDate : null,
-      isActive,
+      isActive: isActive !== false,
       allowMultiple: MULTI_ELIGIBLE_TYPES.includes(type) && allowMultiple === true,
     },
   })
