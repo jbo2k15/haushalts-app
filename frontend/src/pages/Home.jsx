@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import { api, getAccessToken } from '../api/client.js'
+import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import TaskBlock from '../components/TaskBlock.jsx'
 import StatsSection from '../components/StatsSection.jsx'
@@ -70,21 +70,33 @@ export default function Home() {
   useEffect(() => {
     let es = null
     let retryTimeout = null
+    let cancelled = false
 
-    function connect() {
-      const token = getAccessToken()
-      if (!token) return
-      es = new EventSource(`/api/events?token=${encodeURIComponent(token)}`)
+    async function connect() {
+      if (cancelled) return
+      // Erst ein kurzlebiges Einmal-Ticket holen (der Access-Token darf nicht in
+      // die EventSource-URL, siehe Backend). Schlägt das fehl (z.B. nicht
+      // eingeloggt), übernimmt das Fallback-Polling; später erneut versuchen.
+      let ticket
+      try {
+        ({ ticket } = await api.get('/events/ticket'))
+      } catch {
+        if (!cancelled) retryTimeout = setTimeout(connect, 5000)
+        return
+      }
+      if (cancelled || !ticket) return
+      es = new EventSource(`/api/events?ticket=${encodeURIComponent(ticket)}`)
       es.addEventListener('tasks-updated', () => loadTasks())
       es.onerror = () => {
         es?.close()
         es = null
-        retryTimeout = setTimeout(connect, 5000)
+        if (!cancelled) retryTimeout = setTimeout(connect, 5000)
       }
     }
 
     connect()
     return () => {
+      cancelled = true
       es?.close()
       clearTimeout(retryTimeout)
     }
