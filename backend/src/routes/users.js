@@ -98,10 +98,16 @@ router.post('/push-subscription', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Ungültiger p256dh-Schlüssel' })
   if (typeof auth !== 'string' || auth.length > 100)
     return res.status(400).json({ error: 'Ungültiger Auth-Schlüssel' })
-  await prisma.$transaction([
-    prisma.pushSubscription.deleteMany({ where: { endpoint } }),
-    prisma.pushSubscription.create({ data: { userId: req.user.id, endpoint, p256dh, auth } }),
-  ])
+  // endpoint ist global eindeutig (eine Push-Subscription pro Browser). upsert
+  // statt blindem deleteMany({ endpoint }) + create: übernimmt/aktualisiert
+  // denselben Endpoint atomar für den aktuellen Nutzer (z. B. Besitzerwechsel
+  // auf einem geteilten Gerät), ohne ungescoptes Löschen und ohne
+  // Unique-Constraint-Konflikt.
+  await prisma.pushSubscription.upsert({
+    where: { endpoint },
+    update: { userId: req.user.id, p256dh, auth },
+    create: { userId: req.user.id, endpoint, p256dh, auth },
+  })
   res.json({ message: 'Subscription gespeichert' })
 })
 
