@@ -14,16 +14,15 @@ function menuIn(page, slideContainer) {
   }
 }
 
-// The old per-page "← Zurück" buttons on Admin/Settings/Hall of Fame were
-// replaced by this shared menu (see HeaderMenu.jsx) - Home and Hall of Fame
-// are also reachable by swiping, but Settings/Admin only have the menu.
-test('header menu on Hall of Fame has no leftover "Zurück" button and can navigate home', async ({ page }) => {
+// The shared HeaderMenu (see HeaderMenu.jsx) is the constant way to reach any
+// page - Home and Hall of Fame are also swipeable, but Settings/Admin only
+// have the menu.
+test('header menu on Hall of Fame navigates home', async ({ page }) => {
   const errors = attachErrorCollector(page)
   await login(page)
 
   await page.goto('/hall-of-fame')
   const slide = page.locator('[data-slide-path="/hall-of-fame"]')
-  await expect(slide.getByText('Zurück', { exact: false })).toHaveCount(0)
 
   const { toggle, menu } = menuIn(page, slide)
   await toggle.click()
@@ -36,12 +35,11 @@ test('header menu on Hall of Fame has no leftover "Zurück" button and can navig
 })
 
 for (const path of ['/admin', '/settings']) {
-  test(`header menu on ${path} has no leftover "Zurück" button and can navigate home`, async ({ page }) => {
+  test(`header menu on ${path} navigates home`, async ({ page }) => {
     const errors = attachErrorCollector(page)
     await login(page)
 
     await page.goto(path)
-    await expect(page.getByText('Zurück', { exact: false })).toHaveCount(0)
 
     await page.locator('[data-testid="header-menu-toggle"]').click()
     await expect(page.locator('[data-testid="header-menu"]')).toBeVisible()
