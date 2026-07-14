@@ -9,6 +9,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 - **Aufgabenlog** — Protokoll aller erledigten, abgelaufenen, übersprungenen und gelöschten Aufgaben (bis 100 Einträge)
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, diese Woche, letzte Woche, diesen und letzten Monat
 - **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger; per Wisch-Geste (links/rechts, Touch oder Maus) direkt von der Startseite erreichbar
+- **Navigation** — Zwei konstante Wege: Wischen zwischen Startseite und Ruhmeshalle sowie ein einheitliches Menü (oben rechts) mit direktem Zugriff auf Aufgabenübersicht, Einstellungen, Ruhmeshalle und (für Admins) Verwaltung
 - **Push-Benachrichtigungen** — Tägliche und wöchentliche Erinnerungen an offene Aufgaben (konfigurierbare Uhrzeit)
 - **Abfallkalender** — Einmalige Aufgaben aus iCal-Feed für jeden konkreten Abholtermin; laufen am Folgetag automatisch ab und erscheinen im Log als „verfallen"
 - **Urlaubsmodus** — Pausiert Benachrichtigungen für einzelne Nutzer
