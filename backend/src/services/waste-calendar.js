@@ -4,6 +4,10 @@ import prisma from '../lib/prisma.js'
 const WASTE_TYPES = [
   { match: 'papier', title: 'Papiertonne rausstellen' },
   { match: 'restmüll', title: 'Restmülltonne rausstellen' },
+  // "Restabfall" ist bei manchen Entsorgern (z.B. EDG Dortmund) der offizielle
+  // Begriff für den Restmüll und taucht so im iCal-Feed auf, statt "Restmüll".
+  // Gleicher Titel wie restmüll, damit es dieselbe Tonne bleibt.
+  { match: 'restabfall', title: 'Restmülltonne rausstellen' },
   { match: 'gelbe tonne', title: 'Gelbe Tonne rausstellen' },
   // "Wertstofftonne" ist in manchen Kommunen der offizielle Begriff für die
   // gelbe Tonne und taucht so im iCal-Feed auf, statt "Gelbe Tonne".
