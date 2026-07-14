@@ -2,6 +2,8 @@
 
 ## Sicherheit / Wartung
 
+- [ ] **Abfallkalender-Feed-Gesundheit prüfen (wöchentlich)** — beim Debuggen des fehlenden Restabfall-Tasks (2026-07-13) lieferte die `WASTE_ICAL_URL` in der lokalen `.env` einen **404** (EDG-Portal-Links rotieren, oft jährlich). Offen: (1) verifizieren, ob die **Produktions**-`WASTE_ICAL_URL` noch gültig ist — Indikator: kommen die anderen Tonnen (Papier, Gelbe Tonne) als Aufgaben an? Falls nein, frische iCal-URL aus dem EDG-Kundenportal holen und in die Server-`.env` eintragen. (2) Lokale `.env`-URL ist veraltet → die `404`-Meldungen in den Test-Logs stammen daher (kein Produktfehler). Wöchentliche Nachfrage dazu eingerichtet (Scheduled Task).
+
 - [ ] **Node 22 → 24 in den Dockerfiles erwägen** — beide Dockerfiles (`backend/Dockerfile`, `frontend/Dockerfile`) laufen aktuell auf `node:22-alpine` (Maintenance LTS, Support bis ~April 2027). Node 24 ist das aktuelle Active LTS. Kein Zwang und kein Sicherheitsdruck, solange Node 22 im Support ist; bei einem der nächsten Wartungs-Releases mitnehmen. Vor dem Umstieg: lokal mit Node 24 bauen + volle Test-Suite (Backend + E2E) laufen lassen, da better-sqlite3 nativ kompiliert wird.
 
 
