@@ -35,6 +35,18 @@ passenden Bump vor (Patch/Minor/Major).
   `backend/src/data/release-notes.json` einfügen (gültiges JSON, `\n\n` für
   Absätze).
 
+## 2b. README aktualisieren
+- Prüfe anhand der Änderungen seit dem letzten Tag, ob dieses Release ein
+  **nutzersichtbares Feature** hinzufügt oder ändert. Falls ja: die
+  Funktionsliste (`## Funktionen`) in `README.md` entsprechend anpassen
+  (neuer Punkt bzw. angepasste Formulierung). Auch andere betroffene
+  README-Abschnitte aktualisieren, falls relevant (z. B. neue ENV-Variable,
+  geänderter Ablauf).
+- Reine Bugfixes, Performance- oder interne Änderungen brauchen i. d. R.
+  KEINE README-Änderung — kurz erwähnen, dass nichts anzupassen war.
+- In der README steht keine hartcodierte Versionsnummer (die lebt in
+  `package.json`), es muss dort also nichts hochgezählt werden.
+
 ## 3. Tests — müssen grün sein
 - Backend: `cd backend && npm test` (Vitest).
 - Frontend E2E: `cd frontend && npm run test:e2e` (Playwright) — lange laufend,
@@ -49,7 +61,8 @@ Lösche generierte Test-Artefakte, damit sie nicht in den Commit geraten:
 
 ## 5. Commit + annotierter Tag
 - Committe die Release-Dateien (beide `package.json`, `release-notes.json`,
-  ggf. TODO.md) mit einer Zusammenfassung der Änderungen seit dem letzten Release.
+  ggf. `README.md` und TODO.md) mit einer Zusammenfassung der Änderungen seit
+  dem letzten Release.
 - Erzeuge einen **annotierten** Tag `v$ARGUMENTS` mit detaillierten technischen
   Release-Notes (Features/Fixes seit letztem Tag + "Tests: X Backend, Y E2E, alle grün").
 - Commit-Message-Footer: `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
