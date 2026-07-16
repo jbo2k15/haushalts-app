@@ -12,7 +12,6 @@
 - [ ] **Deprecation-Warnung `inlineDynamicImports` von `vite-plugin-pwa`** (frontend) — seit Vite 8 setzt `vite-plugin-pwa@1.3.0` (aktuellste Version) beim internen Service-Worker-Build noch die alte Rollup-Option `output.inlineDynamicImports: true` statt Vites neuer `build.codeSplitting: false`. Hartcodiert im Plugin, nicht über unsere `vite.config.js` überschreibbar. Nur eine Warnung, keine Fehlfunktion. Beheben, sobald `vite-plugin-pwa` ein Vite-8-Kompatibilitäts-Release bringt — Changelog bei nächstem Scan prüfen.
 - [ ] **`npm ci`-Deprecation-Warnungen beim Docker-Build** (2026-07-07 beim Deploy aufgefallen) — `source-map@0.8.0-beta.0` + `glob@11.1.0` kommen aus `vite-plugin-pwa@1.3.0` → `workbox-build@7.4.1` (beide aktuellste Version, gehört zur selben "wartet auf Upstream"-Situation wie oben). `prebuild-install@7.1.3` kommt aus `better-sqlite3@12.11.1` (ebenfalls aktuellste Version). Reines Warnrauschen tief in der Kette, kein `npm audit`-Finding, nicht behebbar ohne Upstream-Release — bei künftigen Scans nur prüfen, ob eine neuere Version verfügbar ist.
 - [ ] **Security-Review-Restbefunde (niedrig, aus Review am 2026-07-09)** — die kritischen/mittleren Härtungen (mustChangePassword serverseitig, FRONTEND_URL-Startup-Check, reset-password Token-Validierung, SMTP requireTLS) wurden bereits umgesetzt. Rest bewusst offen gelassen, geringe Priorität:
-  - `POST /users/push-subscription` löscht jede Subscription mit dem gegebenen `endpoint` und legt sie für den aktuellen User neu an — ein authentifizierter Nutzer, der den (geheimen, geräte-spezifischen) Endpoint eines anderen kennt, könnte ihn übernehmen. Praktisch kaum ausnutzbar; sauberer wäre, ein Übernehmen nur zuzulassen, wenn der Endpoint noch keinem anderen User gehört.
   - **User-Enumeration via `POST /auth/register` (409 "E-Mail bereits registriert")** — verrät, ob eine Adresse registriert ist. Entschärft durch Admin-Freischaltung + Honeypot + Rate-Limit (5/h). Fix würde generische Erfolgsmeldung wie bei forgot-password erfordern, verschlechtert aber die UX (Nutzer sieht nicht, dass die Mail schon vergeben ist) — Abwägung, **bewusst offen gelassen** (2026-07-09).
 
 ## Performance (für später, niedrige Priorität bei aktueller Haushaltsgröße)
@@ -55,6 +54,9 @@
 ---
 
 ## Erledigt (Archiv)
+
+- ✅ Push-Subscription-Endpoint-Übernahme (Kompromiss, 2026-07-14): Übernahme eines fremden Endpoints (z.B. Besitzerwechsel auf geteiltem Gerät) bleibt erlaubt, wird aber jetzt serverseitig per `console.warn` protokolliert (nur Endpoint-Suffix), statt still zu überschreiben. Aufsetzend auf dem `upsert`-Refactor. 2 Tests ergänzt.
+- ✅ Frontend-Patch-Updates postcss 8.5.19 + vite 8.1.5 (2026-07-14, Wochen-Check-Nachzug)
 
 - ✅ Performance: `GET /tasks/stats` von 3×N Einzel-Counts auf 3 `groupBy`-Queries (unabhängig von der Nutzerzahl) umgestellt; Frontend dedupliziert gleichzeitig laufende identische GETs im API-Client (StatsSection + HallOfFame fragten `/tasks/stats` beim Carousel-Mount doppelt ab). 240 Backend + 34 E2E grün (2026-07-13)
 - ✅ SSE-Auth nutzt jetzt ein kurzlebiges Einmal-Ticket (`/api/events/ticket`) statt des Access-Tokens in der URL — der frühere „Access-Token in der SSE-URL"-Punkt ist damit gegenstandslos (im Code umgesetzt, Frontend `Home.jsx` holt Ticket vor dem EventSource-Connect) (2026-07-13)

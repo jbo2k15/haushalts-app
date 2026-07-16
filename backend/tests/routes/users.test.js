@@ -411,6 +411,25 @@ describe('POST /api/users/push-subscription', () => {
     expect(subs[0].userId).toBe(userB.id)
   })
 
+  it('protokolliert einen Besitzerwechsel (fremdes Konto) per Warnung', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const userA = await createUser({ email: 'a@test.com' })
+    const userB = await createUser({ email: 'b@test.com' })
+    await prisma.pushSubscription.create({ data: { userId: userA.id, endpoint: 'https://push.example.com/shared', p256dh: 'old', auth: 'old' } })
+    await request(app).post('/api/users/push-subscription').set(authHeader(userB.id))
+      .send({ endpoint: 'https://push.example.com/shared', p256dh: 'new', auth: 'new' })
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Besitzerwechsel'))
+  })
+
+  it('protokolliert KEINEN Besitzerwechsel, wenn derselbe Nutzer erneut subscribed', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const user = await createUser()
+    await prisma.pushSubscription.create({ data: { userId: user.id, endpoint: 'https://push.example.com/mine', p256dh: 'old', auth: 'old' } })
+    await request(app).post('/api/users/push-subscription').set(authHeader(user.id))
+      .send({ endpoint: 'https://push.example.com/mine', p256dh: 'new', auth: 'new' })
+    expect(warn).not.toHaveBeenCalled()
+  })
+
   it.each([
     ['nicht-https Endpoint', { endpoint: 'http://push.example.com/abc', p256dh: 'key', auth: 'secret' }],
     ['zu langer Endpoint', { endpoint: 'https://push.example.com/' + 'x'.repeat(500), p256dh: 'key', auth: 'secret' }],

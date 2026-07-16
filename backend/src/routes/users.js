@@ -103,6 +103,17 @@ router.post('/push-subscription', requireAuth, async (req, res) => {
   // denselben Endpoint atomar für den aktuellen Nutzer (z. B. Besitzerwechsel
   // auf einem geteilten Gerät), ohne ungescoptes Löschen und ohne
   // Unique-Constraint-Konflikt.
+  //
+  // Gehört der Endpoint bereits einem ANDEREN Konto, ist der Besitzerwechsel
+  // weiterhin erlaubt, wird aber protokolliert - eine unerwartete Übernahme
+  // (Angreifer kennt einen fremden, geheimen Endpoint) soll nachvollziehbar
+  // sein, statt still zu passieren. Nur Endpoint-Suffix loggen, nicht den
+  // vollständigen geheimen Endpoint.
+  const existing = await prisma.pushSubscription.findUnique({ where: { endpoint }, select: { userId: true } })
+  if (existing && existing.userId !== req.user.id) {
+    console.warn(`[Push] Endpoint-Besitzerwechsel: ...${endpoint.slice(-12)} von userId=${existing.userId} -> userId=${req.user.id}`)
+  }
+
   await prisma.pushSubscription.upsert({
     where: { endpoint },
     update: { userId: req.user.id, p256dh, auth },
