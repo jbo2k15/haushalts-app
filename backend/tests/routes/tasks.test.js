@@ -56,6 +56,54 @@ describe('GET /api/tasks', () => {
     expect(res.status).toBe(401)
   })
 
+  describe('überfällige wochentagsbeschränkte Tagesaufgaben (Carryover)', () => {
+    // 2026-07-15 ist ein Mittwoch (gestern = Di 2026-07-14, vorgestern = Mo 2026-07-13)
+    afterEach(() => { vi.useRealTimers() })
+
+    async function setupWednesday() {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-07-15T10:00:00Z'))
+      return createUser()
+    }
+
+    it('zeigt eine Dienstags-Aufgabe am Mittwoch noch als überfällig', async () => {
+      const user = await setupWednesday()
+      const task = await createTask({ title: 'Schwimmtasche packen', weekdays: JSON.stringify([2]), createdAt: new Date('2026-07-01T00:00:00Z') })
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      const row = res.body.daily.find(t => t.id === task.id)
+      expect(row).toBeTruthy()
+      expect(row.isOverdue).toBe(true)
+      expect(row.completed).toBe(false)
+    })
+
+    it('zeigt eine Aufgabe an ihrem regulären Tag normal (nicht überfällig)', async () => {
+      const user = await setupWednesday()
+      const task = await createTask({ weekdays: JSON.stringify([3]), createdAt: new Date('2026-07-01T00:00:00Z') }) // Mittwoch
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      const row = res.body.daily.find(t => t.id === task.id)
+      expect(row).toBeTruthy()
+      expect(row.isOverdue).toBe(false)
+    })
+
+    it('blendet eine Aufgabe aus, die weder heute fällig noch überfällig ist', async () => {
+      const user = await setupWednesday()
+      const task = await createTask({ weekdays: JSON.stringify([5]), createdAt: new Date('2026-07-01T00:00:00Z') }) // Freitag
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      expect(res.body.daily.find(t => t.id === task.id)).toBeFalsy()
+    })
+
+    it('klärt die Überfälligkeit, sobald am Folgetag erledigt wird', async () => {
+      const user = await setupWednesday()
+      const task = await createTask({ weekdays: JSON.stringify([2]), createdAt: new Date('2026-07-01T00:00:00Z') }) // Dienstag
+      await prisma.taskCompletion.create({ data: { taskId: task.id, completedBy: user.id, forDate: '2026-07-15' } })
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      const row = res.body.daily.find(t => t.id === task.id)
+      expect(row).toBeTruthy()
+      expect(row.completed).toBe(true)
+      expect(row.isOverdue).toBe(false)
+    })
+  })
+
   it('zeigt eine wöchentliche Erledigung weiterhin als erledigt, wenn die Woche vor Monats-/2-Tage-Fenster beginnt', async () => {
     // Regression: rangeStart previously only considered monthStart and
     // twoDaysAgo, not weekStart. On a Thursday early in the month, the

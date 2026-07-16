@@ -116,15 +116,35 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     if (task.type === 'daily') {
-      if (weekdays && weekdays.length > 0 && !weekdays.includes(todayWeekday)) continue
       if (skippedIds.has(task.id)) continue
+
+      const dueToday = !weekdays || weekdays.length === 0 || weekdays.includes(todayWeekday)
 
       const todaysCompletions = (byTask.get(task.id) || []).filter(c => c.forDate === today)
       const count = todaysCompletions.length
       const lastCompletion = todaysCompletions[todaysCompletions.length - 1] || null
       const taskCreatedDate = task.createdAt.toISOString().slice(0, 10)
+
+      // Eine wochentagsbeschränkte Aufgabe, die an einem kürzlich fälligen Tag
+      // nicht erledigt wurde, bleibt an den Folgetagen als "überfällig" sichtbar
+      // (z.B. eine Dienstags-Aufgabe zeigt sich Mi/Do noch), bis sie erledigt
+      // wird oder verfällt (~2 Tage, siehe Scheduler). Sie gilt als erledigt,
+      // sobald es SEIT dem verpassten Tag IRGENDEINE Erledigung gibt - ein
+      // Abhaken am Folgetag klärt sie also und sie taucht am nächsten Tag nicht
+      // erneut auf. (Nur relevant, wenn heute kein regulärer Tag ist - an
+      // regulären Tagen ist es einfach die heutige, offene Aufgabe.)
+      const compDates = new Set((byTask.get(task.id) || []).map(c => c.forDate))
       const wasDueYesterday = taskCreatedDate <= yesterday && (!weekdays || weekdays.length === 0 || weekdays.includes(yesterdayWeekday))
       const wasDueTwoDaysAgo = taskCreatedDate <= twoDaysAgo && (!weekdays || weekdays.length === 0 || weekdays.includes(twoDaysAgoWeekday))
+      const missedYesterday = wasDueYesterday && !compDates.has(yesterday) && !compDates.has(today)
+      const missedTwoDaysAgo = wasDueTwoDaysAgo && !compDates.has(twoDaysAgo) && !compDates.has(yesterday) && !compDates.has(today)
+      const isOverdue = !dueToday && (missedYesterday || missedTwoDaysAgo)
+
+      // Heute kein regulärer Tag, nichts Überfälliges UND heute nichts erledigt
+      // -> ausblenden. (Wurde die überfällige Aufgabe heute abgehakt, bleibt sie
+      // für den Rest des Tages als erledigt/durchgestrichen sichtbar, statt sofort
+      // zu verschwinden.)
+      if (!dueToday && !isOverdue && count === 0) continue
 
       result.daily.push({
         ...task,
@@ -135,8 +155,7 @@ router.get('/', requireAuth, async (req, res) => {
         // let the frontend decide whether to render the counter/undo button.
         count: task.allowMultiple ? count : (count > 0 ? 1 : 0),
         completedBy: lastCompletion?.user?.name || null,
-        overdueDay1: wasDueYesterday && !byKey.has(`${task.id}-${yesterday}`),
-        overdueDay2: wasDueTwoDaysAgo && !byKey.has(`${task.id}-${twoDaysAgo}`),
+        isOverdue,
       })
     }
 
