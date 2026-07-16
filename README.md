@@ -4,7 +4,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 
 ## Funktionen
 
-- **Aufgaben** — Tägliche, wöchentliche, monatliche und einmalige Aufgaben (mit Fälligkeitsdatum); Drag & Drop zum Sortieren; tägliche Aufgaben können für den Tag übersprungen werden
+- **Aufgaben** — Tägliche, wöchentliche, monatliche und einmalige Aufgaben (mit Fälligkeitsdatum); Drag & Drop zum Sortieren; tägliche Aufgaben können für den Tag übersprungen werden; an bestimmte Wochentage gebundene Aufgaben bleiben nach einem verpassten Tag noch als überfällig sichtbar
 - **Mehrfach erledigbare Aufgaben** — Tägliche und wöchentliche Aufgaben können bei Bedarf per Verwaltung so konfiguriert werden, dass sie mehrmals pro Tag/Woche erledigt werden können, mit Zähler und der Möglichkeit, die letzte Erledigung zurückzunehmen
 - **Aufgabenlog** — Protokoll aller erledigten, abgelaufenen, übersprungenen und gelöschten Aufgaben (bis 100 Einträge)
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, diese Woche, letzte Woche, diesen und letzten Monat
