@@ -38,10 +38,14 @@
 
 - [ ] **Wetterabhängige Aufgaben** — Aufgaben, die je nach Wetter automatisch entfallen. Beispiel des Nutzers: bei Regen ist „Blumen gießen" nicht nötig. Idee: solche Aufgaben werden nicht als offen angeboten, sondern durchgestrichen und als **„vom System erledigt"** gekennzeichnet.
   - **Verhalten:** neuer Log-/Completion-Status „vom System erledigt" (klar getrennt von nutzer-erledigt/übersprungen/verfallen). Wichtig: darf **nicht** in Statistik/Trophäen/Fairness einfließen (niemand hat die Aufgabe tatsächlich gemacht) — analog dazu, wie einmalige Aufgaben von den Trophäen ausgenommen sind.
-  - **Konfiguration pro Aufgabe (Admin):** opt-in je Aufgabe, plus eine Regel, welche Wetterbedingung sie entfallen lässt (z. B. „entfällt, wenn Regen heute/letzte 24 h", ggf. mit Schwelle in mm). Erfordert neue Felder am Task-Modell (Migration).
-  - **Wetterquelle:** externe Wetter-API nötig (z. B. Open-Meteo — kostenlos, kein Key) inkl. Standort-Konfiguration (Koordinaten aus ENV/Settings). Neue externe Abhängigkeit + Fehlerbehandlung (API nicht erreichbar → Aufgabe im Zweifel normal anbieten, nicht fälschlich als erledigt markieren).
-  - **Timing:** Wetter-Check im Scheduler morgens vor der täglichen Erinnerung; Ergebnis wirkt sich auf die Tagesansicht und den Push-Reminder aus (entfallene Aufgaben nicht als „offen" zählen).
-  - **Offene Fragen:** Vorhersage vs. Ist-Wetter; wie lange gilt „hat geregnet" (Zeitfenster); rückwirkende Korrektur, falls die Vorhersage falsch war; nur für tägliche Aufgaben oder auch wöchentliche; Darstellung in der UI (durchgestrichen + Icon/Begründung „wegen Regen entfallen").
+  - **Konfiguration pro Aufgabe (Admin):** opt-in je Aufgabe, plus eine Regel, welche Wetterbedingung sie entfallen lässt (Schwelle in mm Niederschlag, Default z. B. 1 mm). Erfordert neue Felder am Task-Modell (Migration).
+  - **Wetterquelle:** Open-Meteo (kostenlos, kein Key, großzügiges Freikontingent) inkl. Standort-Konfiguration (Koordinaten aus ENV/Settings). Fehlerbehandlung: API nicht erreichbar → Aufgabe im Zweifel normal anbieten, nicht fälschlich als erledigt markieren.
+  - **Prüf-Strategie (entschieden 2026-07-19):** stündlicher Scheduler-Job prüft den **tatsächlich bereits gefallenen Niederschlag seit Mitternacht (heute, Berlin-Zeit)** — NICHT die Vorhersage. Sobald die Schwelle überschritten ist, wird die Aufgabe für den Tag als „vom System erledigt" markiert (der nächste stündliche Lauf erkennt auch nachmittäglichen Regen). Vorteil ggü. reiner Morgens-Vorhersage: kein Korrektur-Mechanismus nötig, da nie eine Prognose bewertet wird, die sich als falsch herausstellen könnte — nur bereits eingetretenes Wetter zählt. Technisch: neuer stündlicher `cron.schedule`-Eintrag im bestehenden Scheduler (analog zum bestehenden Minuten-/Mitternachts-Job).
+  - **Geltungsbereich (entschieden 2026-07-19):** nur tägliche Aufgaben, keine wöchentlichen.
+  - **Zeitfenster (entschieden 2026-07-19):** nur der aktuelle Kalendertag (00:00–23:59 Berlin-Zeit), nicht rollierend über 24 h.
+  - **UI-Darstellung (entschieden 2026-07-19):** durchgestrichen wie eine erledigte Aufgabe, zusätzlich ein Begründungs-Badge (z. B. „wegen Regen entfallen") statt des Namens der erledigenden Person.
+  - **Timing:** Ergebnis wirkt sich auf die Tagesansicht und den Push-Reminder aus (wetterbedingt entfallene Aufgaben nicht als „offen" zählen).
+  - Damit sind alle offenen Design-Fragen geklärt — startklar für die Umsetzung.
 
 - [ ] **Mehrere Haushalte** — Große Änderung, Anforderungen noch nicht geschärft. Eckpunkte aus erstem Gespräch:
   - Getrennte Aufgaben und Statistiken pro Haushalt
