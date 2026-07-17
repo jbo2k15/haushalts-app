@@ -2,6 +2,7 @@ import { DndContext, closestCenter } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import SortableTask from './SortableTask.jsx'
 import TaskFormFields from './TaskFormFields.jsx'
+import WeatherStatusCard from './WeatherStatusCard.jsx'
 import { TYPE_LABELS } from './constants.js'
 
 // Admin-Tab "Aufgaben": Neue-Aufgabe-Formular, Export/Import, sortierbare Listen
@@ -20,6 +21,8 @@ export default function TasksTab({
       >
         {showForm ? 'Abbrechen' : '+ Neue Aufgabe'}
       </button>
+
+      <WeatherStatusCard />
 
       <div className="flex gap-2">
         <button

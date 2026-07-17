@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
+import bcrypt from 'bcryptjs'
 import prisma from '../../src/lib/prisma.js'
-import { sumPrecipitationSoFar, checkWeatherDependentTasks } from '../../src/services/weather.js'
+
+vi.mock('../../src/services/push.js', () => ({ sendPushToUser: vi.fn() }))
+const { sendPushToUser } = await import('../../src/services/push.js')
+const { sumPrecipitationSoFar, checkWeatherDependentTasks, getWeatherStatus } = await import('../../src/services/weather.js')
 
 const ORIGINAL_LAT = process.env.WEATHER_LAT
 const ORIGINAL_LON = process.env.WEATHER_LON
@@ -14,6 +18,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  sendPushToUser.mockClear()
   vi.useRealTimers()
   process.env.WEATHER_LAT = ORIGINAL_LAT
   process.env.WEATHER_LON = ORIGINAL_LON
@@ -32,6 +37,13 @@ function mockOpenMeteo(precipitationByTime) {
 async function createTask(overrides = {}) {
   return prisma.task.create({
     data: { title: 'Blumen gießen', type: 'daily', priority: 'normal', isActive: true, weatherDependent: true, ...overrides },
+  })
+}
+
+async function createUser(overrides = {}) {
+  const passwordHash = await bcrypt.hash('Test1234!x', 4)
+  return prisma.user.create({
+    data: { email: `${Math.random()}@test.com`, passwordHash, name: 'Test User', role: 'user', approved: true, ...overrides },
   })
 }
 
@@ -130,5 +142,101 @@ describe('checkWeatherDependentTasks', () => {
 
     const log = await prisma.taskLog.findFirst({ where: { taskId: task.id } })
     expect(log).toBeNull()
+  })
+
+  it('speichert den Wetter-Status auch, wenn die Schwelle nicht überschritten wird', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00Z'))
+    mockOpenMeteo({ '2026-07-19T06:00': 1 }) // unter Schwelle
+
+    await checkWeatherDependentTasks()
+
+    const status = await prisma.weatherStatus.findUnique({ where: { id: 'singleton' } })
+    expect(status).toBeTruthy()
+    expect(status.rainMM).toBe(1)
+  })
+
+  it('aktualisiert den Wetter-Status bei jedem erfolgreichen Check (letzter Wert gewinnt)', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00Z'))
+    mockOpenMeteo({ '2026-07-19T06:00': 1 })
+    await checkWeatherDependentTasks()
+
+    mockOpenMeteo({ '2026-07-19T06:00': 2 })
+    await checkWeatherDependentTasks()
+
+    const status = await prisma.weatherStatus.findUnique({ where: { id: 'singleton' } })
+    expect(status.rainMM).toBe(2)
+  })
+
+  it('speichert den Wetter-Status NICHT, wenn Open-Meteo nicht erreichbar ist', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+
+    await checkWeatherDependentTasks()
+
+    const status = await prisma.weatherStatus.findUnique({ where: { id: 'singleton' } })
+    expect(status).toBeNull()
+  })
+
+  it('benachrichtigt nur Nutzer mit aktivierter Wetter-Benachrichtigung, die nicht im Urlaubsmodus sind', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00Z'))
+    mockOpenMeteo({ '2026-07-19T06:00': 10 })
+    await createTask()
+    const optedIn = await createUser({ notifyOnWeatherSkip: true })
+    const optedOut = await createUser({ notifyOnWeatherSkip: false })
+    const onVacation = await createUser({ notifyOnWeatherSkip: true, vacationMode: true })
+
+    await checkWeatherDependentTasks()
+
+    const notifiedIds = sendPushToUser.mock.calls.map(call => call[0])
+    expect(notifiedIds).toContain(optedIn.id)
+    expect(notifiedIds).not.toContain(optedOut.id)
+    expect(notifiedIds).not.toContain(onVacation.id)
+  })
+
+  it('benachrichtigt niemanden, wenn keine Aufgabe markiert wurde', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00Z'))
+    mockOpenMeteo({ '2026-07-19T06:00': 1 }) // unter Schwelle
+    await createUser({ notifyOnWeatherSkip: true })
+
+    await checkWeatherDependentTasks()
+
+    expect(sendPushToUser).not.toHaveBeenCalled()
+  })
+})
+
+describe('getWeatherStatus', () => {
+  it('meldet configured:false ohne WEATHER_LAT/WEATHER_LON', async () => {
+    delete process.env.WEATHER_LAT
+    delete process.env.WEATHER_LON
+    const status = await getWeatherStatus()
+    expect(status.configured).toBe(false)
+  })
+
+  it('gibt die konfigurierte Schwelle und null für rainMM/checkedAt zurück, wenn noch nie geprüft wurde', async () => {
+    const status = await getWeatherStatus()
+    expect(status.configured).toBe(true)
+    expect(status.thresholdMM).toBe(5)
+    expect(status.rainMM).toBeNull()
+    expect(status.checkedAt).toBeNull()
+  })
+
+  it('gibt den zuletzt gespeicherten Regenwert und Zeitpunkt zurück', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00Z'))
+    mockOpenMeteo({ '2026-07-19T06:00': 2 })
+    await checkWeatherDependentTasks()
+
+    const status = await getWeatherStatus()
+    expect(status.rainMM).toBe(2)
+    expect(status.checkedAt).toBeTruthy()
+  })
+
+  it('nutzt den Default-Schwellwert 5mm, wenn WEATHER_RAIN_THRESHOLD_MM nicht gesetzt ist', async () => {
+    delete process.env.WEATHER_RAIN_THRESHOLD_MM
+    const status = await getWeatherStatus()
+    expect(status.thresholdMM).toBe(5)
   })
 })

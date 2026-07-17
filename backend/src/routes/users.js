@@ -28,6 +28,17 @@ router.put('/me/vacation', requireAuth, async (req, res) => {
   res.json(updated)
 })
 
+router.put('/me/weather-notifications', requireAuth, async (req, res) => {
+  const { enabled } = req.body
+  if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'Ungültiger Wert' })
+  const updated = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { notifyOnWeatherSkip: enabled },
+    select: { id: true, email: true, name: true, role: true, mustChangePassword: true, vacationMode: true, notifyOnWeatherSkip: true },
+  })
+  res.json(updated)
+})
+
 // Marks the one-time "swipe between pages" onboarding tip as seen - stored
 // server-side (not localStorage) so it stays dismissed across devices, same
 // approach as lastSeenVersion for release notes.

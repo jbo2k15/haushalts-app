@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js'
 import taskRoutes from './routes/tasks.js'
 import userRoutes from './routes/users.js'
 import releaseNotesRoutes from './routes/release-notes.js'
+import weatherRoutes from './routes/weather.js'
 import { requireAuth } from './middleware/auth.js'
 import { addSSEClient, removeSSEClient } from './lib/sse.js'
 import { issueTicket, consumeTicket } from './lib/sseTickets.js'
@@ -56,6 +57,7 @@ export function createApp() {
   app.use('/api/tasks', taskRoutes)
   app.use('/api/users', userRoutes)
   app.use('/api/release-notes', releaseNotesRoutes)
+  app.use('/api/weather', weatherRoutes)
 
   // Kurzlebiges Einmal-Ticket für die SSE-Verbindung ausgeben. requireAuth
   // stellt sicher, dass nur freigeschaltete Nutzer ohne offenen Passwortwechsel

@@ -27,6 +27,7 @@ export default function Settings() {
   const [nameSaved, setNameSaved] = useState(false)
   const [nameError, setNameError] = useState('')
   const [vacationMode, setVacationMode] = useState(user?.vacationMode || false)
+  const [weatherNotify, setWeatherNotify] = useState(user?.notifyOnWeatherSkip ?? true)
 
   useEffect(() => {
     setPushSupported('serviceWorker' in navigator && 'PushManager' in window)
@@ -84,6 +85,14 @@ export default function Settings() {
     try {
       const updated = await api.put('/users/me/vacation', { vacationMode: !vacationMode })
       setVacationMode(updated.vacationMode)
+      setUser(updated)
+    } catch {}
+  }
+
+  async function toggleWeatherNotify() {
+    try {
+      const updated = await api.put('/users/me/weather-notifications', { enabled: !weatherNotify })
+      setWeatherNotify(updated.notifyOnWeatherSkip)
       setUser(updated)
     } catch {}
   }
@@ -182,6 +191,20 @@ export default function Settings() {
                 </button>
               </div>
             )}
+            <div className="border-t border-gray-100 dark:border-gray-700 pt-3 flex items-center justify-between">
+              <div className="pr-3">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Wetterbedingt erledigte Aufgaben</span>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Benachrichtigt dich, wenn eine Aufgabe wegen Regen automatisch erledigt wurde.</p>
+              </div>
+              <button
+                onClick={toggleWeatherNotify}
+                data-testid="weather-notify-toggle"
+                data-weather-notify-enabled={weatherNotify}
+                className={`shrink-0 w-11 h-6 rounded-full transition-colors ${weatherNotify ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-0.5 ${weatherNotify ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
           </div>
 
           {/* Urlaub */}
