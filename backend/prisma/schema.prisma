@@ -16,6 +16,7 @@ model User {
   approved           Boolean              @default(false)
   mustChangePassword Boolean              @default(false)
   vacationMode       Boolean              @default(false)
+  notifyOnWeatherSkip Boolean             @default(true)
   lastSeenVersion    String?
   hasSeenSwipeTip    Boolean              @default(false)
   lastActiveAt       DateTime?
@@ -127,4 +128,14 @@ model TaskLog {
   @@index([completedBy, status, forDate])
   @@index([loggedAt])
   @@index([taskId, forDate, status])
+}
+
+// Singleton (fixe id "singleton") mit dem Stand des letzten erfolgreichen
+// Wetter-Checks - für die Anzeige in der Verwaltung (Regenmenge + Zeitpunkt).
+// Wird bei jedem erfolgreichen Open-Meteo-Abruf aktualisiert, unabhängig
+// davon, ob die Schwelle überschritten wurde.
+model WeatherStatus {
+  id        String   @id @default("singleton")
+  checkedAt DateTime @default(now())
+  rainMM    Float    @default(0)
 }

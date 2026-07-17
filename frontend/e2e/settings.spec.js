@@ -85,6 +85,28 @@ test('vacation mode toggle persists across reload', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
+test('weather-notification toggle persists across reload', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page, { email: SETTINGS_EMAIL, password: SETTINGS_PASSWORD })
+
+  await page.goto('/settings')
+
+  const toggle = page.locator('[data-testid="weather-notify-toggle"]')
+  await expect(toggle).toHaveAttribute('data-weather-notify-enabled', 'true') // Default: an
+
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('data-weather-notify-enabled', 'false')
+
+  await page.reload()
+  await expect(page.locator('[data-testid="weather-notify-toggle"]')).toHaveAttribute('data-weather-notify-enabled', 'false')
+
+  // Reset for the next test run.
+  await page.locator('[data-testid="weather-notify-toggle"]').click()
+  await expect(page.locator('[data-testid="weather-notify-toggle"]')).toHaveAttribute('data-weather-notify-enabled', 'true')
+
+  expect(errors).toEqual([])
+})
+
 test('notification reminder times save and persist', async ({ page }) => {
   const errors = attachErrorCollector(page)
   await login(page, { email: SETTINGS_EMAIL, password: SETTINGS_PASSWORD })

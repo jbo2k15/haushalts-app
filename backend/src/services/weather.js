@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js'
 import { broadcastTasksUpdated } from '../lib/sse.js'
+import { sendPushToUser } from './push.js'
 import { todayString, dateStringInBerlin } from '../lib/dates.js'
 
 const DEFAULT_RAIN_THRESHOLD_MM = 5
@@ -41,6 +42,34 @@ export async function fetchRainSoFarTodayMM(lat, lon) {
   return sumPrecipitationSoFar(times, precipitation, nowLocalBerlinIso())
 }
 
+function currentThresholdMM() {
+  return Number(process.env.WEATHER_RAIN_THRESHOLD_MM) || DEFAULT_RAIN_THRESHOLD_MM
+}
+
+// Für die Anzeige in der Verwaltung: Konfigurationsstatus, Schwelle und der
+// zuletzt gemessene Regenwert samt Zeitpunkt (aus WeatherStatus, wird bei
+// jedem erfolgreichen Open-Meteo-Abruf aktualisiert - siehe unten).
+export async function getWeatherStatus() {
+  const configured = !!(process.env.WEATHER_LAT && process.env.WEATHER_LON)
+  const status = await prisma.weatherStatus.findUnique({ where: { id: 'singleton' } })
+  return {
+    configured,
+    thresholdMM: currentThresholdMM(),
+    rainMM: status?.rainMM ?? null,
+    checkedAt: status?.checkedAt ?? null,
+  }
+}
+
+async function notifyWeatherSkip(taskTitles) {
+  const users = await prisma.user.findMany({
+    where: { approved: true, vacationMode: false, notifyOnWeatherSkip: true },
+  })
+  const body = taskTitles.length === 1
+    ? `"${taskTitles[0]}" wurde wegen Regen automatisch erledigt.`
+    : `${taskTitles.length} Aufgaben wurden wegen Regen automatisch erledigt: ${taskTitles.join(', ')}`
+  await Promise.all(users.map(u => sendPushToUser(u.id, { title: 'Haushalt', body })))
+}
+
 // Alle 15 Minuten aufgerufen (siehe scheduler.js). Markiert wetterabhängige,
 // heute fällige Tagesaufgaben als "vom System erledigt" (status
 // 'system-completed' im TaskLog, KEINE TaskCompletion), sobald der
@@ -54,7 +83,7 @@ export async function checkWeatherDependentTasks() {
   const lon = process.env.WEATHER_LON
   if (!lat || !lon) return // Feature nicht konfiguriert (kein Standort hinterlegt)
 
-  const threshold = Number(process.env.WEATHER_RAIN_THRESHOLD_MM) || DEFAULT_RAIN_THRESHOLD_MM
+  const threshold = currentThresholdMM()
 
   let rainMM
   try {
@@ -64,6 +93,14 @@ export async function checkWeatherDependentTasks() {
     console.error('[Weather] Fehler beim Abrufen der Niederschlagsdaten:', err.message)
     return
   }
+
+  // Stand für die Verwaltungs-Anzeige aktualisieren - unabhängig davon, ob
+  // die Schwelle überschritten wurde, damit "zuletzt geprüft" immer aktuell ist.
+  await prisma.weatherStatus.upsert({
+    where: { id: 'singleton' },
+    update: { checkedAt: new Date(), rainMM },
+    create: { id: 'singleton', checkedAt: new Date(), rainMM },
+  })
 
   if (rainMM < threshold) return
 
@@ -93,4 +130,10 @@ export async function checkWeatherDependentTasks() {
   })
   broadcastTasksUpdated()
   console.log(`[Weather] ${toMark.length} wetterabhängige Aufgabe(n) wegen ${rainMM.toFixed(1)}mm Regen seit Mitternacht als erledigt markiert`)
+
+  try {
+    await notifyWeatherSkip(toMark.map(t => t.title))
+  } catch (err) {
+    console.error('[Weather] Fehler beim Versenden der Benachrichtigung:', err.message)
+  }
 }

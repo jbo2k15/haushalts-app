@@ -87,6 +87,28 @@ describe('PUT /api/users/me/vacation', () => {
   })
 })
 
+describe('PUT /api/users/me/weather-notifications', () => {
+  it('deaktiviert die Wetter-Benachrichtigung', async () => {
+    const user = await createUser({ notifyOnWeatherSkip: true })
+    const res = await request(app).put('/api/users/me/weather-notifications').set(authHeader(user.id)).send({ enabled: false })
+    expect(res.status).toBe(200)
+    expect(res.body.notifyOnWeatherSkip).toBe(false)
+  })
+
+  it('aktiviert die Wetter-Benachrichtigung wieder', async () => {
+    const user = await createUser({ notifyOnWeatherSkip: false })
+    const res = await request(app).put('/api/users/me/weather-notifications').set(authHeader(user.id)).send({ enabled: true })
+    expect(res.status).toBe(200)
+    expect(res.body.notifyOnWeatherSkip).toBe(true)
+  })
+
+  it('lehnt nicht-boolesche Werte ab', async () => {
+    const user = await createUser()
+    const res = await request(app).put('/api/users/me/weather-notifications').set(authHeader(user.id)).send({ enabled: 'yes' })
+    expect(res.status).toBe(400)
+  })
+})
+
 describe('PUT /api/users/me/swipe-tip-seen', () => {
   it('markiert den Swipe-Tipp als gesehen', async () => {
     const user = await createUser({ hasSeenSwipeTip: false })
