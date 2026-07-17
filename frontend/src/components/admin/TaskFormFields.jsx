@@ -13,8 +13,8 @@ export default function TaskFormFields({ form, setForm }) {
   return (
     <>
       <div>
-        <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Titel</label>
-        <input required className={inputCls}
+        <label htmlFor="task-title" className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Titel</label>
+        <input id="task-title" required className={inputCls}
           value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -60,6 +60,15 @@ export default function TaskFormFields({ form, setForm }) {
             onChange={e => setForm(f => ({ ...f, allowMultiple: e.target.checked }))} className="accent-orange-600" />
           <label htmlFor="allowMultiple" className="text-sm text-gray-600 dark:text-gray-400">
             {form.type === 'daily' ? 'Mehrfach am Tag erledigbar' : 'Mehrfach in der Woche erledigbar'}
+          </label>
+        </div>
+      )}
+      {form.type === 'daily' && (
+        <div className="flex items-center gap-2">
+          <input type="checkbox" id="weatherDependent" checked={form.weatherDependent}
+            onChange={e => setForm(f => ({ ...f, weatherDependent: e.target.checked }))} className="accent-orange-600" />
+          <label htmlFor="weatherDependent" className="text-sm text-gray-600 dark:text-gray-400">
+            Wetterabhängig (entfällt bei Regen)
           </label>
         </div>
       )}

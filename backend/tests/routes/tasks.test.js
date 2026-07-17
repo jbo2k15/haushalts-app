@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import prisma from '../../src/lib/prisma.js'
 import { createApp } from '../../src/app.js'
+import { todayString } from '../../src/lib/dates.js'
 
 const app = createApp()
 const JWT_SECRET = process.env.JWT_SECRET
@@ -101,6 +102,43 @@ describe('GET /api/tasks', () => {
       expect(row).toBeTruthy()
       expect(row.completed).toBe(true)
       expect(row.isOverdue).toBe(false)
+    })
+  })
+
+  describe('wetterabhängige Aufgaben (vom System erledigt)', () => {
+    it('zeigt eine wetterabhängige Aufgabe als erledigt mit systemCompleted, wenn ein system-completed-Log für heute existiert', async () => {
+      const user = await createUser()
+      const task = await createTask({ weatherDependent: true })
+      await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'system-completed', forDate: todayString() } })
+
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      const row = res.body.daily.find(t => t.id === task.id)
+      expect(row).toBeTruthy()
+      expect(row.completed).toBe(true)
+      expect(row.systemCompleted).toBe(true)
+      expect(row.isOverdue).toBe(false)
+    })
+
+    it('zeigt eine wetterabhängige Aufgabe ohne system-completed-Log ganz normal als offen', async () => {
+      const user = await createUser()
+      const task = await createTask({ weatherDependent: true })
+
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      const row = res.body.daily.find(t => t.id === task.id)
+      expect(row).toBeTruthy()
+      expect(row.completed).toBe(false)
+      expect(row.systemCompleted).toBeFalsy()
+    })
+
+    it('erstellt keine TaskCompletion für eine system-completed Aufgabe (fließt nicht in Statistik/Trophäen ein)', async () => {
+      const user = await createUser()
+      const task = await createTask({ weatherDependent: true })
+      await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'system-completed', forDate: todayString() } })
+
+      await request(app).get('/api/tasks').set(authHeader(user.id))
+
+      const completion = await prisma.taskCompletion.findFirst({ where: { taskId: task.id } })
+      expect(completion).toBeNull()
     })
   })
 
@@ -374,6 +412,21 @@ describe('POST /api/tasks/admin', () => {
     const res = await request(app).post('/api/tasks/admin').set(authHeader(user.id))
       .send({ title: 'Aufgabe', type: 'daily' })
     expect(res.status).toBe(403)
+  })
+
+  it('setzt weatherDependent für eine tägliche Aufgabe', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post('/api/tasks/admin').set(authHeader(admin.id))
+      .send({ title: 'Blumen gießen', type: 'daily', weatherDependent: true })
+    expect(res.status).toBe(200)
+    expect(res.body.weatherDependent).toBe(true)
+  })
+
+  it('lehnt weatherDependent für eine wöchentliche Aufgabe ab', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post('/api/tasks/admin').set(authHeader(admin.id))
+      .send({ title: 'Aufgabe', type: 'weekly', weatherDependent: true })
+    expect(res.status).toBe(400)
   })
 })
 

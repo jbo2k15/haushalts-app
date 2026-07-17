@@ -70,6 +70,7 @@ export default function Admin() {
       fixedDayOfMonth: form.type === 'monthly' && form.fixedDayOfMonth !== '' ? Number(form.fixedDayOfMonth) : null,
       dueDate: form.type === 'once' ? form.dueDate : null,
       allowMultiple: (form.type === 'daily' || form.type === 'weekly') && form.allowMultiple,
+      weatherDependent: form.type === 'daily' && form.weatherDependent,
     }
     try {
       if (editId) {
@@ -97,6 +98,7 @@ export default function Admin() {
       dueDate: task.dueDate || '',
       isActive: task.isActive,
       allowMultiple: task.allowMultiple || false,
+      weatherDependent: task.weatherDependent || false,
     })
     setEditId(task.id)
     setShowForm(false)
