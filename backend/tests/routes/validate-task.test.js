@@ -96,4 +96,14 @@ describe('validateTaskInput', () => {
     expect(validateTaskInput({ ...base, type: 'monthly', allowMultiple: true })).toBeTruthy()
     expect(validateTaskInput({ ...base, type: 'once', dueDate: '2026-07-01', allowMultiple: true })).toBeTruthy()
   })
+
+  it('akzeptiert weatherDependent für tägliche Aufgaben', () => {
+    expect(validateTaskInput({ ...base, type: 'daily', weatherDependent: true })).toBeNull()
+  })
+
+  it('lehnt weatherDependent für nicht-tägliche Aufgaben ab', () => {
+    expect(validateTaskInput({ ...base, type: 'weekly', weatherDependent: true })).toBeTruthy()
+    expect(validateTaskInput({ ...base, type: 'monthly', weatherDependent: true })).toBeTruthy()
+    expect(validateTaskInput({ ...base, type: 'once', dueDate: '2026-07-01', weatherDependent: true })).toBeTruthy()
+  })
 })

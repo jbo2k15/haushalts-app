@@ -2,6 +2,7 @@ import cron from 'node-cron'
 import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
 import { syncWasteCalendar } from './waste-calendar.js'
+import { checkWeatherDependentTasks } from './weather.js'
 import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO, dateStringInBerlin } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
 
@@ -291,6 +292,15 @@ export function startScheduler() {
     }
   }, { timezone: 'Europe/Berlin' })
 
+  cron.schedule('*/15 * * * *', async () => {
+    try {
+      await checkWeatherDependentTasks()
+    } catch (err) {
+      console.error('[Scheduler] Fehler bei checkWeatherDependentTasks:', err.message)
+    }
+  }, { timezone: 'Europe/Berlin' })
+
   syncWasteCalendar().catch(err => console.error('[Scheduler] Fehler bei initialem Kalender-Sync:', err))
   updateTrophyCache().catch(err => console.error('[Scheduler] Fehler bei initialem Trophy-Cache:', err))
+  checkWeatherDependentTasks().catch(err => console.error('[Scheduler] Fehler beim initialen Wetter-Check:', err.message))
 }

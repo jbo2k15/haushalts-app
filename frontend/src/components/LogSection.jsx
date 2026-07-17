@@ -31,11 +31,13 @@ export default function LogSection({ refreshKey }) {
               <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{log.taskTitle}</span>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
                 log.status === 'completed' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                : log.status === 'system-completed' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                 : log.status === 'skipped' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
                 : log.taskId === null ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                 : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
               }`}>
                 {log.status === 'completed' ? 'erledigt'
+                : log.status === 'system-completed' ? '☔ automatisch'
                 : log.status === 'skipped' ? 'abgelehnt'
                 : log.taskId === null ? 'gelöscht'
                 : 'verfallen'}

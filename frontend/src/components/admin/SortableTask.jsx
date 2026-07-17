@@ -20,6 +20,7 @@ export default function SortableTask({ task, onEdit, onDelete }) {
           {task.fixedDayOfMonth != null && ` · ${task.fixedDayOfMonth}.`}
           {task.weekdays?.length > 0 && ` · ${task.weekdays.map(d => WEEKDAY_LABELS[d]).join(', ')}`}
           {task.allowMultiple && (task.type === 'daily' ? ' · Mehrfach am Tag' : ' · Mehrfach pro Woche')}
+          {task.weatherDependent && ' · ☔ Wetterabhängig'}
         </div>
       </div>
       <div className="flex gap-2 shrink-0">
