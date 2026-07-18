@@ -12,6 +12,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 - **Navigation** — Zwei konstante Wege: Wischen zwischen Startseite und Ruhmeshalle sowie ein einheitliches Menü (oben rechts) mit direktem Zugriff auf Aufgabenübersicht, Einstellungen, Ruhmeshalle und (für Admins) Verwaltung
 - **Push-Benachrichtigungen** — Tägliche und wöchentliche Erinnerungen an offene Aufgaben (konfigurierbare Uhrzeit)
 - **Abfallkalender** — Einmalige Aufgaben aus iCal-Feed für jeden konkreten Abholtermin; laufen am Folgetag automatisch ab und erscheinen im Log als „verfallen"
+- **Wetterabhängige Aufgaben** — Tägliche Aufgaben (z.B. „Blumen gießen") können als wetterabhängig markiert werden und entfallen automatisch, sobald seit Mitternacht eine konfigurierbare Regenmenge überschritten wurde (alle 15 Minuten geprüft, Open-Meteo, kein API-Key nötig); Verwaltung zeigt den aktuellen Wetter-Status, Benachrichtigung dazu ist pro Nutzer ein-/ausschaltbar
 - **Urlaubsmodus** — Pausiert Benachrichtigungen für einzelne Nutzer
 - **Export / Import** — Aufgaben als JSON exportieren und importieren (max. 200 Aufgaben)
 - **Nutzerverwaltung** — Registrierung mit Admin-Freischaltung, Rollenverwaltung, Sperren/Entsperren, Löschen
@@ -75,6 +76,8 @@ Alle Werte in `.env` ausfüllen:
 | `VAPID_PRIVATE_KEY` | Aus Schritt 2 |
 | `VAPID_EMAIL` | `mailto:deine@email.de` |
 | `WASTE_ICAL_URL` | iCal-URL des Abfallkalenders (optional, muss mit `https://` beginnen) |
+| `WEATHER_LAT` / `WEATHER_LON` | Koordinaten des Haushalts für die Regenmessung (optional — ohne diese Werte bleibt die Wetterabhängigkeit inaktiv) |
+| `WEATHER_RAIN_THRESHOLD_MM` | Regenmenge in mm seit Mitternacht, ab der wetterabhängige Aufgaben automatisch erledigt werden (optional, Default `5`) |
 
 ### 4. App starten
 

@@ -35,15 +35,29 @@ passenden Bump vor (Patch/Minor/Major).
   `backend/src/data/release-notes.json` einfügen (gültiges JSON, `\n\n` für
   Absätze).
 
-## 2b. README aktualisieren
-- Prüfe anhand der Änderungen seit dem letzten Tag, ob dieses Release ein
-  **nutzersichtbares Feature** hinzufügt oder ändert. Falls ja: die
-  Funktionsliste (`## Funktionen`) in `README.md` entsprechend anpassen
-  (neuer Punkt bzw. angepasste Formulierung). Auch andere betroffene
-  README-Abschnitte aktualisieren, falls relevant (z. B. neue ENV-Variable,
-  geänderter Ablauf).
-- Reine Bugfixes, Performance- oder interne Änderungen brauchen i. d. R.
-  KEINE README-Änderung — kurz erwähnen, dass nichts anzupassen war.
+## 2b. README aktualisieren — verpflichtende Checkliste, nicht überspringen
+Gehe für JEDES Release explizit diese drei Punkte durch (auch wenn das
+Feature schon während der Entwicklung fertig wirkte — README-Pflege wird
+dort erfahrungsgemäß vergessen, weil kein Release-Lauf stattfand):
+
+1. **Funktionsliste** (`## Funktionen`) — bringt dieses Release ein
+   nutzersichtbares Feature oder eine Verhaltensänderung? Falls ja: neuer
+   Punkt bzw. angepasste Formulierung.
+2. **ENV-Variablen-Tabelle** (Abschnitt „3. `.env`-Datei erstellen") —
+   wurde seit dem letzten Tag eine neue ENV-Variable eingeführt
+   (`grep -n "process.env\." backend/src -r` grob gegen die Tabelle
+   abgleichen, oder gezielt `git log <letzter-tag>..HEAD -p -- backend/.env.example`
+   prüfen)? Falls ja: Zeile in der Tabelle ergänzen (Name + kurze
+   Beschreibung + optional/Default).
+3. **Sonstige Abschnitte** (Ablauf, Voraussetzungen, Deploy-Schritte) — nur
+   falls das Release daran etwas ändert.
+- Falls README-Anpassungen für dieses Feature bereits vorab (außerhalb eines
+  /release-Laufs) gemacht wurden: hier nur verifizieren, dass alle drei
+  Punkte abgedeckt sind, nicht doppelt einfügen.
+- Reine Bugfixes, Performance- oder interne Änderungen ohne neue ENV-Variable
+  brauchen i. d. R. keine README-Änderung — dann kurz explizit vermerken,
+  dass alle drei Punkte geprüft wurden und nichts anzupassen war (nicht
+  stillschweigend überspringen).
 - In der README steht keine hartcodierte Versionsnummer (die lebt in
   `package.json`), es muss dort also nichts hochgezählt werden.
 
