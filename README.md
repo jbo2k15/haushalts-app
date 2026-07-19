@@ -105,13 +105,13 @@ deploy
 
 Das Script führt automatisch `git pull`, Backend-Tests, Playwright-E2E-Tests (nur bei Frontend-Änderungen), Docker Build & Start und den Smoke-Test aus. Gebaut werden nur die Images, deren Verzeichnis (`backend/` bzw. `frontend/`) sich seit dem letzten erfolgreichen Deploy tatsächlich geändert hat (Merker in `.last-deploy`, nicht versioniert).
 
-Beim allerersten Lauf lädt Playwright einmalig Chromium herunter (~115 MB) — das kann etwas dauern, wird danach aber gecached (`~/.cache/ms-playwright`). Host-seitige `node_modules` werden nach jedem Testlauf wieder gelöscht, um auf ressourcenknappen Servern Platz zu sparen.
+Beim allerersten Lauf lädt Playwright einmalig Chromium herunter (~115 MB) — das kann etwas dauern, wird danach aber gecached (`~/.cache/ms-playwright`). Host-seitige `node_modules` bleiben zwischen Deploys erhalten (`npm ci` läuft nur erneut, wenn sich die jeweilige `package-lock.json` seit dem letzten Deploy geändert hat oder `node_modules` noch fehlt) — kostet dauerhaft ca. 500 MB Platz, spart aber die volle Neuinstallation bei jedem Deploy ohne Dependency-Änderung.
 
 ---
 
 ## Tests
 
-**Backend** (Vitest, 217 Tests):
+**Backend** (Vitest, 328 Tests):
 
 ```bash
 cd backend
