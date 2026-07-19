@@ -25,6 +25,22 @@ async function cleanupExpiredTokens() {
   }
 }
 
+// Pausenzeiträume sind reine Anzeige-Filterung, kein gespeicherter Zustand -
+// eine abgelaufene Zeile hat also keine Auswirkung mehr, soll aber nicht
+// unbegrenzt in der Verwaltung als "Pausiert"/"Pause geplant" aufgeführt
+// bleiben. pauseTo < heute heißt "der Zeitraum ist vorbei" (ein bis heute
+// laufender Zeitraum gilt noch als aktiv, siehe SortableTask.jsx).
+export async function cleanupExpiredPauses() {
+  const today = todayString()
+  const [taskPauses, globalPauses] = await Promise.all([
+    prisma.taskPause.deleteMany({ where: { pauseTo: { lt: today } } }),
+    prisma.globalPause.deleteMany({ where: { pauseTo: { lt: today } } }),
+  ])
+  if (taskPauses.count > 0 || globalPauses.count > 0) {
+    console.log(`[Cleanup] ${taskPauses.count} abgelaufene TaskPause(n), ${globalPauses.count} abgelaufene GlobalPause(n) gelöscht`)
+  }
+}
+
 async function expireDailyTasks() {
   const twoDaysAgo = twoDaysAgoString()
   const twoDaysAgoDate = new Date()
@@ -319,6 +335,13 @@ export function startScheduler() {
       ['cleanupOldWasteTasks', cleanupOldWasteTasks],
       ['updateTrophyCache', updateTrophyCache],
       ['syncWasteCalendar', syncWasteCalendar],
+      // Zuletzt: expireWeeklyTasks/expireMonthlyTasks oben brauchen die
+      // Pausendaten noch für die Verfallen-Prüfung des gerade abgelaufenen
+      // Zeitraums (z.B. eine Pause mit pauseTo = gestern kann genau die
+      // letzte Woche/den letzten Monat vollständig abdecken) - erst danach
+      // aufräumen, sonst würde dieselbe Pause im selben Lauf zu früh
+      // gelöscht, bevor die Prüfung sie gesehen hat.
+      ['cleanupExpiredPauses', cleanupExpiredPauses],
     ]) {
       try {
         await job()

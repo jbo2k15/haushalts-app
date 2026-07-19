@@ -6,6 +6,13 @@ export default function SortableTask({ task, onEdit, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
   const style = { transform: CSS.Transform.toString(transform), transition }
 
+  // Gleiche Tagesermittlung wie das Backend (dateStringInBerlin) - lokale
+  // Date-Methoden würden je nach Browser-Zeitzone des Admins abweichen.
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' })
+  const hasPauseRange = task.pauseFrom && task.pauseTo
+  const isPausedNow = hasPauseRange && task.pauseFrom <= today && today <= task.pauseTo
+  const isPausePlanned = hasPauseRange && task.pauseFrom > today
+
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0 bg-white dark:bg-gray-800" data-testid="sortable-task" data-task-title={task.title}>
       <div {...attributes} {...listeners} style={{ touchAction: 'none' }} className="text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing text-lg" data-testid="drag-handle">⠿</div>
@@ -21,6 +28,8 @@ export default function SortableTask({ task, onEdit, onDelete }) {
           {task.weekdays?.length > 0 && ` · ${task.weekdays.map(d => WEEKDAY_LABELS[d]).join(', ')}`}
           {task.allowMultiple && (task.type === 'daily' ? ' · Mehrfach am Tag' : ' · Mehrfach pro Woche')}
           {task.weatherDependent && ' · ☔ Wetterabhängig'}
+          {isPausedNow && ' · ⏸ Pausiert'}
+          {isPausePlanned && ' · ⏳ Pause geplant'}
         </div>
       </div>
       <div className="flex gap-2 shrink-0">

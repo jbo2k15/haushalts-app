@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import prisma from '../../src/lib/prisma.js'
-import { cleanupOldWasteTasks } from '../../src/services/scheduler.js'
+import { cleanupOldWasteTasks, cleanupExpiredPauses } from '../../src/services/scheduler.js'
 
 afterEach(() => vi.useRealTimers())
 
@@ -54,5 +54,46 @@ describe('cleanupOldWasteTasks', () => {
 
     const found = await prisma.task.findUnique({ where: { id: manual.id } })
     expect(found).toBeTruthy()
+  })
+})
+
+describe('cleanupExpiredPauses', () => {
+  it('löscht eine individuelle Pause, deren Zeitraum vorbei ist (pauseTo < heute)', async () => {
+    mockToday('2026-07-10T10:00:00Z')
+    const task = await createTask()
+    const pause = await prisma.taskPause.create({ data: { taskId: task.id, pauseFrom: '2026-07-01', pauseTo: '2026-07-09' } })
+
+    await cleanupExpiredPauses()
+
+    expect(await prisma.taskPause.findUnique({ where: { id: pause.id } })).toBeNull()
+  })
+
+  it('lässt eine individuelle Pause unangetastet, die heute noch läuft (pauseTo == heute)', async () => {
+    mockToday('2026-07-10T10:00:00Z')
+    const task = await createTask()
+    const pause = await prisma.taskPause.create({ data: { taskId: task.id, pauseFrom: '2026-07-01', pauseTo: '2026-07-10' } })
+
+    await cleanupExpiredPauses()
+
+    expect(await prisma.taskPause.findUnique({ where: { id: pause.id } })).toBeTruthy()
+  })
+
+  it('lässt eine individuelle Pause unangetastet, die noch nicht begonnen hat', async () => {
+    mockToday('2026-07-10T10:00:00Z')
+    const task = await createTask()
+    const pause = await prisma.taskPause.create({ data: { taskId: task.id, pauseFrom: '2026-07-15', pauseTo: '2026-07-20' } })
+
+    await cleanupExpiredPauses()
+
+    expect(await prisma.taskPause.findUnique({ where: { id: pause.id } })).toBeTruthy()
+  })
+
+  it('löscht eine abgelaufene globale Pause', async () => {
+    mockToday('2026-07-10T10:00:00Z')
+    const pause = await prisma.globalPause.create({ data: { pauseFrom: '2026-06-01', pauseTo: '2026-06-30' } })
+
+    await cleanupExpiredPauses()
+
+    expect(await prisma.globalPause.findUnique({ where: { id: pause.id } })).toBeNull()
   })
 })
