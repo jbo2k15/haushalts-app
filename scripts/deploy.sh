@@ -43,11 +43,34 @@ if [ "$BACKEND_CHANGED" = false ] && [ "$FRONTEND_CHANGED" = false ]; then
   exit 0
 fi
 
+# npm ci ist nur nötig, wenn sich die jeweilige Lockfile seit dem letzten
+# Deploy geändert hat (oder node_modules noch gar nicht existiert) — sonst
+# ist der bereits installierte Stand identisch. Bei leerem LAST_DEPLOYED
+# (erster Deploy auf diesem Host) gilt sicherheitshalber "geändert".
+if [ -z "$LAST_DEPLOYED" ]; then
+  BACKEND_LOCKFILE_CHANGED=true
+  FRONTEND_LOCKFILE_CHANGED=true
+else
+  BACKEND_LOCKFILE_CHANGED=false
+  FRONTEND_LOCKFILE_CHANGED=false
+  echo "$CHANGED_FILES" | grep -q '^backend/package-lock\.json$' && BACKEND_LOCKFILE_CHANGED=true
+  echo "$CHANGED_FILES" | grep -q '^frontend/package-lock\.json$' && FRONTEND_LOCKFILE_CHANGED=true
+fi
+[ -d backend/node_modules ] || BACKEND_LOCKFILE_CHANGED=true
+[ -d frontend/node_modules ] || FRONTEND_LOCKFILE_CHANGED=true
+
 # The e2e tests spin up a real backend server, so backend deps are needed
 # whenever the frontend is tested too — not just when backend/ itself changed.
 if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
-  echo "▸ Backend-Abhängigkeiten installieren..."
-  (cd backend && npm ci --silent && npx prisma generate)
+  if [ "$BACKEND_LOCKFILE_CHANGED" = true ]; then
+    echo "▸ Backend-Abhängigkeiten installieren..."
+    (cd backend && npm ci --silent)
+  else
+    echo "▸ Backend-Lockfile unverändert — npm ci übersprungen."
+  fi
+  # schema.prisma kann sich auch ohne Lockfile-Änderung ändern (z.B. neue
+  # Migration) - Client-Generierung deshalb unabhängig vom npm-ci-Skip.
+  (cd backend && npx prisma generate)
 fi
 
 if [ "$BACKEND_CHANGED" = true ]; then
@@ -56,16 +79,21 @@ if [ "$BACKEND_CHANGED" = true ]; then
 fi
 
 if [ "$FRONTEND_CHANGED" = true ]; then
+  if [ "$FRONTEND_LOCKFILE_CHANGED" = true ]; then
+    echo "▸ Frontend-Abhängigkeiten installieren..."
+    (cd frontend && npm ci --silent)
+  else
+    echo "▸ Frontend-Lockfile unverändert — npm ci übersprungen."
+  fi
   echo "▸ Frontend E2E-Tests (Playwright)..."
-  (cd frontend && npm ci --silent && npx playwright install --with-deps chromium && npm run test:e2e)
+  (cd frontend && npx playwright install --with-deps chromium && npm run test:e2e)
 fi
 
-# Host node_modules is only needed to run the tests above — the Docker build
-# does its own isolated npm ci inside the container. This box has very
-# little disk, so don't leave them lying around. Keep ~/.cache/ms-playwright
-# though: re-downloading Chromium every deploy would be worse than the
-# space it costs.
-rm -rf backend/node_modules frontend/node_modules frontend/dist frontend/test-results
+# node_modules bleiben jetzt zwischen Deploys erhalten (siehe Lockfile-Check
+# oben) - kostet dauerhaft ca. 500MB, spart aber einen vollen npm ci bei
+# jedem Deploy ohne Dependency-Änderung. Build-Artefakte dagegen bei jedem
+# Lauf frisch erzeugt, daher hier weiterhin aufräumen.
+rm -rf frontend/dist frontend/test-results
 
 SERVICES=""
 [ "$BACKEND_CHANGED" = true ] && SERVICES="$SERVICES backend"
