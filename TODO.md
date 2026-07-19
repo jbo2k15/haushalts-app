@@ -20,6 +20,18 @@
 
 ## Feature-Ideen (für später, noch nicht angefangen)
 
+- [ ] **Pausenzeitraum für Aufgaben** (Anforderungen vollständig geklärt am 2026-07-19, noch nicht umgesetzt) — Tägliche und wöchentliche Aufgaben sollen über einen Datumsbereich pausiert werden können (z. B. für einen Urlaub), unabhängig vom bestehenden nutzerbezogenen `Urlaubsmodus` (der nur Push-Benachrichtigungen pausiert — bewusst **nicht** derselbe Begriff, um Verwechslung zu vermeiden; Arbeitstitel „Pausenzeitraum").
+  - **Geltung:** haushaltsweit (nicht personenbezogen) — ein Feld an der Aufgabe selbst, kein Zuordnungs-Overhead, da Aufgaben aktuell nicht personengebunden sind.
+  - **Datenmodell:** ein aktiver Zeitraum pro Aufgabe reicht (zwei Datumsfelder `pauseFrom`/`pauseTo`, Format wie `dueDate` als `YYYY-MM-DD`-String). Kein Verlauf mehrerer Zeiträume nötig — Admin überschreibt die Werte fürs nächste Mal.
+  - **Nur für `daily`/`weekly`** — bei `monthly`/`once` ablehnen (Validierung analog zum `allowMultiple`/`weatherDependent`-Muster). Beide Datumsfelder nur zusammen setzbar, Start ≤ Ende.
+  - **Anzeige-Verhalten (wichtig, vom Nutzer präzisiert):** Eine pausierte Aufgabe verschwindet während des Zeitraums **komplett** aus der Übersicht (nicht nur ohne Überfällig-Markierung) — ersetzt durch eine Sammelzeile pro Kategorie, nur sichtbar wenn mind. 1 Aufgabe pausiert ist, z. B. „⏸ 2 von 7 Aufgaben pausiert" (genaue Formulierung/Platzierung — Vorschlag: unterhalb der Kategorie-Überschrift, neben dem bestehenden „x/y erledigt"-Zähler in `TaskBlock.jsx` — noch nicht final bestätigt).
+  - **Die Pause ist rein eine Anzeige-Filterung zur Abfragezeit, kein gespeicherter Zustand** — keine Sonderfall-Logik beim Abhaken nötig. Bereits vorhandene Erledigungen (auch von heute) bleiben unangetastet; nimmt man den Zeitraum für heute wieder raus, läuft die Aufgabe nahtlos mit ihrem bisherigen Verhalten weiter (inkl. einer eventuell schon heute erfolgten Erledigung).
+  - **Verfallen-Job überspringt pausierte Tage** — eine pausierte, nicht erledigte Aufgabe darf nicht als „verfallen" geloggt werden (`expireDailyTasks`/`expireWeeklyTasks` in `scheduler.js` müssen den Pausenzeitraum prüfen).
+    - Für **wöchentliche** Aufgaben (präzisiert vom Nutzer): das Verfallen einer Woche wird **nur** übersprungen, wenn die **gesamte** Woche (Montag bis Sonntag) vom Pausenzeitraum abgedeckt ist — bei nur teilweiser Überschneidung zählt die Woche weiterhin normal (strenger als eine reine Überlappungsprüfung). In der Praxis laut Nutzer aktuell eher ein Rand-/Edge-Case, da so lange Abwesenheiten selten sind — aber korrekt zu implementieren.
+  - **Push-Erinnerungen ausschließen (bestätigt):** `sendDailyReminders`/`sendWeeklyReminders` dürfen pausierte Aufgaben nicht in die „X offene Aufgaben"-Zählung einbeziehen — sonst nervt die Erinnerung während der Pause mit Aufgaben, die nicht erledigt werden sollen.
+  - **Admin-UI:** Datumsbereich-Felder im Aufgabenformular (nur bei `daily`/`weekly` sichtbar), analog zum Muster für `weatherDependent`.
+  - Noch offen/unbestätigt: exakte Formulierung und Platzierung der Sammelzeile in der UI.
+
 - [ ] **Fairness-Transparenz in der Ruhmeshalle** (erweiterte Variante mit Gewichtung) — Recherche zu Erwachsenen-/Paar-Chore-Apps (evenus.app, FairShare, Chore Chores, FairChore) zeigt: die Ruhmeshalle optimiert aktuell auf Wettbewerb (Pokale, Sieger), nicht auf Fairness (wer trägt wie viel bei). Idee: zusätzliche Karte auf der Ruhmeshalle-Seite, unterhalb der bestehenden Legende:
   - Gestapelter Balken zeigt den prozentualen Anteil erledigter Aufgaben pro Person über ein rollierendes Fenster (z. B. 30 Tage)
   - Trend-Satz darunter, der einordnet, ob sich die Verteilung verbessert/verschlechtert hat ggü. dem Vormonat
