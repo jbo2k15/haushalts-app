@@ -71,6 +71,8 @@ export default function Admin() {
       dueDate: form.type === 'once' ? form.dueDate : null,
       allowMultiple: (form.type === 'daily' || form.type === 'weekly') && form.allowMultiple,
       weatherDependent: form.type === 'daily' && form.weatherDependent,
+      pauseFrom: form.type !== 'once' && form.pauseFrom ? form.pauseFrom : null,
+      pauseTo: form.type !== 'once' && form.pauseTo ? form.pauseTo : null,
     }
     try {
       if (editId) {
@@ -99,6 +101,8 @@ export default function Admin() {
       isActive: task.isActive,
       allowMultiple: task.allowMultiple || false,
       weatherDependent: task.weatherDependent || false,
+      pauseFrom: task.pauseFrom || '',
+      pauseTo: task.pauseTo || '',
     })
     setEditId(task.id)
     setShowForm(false)

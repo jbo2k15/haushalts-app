@@ -10,6 +10,15 @@ test('drag-and-drop reorder persists across reload', async ({ page }) => {
   const errors = attachErrorCollector(page)
   await login(page)
 
+  // The admin page has grown taller since GlobalPauseCard was added above
+  // the sortable list (see GlobalPauseCard.jsx): "E2E Sort Task B" and
+  // "E2E Test Task" no longer both fit within the default 1280x720
+  // viewport. Raw page.mouse coordinates only work within the visible
+  // viewport, so without extra height here the mousedown/move/up sequence
+  // below silently misses the target - dnd-kit's dragged element never
+  // gets the CSS transform it applies once a drag is actually active.
+  await page.setViewportSize({ width: 1280, height: 1400 })
+
   await page.goto('/admin')
   await expect(page.locator('[data-testid="sortable-task"]').first()).toBeVisible()
 

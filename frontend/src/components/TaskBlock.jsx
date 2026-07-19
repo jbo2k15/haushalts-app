@@ -22,7 +22,7 @@ function sortTasks(tasks) {
   })
 }
 
-const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle }) {
+const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle, pauseInfo }) {
   const config = BLOCK_CONFIG[type]
 
   const markedTasks = useMemo(() => {
@@ -39,7 +39,7 @@ const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle }) {
     }))
   }, [tasks, type])
 
-  if (!markedTasks.length) return null
+  if (!markedTasks.length && !(pauseInfo?.paused > 0)) return null
 
   const completedCount = tasks.filter(t => t.completed).length
 
@@ -52,6 +52,12 @@ const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle }) {
           {completedCount}/{tasks.length}
         </span>
       </div>
+      {pauseInfo?.paused > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+          <span>⏸</span>
+          <span>{pauseInfo.paused} von {pauseInfo.total} Aufgaben pausiert</span>
+        </div>
+      )}
       {markedTasks.map(task => (
         <TaskRow key={task.id} task={task} onToggle={onToggle} />
       ))}

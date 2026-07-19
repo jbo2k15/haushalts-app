@@ -106,4 +106,27 @@ describe('validateTaskInput', () => {
     expect(validateTaskInput({ ...base, type: 'monthly', weatherDependent: true })).toBeTruthy()
     expect(validateTaskInput({ ...base, type: 'once', dueDate: '2026-07-01', weatherDependent: true })).toBeTruthy()
   })
+
+  it('akzeptiert einen gültigen Pausenzeitraum für tägliche/wöchentliche/monatliche Aufgaben', () => {
+    expect(validateTaskInput({ ...base, type: 'daily', pauseFrom: '2026-08-01', pauseTo: '2026-08-10' })).toBeNull()
+    expect(validateTaskInput({ ...base, type: 'weekly', pauseFrom: '2026-08-01', pauseTo: '2026-08-10' })).toBeNull()
+    expect(validateTaskInput({ ...base, type: 'monthly', pauseFrom: '2026-08-01', pauseTo: '2026-08-10' })).toBeNull()
+  })
+
+  it('lehnt Pausenzeitraum ab, wenn nur eines der beiden Felder gesetzt ist', () => {
+    expect(validateTaskInput({ ...base, type: 'daily', pauseFrom: '2026-08-01' })).toBeTruthy()
+    expect(validateTaskInput({ ...base, type: 'daily', pauseTo: '2026-08-10' })).toBeTruthy()
+  })
+
+  it('lehnt Pausenzeitraum mit ungültigem Datumsformat ab', () => {
+    expect(validateTaskInput({ ...base, type: 'daily', pauseFrom: '01.08.2026', pauseTo: '10.08.2026' })).toBeTruthy()
+  })
+
+  it('lehnt Pausenzeitraum mit Von nach Bis ab', () => {
+    expect(validateTaskInput({ ...base, type: 'daily', pauseFrom: '2026-08-10', pauseTo: '2026-08-01' })).toBeTruthy()
+  })
+
+  it('lehnt Pausenzeitraum für einmalige Aufgaben ab', () => {
+    expect(validateTaskInput({ ...base, type: 'once', dueDate: '2026-07-01', pauseFrom: '2026-08-01', pauseTo: '2026-08-10' })).toBeTruthy()
+  })
 })
