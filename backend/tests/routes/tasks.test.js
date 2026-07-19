@@ -648,6 +648,86 @@ describe('DELETE /api/users/:id (Admin-Schutz)', () => {
   })
 })
 
+describe('Pausenzeitraum pro Aufgabe', () => {
+  it('speichert einen Pausenzeitraum beim Erstellen und gibt ihn über GET /tasks/admin zurück', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const createRes = await request(app).post('/api/tasks/admin').set(authHeader(admin.id))
+      .send({ title: 'Brotdose füllen', type: 'daily', pauseFrom: '2026-08-01', pauseTo: '2026-08-10' })
+    expect(createRes.status).toBe(200)
+
+    const listRes = await request(app).get('/api/tasks/admin').set(authHeader(admin.id))
+    const row = listRes.body.find(t => t.id === createRes.body.id)
+    expect(row.pauseFrom).toBe('2026-08-01')
+    expect(row.pauseTo).toBe('2026-08-10')
+  })
+
+  it('aktualisiert einen bestehenden Pausenzeitraum beim Bearbeiten', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const task = await createTask({ type: 'daily' })
+    await prisma.taskPause.create({ data: { taskId: task.id, pauseFrom: '2026-07-01', pauseTo: '2026-07-10' } })
+
+    await request(app).put(`/api/tasks/admin/${task.id}`).set(authHeader(admin.id))
+      .send({ title: task.title, type: 'daily', pauseFrom: '2026-08-01', pauseTo: '2026-08-10' })
+
+    const rows = await prisma.taskPause.findMany({ where: { taskId: task.id } })
+    expect(rows).toHaveLength(1)
+    expect(rows[0].pauseFrom).toBe('2026-08-01')
+  })
+
+  it('löscht den Pausenzeitraum, wenn beim Bearbeiten null übergeben wird', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const task = await createTask({ type: 'daily' })
+    await prisma.taskPause.create({ data: { taskId: task.id, pauseFrom: '2026-07-01', pauseTo: '2026-07-10' } })
+
+    await request(app).put(`/api/tasks/admin/${task.id}`).set(authHeader(admin.id))
+      .send({ title: task.title, type: 'daily', pauseFrom: null, pauseTo: null })
+
+    const rows = await prisma.taskPause.findMany({ where: { taskId: task.id } })
+    expect(rows).toHaveLength(0)
+  })
+
+  it('lehnt einen Pausenzeitraum für eine einmalige Aufgabe ab', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post('/api/tasks/admin').set(authHeader(admin.id))
+      .send({ title: 'Einmalig', type: 'once', dueDate: '2026-08-01', pauseFrom: '2026-08-01', pauseTo: '2026-08-10' })
+    expect(res.status).toBe(400)
+  })
+
+  it('blendet eine pausierte Aufgabe aus der Tagesübersicht aus und zeigt die pauseSummary', async () => {
+    const user = await createUser()
+    const today = todayString()
+    const task = await createTask({ type: 'daily', title: 'Pausiert' })
+    await createTask({ type: 'daily', title: 'Normal' })
+    await prisma.taskPause.create({ data: { taskId: task.id, pauseFrom: today, pauseTo: today } })
+
+    const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+    expect(res.body.daily.find(t => t.id === task.id)).toBeFalsy()
+    expect(res.body.daily.find(t => t.title === 'Normal')).toBeTruthy()
+    expect(res.body.pauseSummary.daily).toEqual({ paused: 1, total: 2 })
+  })
+
+  it('exportiert und importiert Pausenzeiträume', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const task = await createTask({ type: 'weekly', title: 'Export-Test' })
+    await prisma.taskPause.create({ data: { taskId: task.id, pauseFrom: '2026-08-01', pauseTo: '2026-08-10' } })
+
+    const exportRes = await request(app).get('/api/tasks/admin/export').set(authHeader(admin.id))
+    const exported = exportRes.body.find(t => t.title === 'Export-Test')
+    expect(exported.pauseFrom).toBe('2026-08-01')
+    expect(exported.pauseTo).toBe('2026-08-10')
+    expect(exported.id).toBeUndefined()
+
+    const importRes = await request(app).post('/api/tasks/admin/import').set(authHeader(admin.id))
+      .send([{ title: 'Import mit Pause', type: 'weekly', pauseFrom: '2026-09-01', pauseTo: '2026-09-10' }])
+    expect(importRes.body.message).toBe('1 Aufgaben importiert')
+
+    const imported = await prisma.task.findFirst({ where: { title: 'Import mit Pause' } })
+    const pause = await prisma.taskPause.findFirst({ where: { taskId: imported.id } })
+    expect(pause.pauseFrom).toBe('2026-09-01')
+    expect(pause.pauseTo).toBe('2026-09-10')
+  })
+})
+
 describe('DELETE /api/tasks/admin/:id (Abfallkalender-Aufgaben)', () => {
   it('lehnt Löschen einer aktiven Abfallkalender-Aufgabe ab', async () => {
     const admin = await createUser({ email: 'admin2@test.com', role: 'admin' })

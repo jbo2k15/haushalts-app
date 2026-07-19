@@ -5,6 +5,14 @@ import { syncWasteCalendar } from './waste-calendar.js'
 import { checkWeatherDependentTasks } from './weather.js'
 import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO, dateStringInBerlin } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
+import {
+  isPausedOnDay,
+  isPeriodFullyPaused,
+  weekEndFromStart,
+  monthEndFromStart,
+  getGlobalPause,
+  getIndividualPausesForTasks,
+} from '../domain/pauses.js'
 
 async function cleanupExpiredTokens() {
   const now = new Date()
@@ -32,10 +40,12 @@ async function expireDailyTasks() {
   if (dueTasks.length === 0) return
 
   const taskIds = dueTasks.map(t => t.id)
-  const [completions, existingLogs, skippedLogs] = await Promise.all([
+  const [completions, existingLogs, skippedLogs, globalPause, individualPauseMap] = await Promise.all([
     prisma.taskCompletion.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo }, select: { taskId: true } }),
     prisma.taskLog.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo, status: 'expired' }, select: { taskId: true } }),
     prisma.taskLog.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo, status: 'skipped' }, select: { taskId: true } }),
+    getGlobalPause(),
+    getIndividualPausesForTasks(taskIds),
   ])
   const completedIds = new Set(completions.map(c => c.taskId))
   const loggedIds = new Set(existingLogs.map(l => l.taskId))
@@ -44,6 +54,7 @@ async function expireDailyTasks() {
   await Promise.all(
     dueTasks
       .filter(t => !completedIds.has(t.id) && !loggedIds.has(t.id) && !skippedIds.has(t.id))
+      .filter(t => !isPausedOnDay(individualPauseMap.get(t.id), globalPause, twoDaysAgo))
       .map(t => prisma.taskLog.create({ data: { taskId: t.id, taskTitle: t.title, status: 'expired', forDate: twoDaysAgo } }))
   )
 }
@@ -64,7 +75,15 @@ async function expireWeeklyTasks() {
     select: { taskId: true },
   })
   const completedIds = new Set(completions.map(c => c.taskId))
-  const expired = tasks.filter(t => !completedIds.has(t.id))
+  const expiredCandidates = tasks.filter(t => !completedIds.has(t.id))
+  if (expiredCandidates.length === 0) return
+
+  const weekEnd = weekEndFromStart(weekStart)
+  const [globalPause, individualPauseMap] = await Promise.all([
+    getGlobalPause(),
+    getIndividualPausesForTasks(expiredCandidates.map(t => t.id)),
+  ])
+  const expired = expiredCandidates.filter(t => !isPeriodFullyPaused(weekStart, weekEnd, [individualPauseMap.get(t.id), globalPause]))
   if (expired.length > 0) {
     await prisma.taskLog.createMany({
       data: expired.map(t => ({ taskId: t.id, taskTitle: t.title, status: 'expired', forDate: weekStart })),
@@ -87,7 +106,15 @@ async function expireMonthlyTasks() {
     select: { taskId: true },
   })
   const completedIds = new Set(completions.map(c => c.taskId))
-  const expired = tasks.filter(t => !completedIds.has(t.id))
+  const expiredCandidates = tasks.filter(t => !completedIds.has(t.id))
+  if (expiredCandidates.length === 0) return
+
+  const monthEnd = monthEndFromStart(monthStr)
+  const [globalPause, individualPauseMap] = await Promise.all([
+    getGlobalPause(),
+    getIndividualPausesForTasks(expiredCandidates.map(t => t.id)),
+  ])
+  const expired = expiredCandidates.filter(t => !isPeriodFullyPaused(monthStr, monthEnd, [individualPauseMap.get(t.id), globalPause]))
   if (expired.length > 0) {
     await prisma.taskLog.createMany({
       data: expired.map(t => ({ taskId: t.id, taskTitle: t.title, status: 'expired', forDate: monthStr })),
@@ -175,14 +202,16 @@ async function sendDailyReminders() {
     .filter(t => { const w = t.weekdays ? JSON.parse(t.weekdays) : null; return !w || !w.length || w.includes(todayWeekday) })
     .map(t => t.id)
 
-  const completedIds = new Set(
-    (await prisma.taskCompletion.findMany({
-      where: { forDate: today, taskId: { in: dueTodayIds } },
-      select: { taskId: true },
-    })).map(c => c.taskId)
-  )
+  const [completions, globalPause, individualPauseMap] = await Promise.all([
+    prisma.taskCompletion.findMany({ where: { forDate: today, taskId: { in: dueTodayIds } }, select: { taskId: true } }),
+    getGlobalPause(),
+    getIndividualPausesForTasks(dueTodayIds),
+  ])
+  const completedIds = new Set(completions.map(c => c.taskId))
 
-  const openCount = dueTodayIds.filter(id => !completedIds.has(id)).length
+  const openCount = dueTodayIds
+    .filter(id => !completedIds.has(id))
+    .filter(id => !isPausedOnDay(individualPauseMap.get(id), globalPause, today)).length
   console.log(`[Push] Täglich: ${openCount} offene Aufgaben, ${users.length} Nutzer, Zeit: ${berlin.hour}:${String(berlin.minute).padStart(2,'0')}`)
 
   if (openCount > 0) {
@@ -215,12 +244,19 @@ async function sendWeeklyReminders() {
     prisma.user.findMany({ where: { approved: true, vacationMode: false } }),
   ])
 
-  const completions = tasks.length === 0 ? [] : await prisma.taskCompletion.findMany({
-    where: { taskId: { in: tasks.map(t => t.id) }, forDate: { gte: weekStart } },
-    select: { taskId: true },
-  })
+  const [completions, globalPause, individualPauseMap] = await Promise.all([
+    tasks.length === 0 ? [] : prisma.taskCompletion.findMany({
+      where: { taskId: { in: tasks.map(t => t.id) }, forDate: { gte: weekStart } },
+      select: { taskId: true },
+    }),
+    getGlobalPause(),
+    getIndividualPausesForTasks(tasks.map(t => t.id)),
+  ])
   const completedIds = new Set(completions.map(c => c.taskId))
-  const openCount = tasks.filter(t => !completedIds.has(t.id)).length
+  const today = todayString()
+  const openCount = tasks
+    .filter(t => !completedIds.has(t.id))
+    .filter(t => !isPausedOnDay(individualPauseMap.get(t.id), globalPause, today)).length
 
   if (openCount > 0) {
     await Promise.all(users.map(user => sendPushToUser(user.id, {

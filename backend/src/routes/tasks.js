@@ -49,15 +49,15 @@ router.get('/admin/export', requireAuth, requireAdmin, async (req, res) => {
 })
 
 router.post('/admin/import', requireAuth, requireAdmin, async (req, res) => {
-  res.json(await tasks.importTasks(req.body))
+  res.json(await tasks.importTasks(req.body, req.user.id))
 })
 
 router.post('/admin', requireAuth, requireAdmin, async (req, res) => {
-  res.json(await tasks.createTask(req.body))
+  res.json(await tasks.createTask(req.body, req.user.id))
 })
 
 router.put('/admin/:id', requireAuth, requireAdmin, async (req, res) => {
-  res.json(await tasks.updateTask(req.params.id, req.body))
+  res.json(await tasks.updateTask(req.params.id, req.body, req.user.id))
 })
 
 router.delete('/admin/:id', requireAuth, requireAdmin, async (req, res) => {

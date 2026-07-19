@@ -98,6 +98,17 @@ export default function TaskFormFields({ form, setForm }) {
             value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
         </div>
       )}
+      {form.type !== 'once' && (
+        <div>
+          <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Pausenzeitraum (optional)</label>
+          <div className="grid grid-cols-2 gap-3">
+            <input type="date" className={inputCls} value={form.pauseFrom}
+              onChange={e => setForm(f => ({ ...f, pauseFrom: e.target.value }))} />
+            <input type="date" className={inputCls} value={form.pauseTo}
+              onChange={e => setForm(f => ({ ...f, pauseTo: e.target.value }))} />
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <input type="checkbox" id="isActive" checked={form.isActive}
           onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="accent-orange-600" />

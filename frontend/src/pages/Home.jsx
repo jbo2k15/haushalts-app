@@ -158,9 +158,9 @@ export default function Home() {
 
           <div className="space-y-4">
             <TaskBlock type="once" tasks={tasks.once} onToggle={loadTasks} />
-            <TaskBlock type="daily" tasks={tasks.daily} onToggle={loadTasks} />
-            <TaskBlock type="weekly" tasks={tasks.weekly} onToggle={loadTasks} />
-            <TaskBlock type="monthly" tasks={tasks.monthly} onToggle={loadTasks} />
+            <TaskBlock type="daily" tasks={tasks.daily} onToggle={loadTasks} pauseInfo={tasks.pauseSummary?.daily} />
+            <TaskBlock type="weekly" tasks={tasks.weekly} onToggle={loadTasks} pauseInfo={tasks.pauseSummary?.weekly} />
+            <TaskBlock type="monthly" tasks={tasks.monthly} onToggle={loadTasks} pauseInfo={tasks.pauseSummary?.monthly} />
             <StatsSection refreshKey={logRefreshKey} />
             <LogSection refreshKey={logRefreshKey} />
           </div>

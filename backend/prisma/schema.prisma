@@ -92,6 +92,27 @@ model Task {
   createdAt        DateTime         @default(now())
   completions      TaskCompletion[]
   logs             TaskLog[]
+  pauses           TaskPause[]
+}
+
+model TaskPause {
+  id        String   @id @default(uuid())
+  taskId    String
+  pauseFrom String
+  pauseTo   String
+  createdAt DateTime @default(now())
+  createdBy String?
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model GlobalPause {
+  id        String   @id @default(uuid())
+  pauseFrom String
+  pauseTo   String
+  createdAt DateTime @default(now())
+  createdBy String?
 }
 
 model TaskCompletion {

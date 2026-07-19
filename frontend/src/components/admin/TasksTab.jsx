@@ -3,6 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import SortableTask from './SortableTask.jsx'
 import TaskFormFields from './TaskFormFields.jsx'
 import WeatherStatusCard from './WeatherStatusCard.jsx'
+import GlobalPauseCard from './GlobalPauseCard.jsx'
 import { TYPE_LABELS } from './constants.js'
 
 // Admin-Tab "Aufgaben": Neue-Aufgabe-Formular, Export/Import, sortierbare Listen
@@ -23,6 +24,7 @@ export default function TasksTab({
       </button>
 
       <WeatherStatusCard />
+      <GlobalPauseCard />
 
       <div className="flex gap-2">
         <button
