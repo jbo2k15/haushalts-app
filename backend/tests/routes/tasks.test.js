@@ -103,6 +103,15 @@ describe('GET /api/tasks', () => {
       expect(row.completed).toBe(true)
       expect(row.isOverdue).toBe(false)
     })
+
+    it('blendet eine am Fälligkeitstag abgelehnte Dienstags-Aufgabe am Mittwoch aus, statt sie überfällig zu zeigen', async () => {
+      const user = await setupWednesday()
+      const task = await createTask({ title: 'Schwimmtasche packen', weekdays: JSON.stringify([2]), createdAt: new Date('2026-07-01T00:00:00Z') })
+      await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'skipped', forDate: '2026-07-14' } }) // Dienstag abgelehnt
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      const row = res.body.daily.find(t => t.id === task.id)
+      expect(row).toBeFalsy()
+    })
   })
 
   describe('wetterabhängige Aufgaben (vom System erledigt)', () => {

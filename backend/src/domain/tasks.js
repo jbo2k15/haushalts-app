@@ -82,11 +82,19 @@ export async function getTaskOverview() {
   // monthStart and twoDaysAgo, e.g. early in a month on a Thu-Sun.
   const rangeStart = [monthStart, twoDaysAgo, weekStart].reduce((min, d) => (d < min ? d : min))
 
-  const skippedToday = taskIds.length === 0 ? [] : await prisma.taskLog.findMany({
-    where: { taskId: { in: taskIds }, forDate: today, status: 'skipped' },
-    select: { taskId: true },
+  // Deckt today UND die beiden Vortage ab, damit "gestern/vorgestern
+  // abgelehnt" die Folgetag-Überfällig-Markierung genauso auflösen kann wie
+  // eine echte Erledigung (siehe missedYesterday/missedTwoDaysAgo unten).
+  const skippedLogs = taskIds.length === 0 ? [] : await prisma.taskLog.findMany({
+    where: { taskId: { in: taskIds }, forDate: { gte: twoDaysAgo, lte: today }, status: 'skipped' },
+    select: { taskId: true, forDate: true },
   })
-  const skippedIds = new Set(skippedToday.map(l => l.taskId))
+  const skippedIds = new Set(skippedLogs.filter(l => l.forDate === today).map(l => l.taskId))
+  const skippedDatesByTask = new Map()
+  for (const l of skippedLogs) {
+    if (!skippedDatesByTask.has(l.taskId)) skippedDatesByTask.set(l.taskId, new Set())
+    skippedDatesByTask.get(l.taskId).add(l.forDate)
+  }
 
   // Wetterabhängige Tagesaufgaben, die der stündliche(/15-Min-)Wetter-Check
   // bereits als "vom System erledigt" markiert hat (siehe services/weather.js) -
@@ -177,10 +185,15 @@ export async function getTaskOverview() {
       // erneut auf. (Nur relevant, wenn heute kein regulärer Tag ist - an
       // regulären Tagen ist es einfach die heutige, offene Aufgabe.)
       const compDates = new Set((byTask.get(task.id) || []).map(c => c.forDate))
+      const skippedDates = skippedDatesByTask.get(task.id) || new Set()
       const wasDueYesterday = taskCreatedDate <= yesterday && (!weekdays || weekdays.length === 0 || weekdays.includes(yesterdayWeekday))
       const wasDueTwoDaysAgo = taskCreatedDate <= twoDaysAgo && (!weekdays || weekdays.length === 0 || weekdays.includes(twoDaysAgoWeekday))
-      const missedYesterday = wasDueYesterday && !compDates.has(yesterday) && !compDates.has(today)
-      const missedTwoDaysAgo = wasDueTwoDaysAgo && !compDates.has(twoDaysAgo) && !compDates.has(yesterday) && !compDates.has(today)
+      // Ein explizites "Heute nicht nötig" (abgelehnt) am fälligen Tag klärt die
+      // Überfälligkeit genauso wie eine Erledigung - sonst würde eine bewusst
+      // abgelehnte wochentagsbeschränkte Aufgabe am Folgetag trotzdem als
+      // überfällig markiert.
+      const missedYesterday = wasDueYesterday && !compDates.has(yesterday) && !compDates.has(today) && !skippedDates.has(yesterday)
+      const missedTwoDaysAgo = wasDueTwoDaysAgo && !compDates.has(twoDaysAgo) && !compDates.has(yesterday) && !compDates.has(today) && !skippedDates.has(twoDaysAgo)
       const isOverdue = !dueToday && (missedYesterday || missedTwoDaysAgo)
 
       const systemCompleted = systemCompletedIds.has(task.id)
