@@ -64,33 +64,37 @@ function isValidTime(t) {
   return h >= 0 && h <= 23 && m >= 0 && m <= 59
 }
 
-function validateNotificationSettings({ dailyTime, weeklyDay, weeklyTime }) {
+function validateNotificationSettings({ dailyTime, weeklyDay, weeklyTime, monthlyDay, monthlyTime }) {
   if (!isValidTime(dailyTime)) return 'Ungültige tägliche Uhrzeit'
   if (!Number.isInteger(weeklyDay) || weeklyDay < 0 || weeklyDay > 6) return 'Ungültiger Wochentag'
   if (!isValidTime(weeklyTime)) return 'Ungültige wöchentliche Uhrzeit'
+  // Auf 1-28 begrenzt statt 1-31, damit der gewählte Tag in JEDEM Monat
+  // existiert (sonst würde z.B. der 31. im Februar nie auslösen).
+  if (!Number.isInteger(monthlyDay) || monthlyDay < 1 || monthlyDay > 28) return 'Ungültiger Tag im Monat'
+  if (!isValidTime(monthlyTime)) return 'Ungültige monatliche Uhrzeit'
   return null
 }
 
 router.put('/notifications', requireAuth, async (req, res) => {
-  const { dailyTime, weeklyDay, weeklyTime } = req.body
-  const err = validateNotificationSettings({ dailyTime, weeklyDay, weeklyTime })
+  const { dailyTime, weeklyDay, weeklyTime, monthlyDay, monthlyTime } = req.body
+  const err = validateNotificationSettings({ dailyTime, weeklyDay, weeklyTime, monthlyDay, monthlyTime })
   if (err) return res.status(400).json({ error: err })
   const settings = await prisma.notificationSettings.upsert({
     where: { userId: req.user.id },
-    update: { dailyTime, weeklyDay, weeklyTime },
-    create: { userId: req.user.id, dailyTime, weeklyDay, weeklyTime },
+    update: { dailyTime, weeklyDay, weeklyTime, monthlyDay, monthlyTime },
+    create: { userId: req.user.id, dailyTime, weeklyDay, weeklyTime, monthlyDay, monthlyTime },
   })
   res.json(settings)
 })
 
 router.put('/notifications/global', requireAuth, requireAdmin, async (req, res) => {
-  const { dailyTime, weeklyDay, weeklyTime } = req.body
-  const err = validateNotificationSettings({ dailyTime, weeklyDay, weeklyTime })
+  const { dailyTime, weeklyDay, weeklyTime, monthlyDay, monthlyTime } = req.body
+  const err = validateNotificationSettings({ dailyTime, weeklyDay, weeklyTime, monthlyDay, monthlyTime })
   if (err) return res.status(400).json({ error: err })
   const existing = await prisma.notificationSettings.findFirst({ where: { userId: null } })
   const settings = existing
-    ? await prisma.notificationSettings.update({ where: { id: existing.id }, data: { dailyTime, weeklyDay, weeklyTime } })
-    : await prisma.notificationSettings.create({ data: { dailyTime, weeklyDay, weeklyTime } })
+    ? await prisma.notificationSettings.update({ where: { id: existing.id }, data: { dailyTime, weeklyDay, weeklyTime, monthlyDay, monthlyTime } })
+    : await prisma.notificationSettings.create({ data: { dailyTime, weeklyDay, weeklyTime, monthlyDay, monthlyTime } })
   res.json(settings)
 })
 
