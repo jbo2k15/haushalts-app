@@ -1,6 +1,7 @@
-# Node 22 required to satisfy engine requirements of @prisma/streams-local
-# (transitive prisma dependency) and avoid npm EBADENGINE warnings.
-FROM node:22-alpine
+# Node 24 (Active LTS). better-sqlite3 lists 24.x as supported, and no
+# dependency in this project has an upper Node-version bound (checked
+# 2026-07-21) - @prisma/streams-local only requires >=22, which 24 satisfies.
+FROM node:24-alpine
 
 RUN apk add --no-cache openssl python3 make g++ tzdata
 
