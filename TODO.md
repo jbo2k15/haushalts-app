@@ -81,12 +81,16 @@
   - **Leerer Zustand bei Summe aller = 0 (entschieden 2026-07-21):** Hat im gesamten Zeitfenster noch niemand im Haushalt etwas erledigt, zeigt die Karte statt des Balkens einen Hinweistext ("Noch keine Erledigungen in diesem Zeitraum") — vermeidet die Division-durch-0 sauber und täuscht kein irreführendes "perfekt ausgeglichenes" 0%/0%-Patt vor.
   - **Listen-Alternative ab 5 Personen (entschieden 2026-07-21):** Ab 5 Haushaltsmitgliedern ersetzt eine einfache absteigend sortierte Liste den gestapelten Balken, Format je Zeile: "Name — 57% (18 gewichtete Punkte)". Keine neue Komponente nötig, nur eine alternative Darstellung derselben zugrundeliegenden Daten.
 
-- [ ] **Mehrere Haushalte** — Große Änderung, Anforderungen noch nicht geschärft. Eckpunkte aus erstem Gespräch:
+- [ ] **Mehrere Haushalte** (erste Grundsatzentscheidungen getroffen am 2026-07-21, weiterhin früh in der Schärfung — deutlich größer als die anderen Feature-Ideen, da praktisch jedes Datenmodell aktuell von genau einem Haushalt ausgeht) — Eckpunkte:
   - Getrennte Aufgaben und Statistiken pro Haushalt
   - Ein Nutzer kann Mitglied in mehreren Haushalten sein
   - Nutzer kann zwischen seinen Haushalten wechseln
   - Beitritt zu einem Haushalt nur per Einladung (kein offener Self-Signup pro Haushalt)
-  - Vor Umsetzung: Anforderungen im Detail klären (u.a. Rollen/Rechte pro Haushalt, Einladungs-Mechanismus, Datenmodell-Migration für bestehende Nutzer/Aufgaben, Auswirkung auf Admin-Verwaltung, Ruhmeshalle und Push-Benachrichtigungen)
+  - **Rollen-Scope (entschieden 2026-07-21):** Admin/Nutzer-Rolle ist pro Haushalt getrennt, nicht global am Account — jemand kann in Haushalt A Admin sein und in Haushalt B normaler Nutzer. Erfordert eine neue Mitgliedschafts-Tabelle (User × Haushalt × Rolle) statt der Rolle direkt am `User`-Modell.
+  - **Einladungs-Mechanismus (entschieden 2026-07-21):** Beitrittscode pro Haushalt (kein E-Mail-Einladungslink) — Nutzer tritt mit dem Code bei, muss aber anschließend noch von einem Admin des Haushalts freigeschaltet werden (gleiches Freischaltungs-Prinzip wie bei der bestehenden Registrierung, nur zusätzlich an einen Haushalt gebunden statt global). Der erste Nutzer eines neu angelegten Haushalts wird automatisch dessen Admin (kein Henne-Ei-Problem beim Haushalt-Anlegen).
+  - **Statistik-/Trophäen-Scope (entschieden 2026-07-21):** pro Haushalt getrennt, nicht global über alle Haushalte eines Nutzers summiert — Trophäen/Fairness sind nur im Vergleich zu den Mitbewohnern des jeweiligen Haushalts sinnvoll. Die Ruhmeshalle zeigt immer nur den gerade aktiven Haushalt.
+  - **Aktiver Haushalt (entschieden 2026-07-21):** explizite Auswahl über ein Dropdown/Umschalter im Header-Menü, serverseitig am Account gespeichert (nicht nur lokal wie das Theme) — konsistent über alle Geräte hinweg, und Push-Benachrichtigungs-Jobs wissen dadurch eindeutig, für welchen Haushalt sie gerade zählen sollen.
+  - **Weiterhin zu klären, bevor die Umsetzung starten kann:** genaues Datenmodell für die Migration bestehender Nutzer/Aufgaben (vermutlich: ein impliziter Default-Haushalt, dem alle bestehenden Daten beim Umstieg zugeordnet werden), Auswirkung auf Push-Benachrichtigungen im Detail (eigene Erinnerungszeiten pro Haushalt statt einer globalen `NotificationSettings`-Zeile), genaue Gestalt des Beitrittscodes (Format, Ablaufdatum, pro Haushalt neu erzeugbar?), Verwaltungs-UI für Haushalt-Erstellung/-Verwaltung/-Verlassen.
 
 ---
 
