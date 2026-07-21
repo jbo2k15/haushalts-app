@@ -116,6 +116,8 @@ test('notification reminder times save and persist', async ({ page }) => {
   await page.locator('[data-testid="daily-time"]').fill('18:30')
   await page.locator('[data-testid="weekly-day"]').selectOption('2')
   await page.locator('[data-testid="weekly-time"]').fill('07:45')
+  await page.locator('[data-testid="monthly-day"]').selectOption('15')
+  await page.locator('[data-testid="monthly-time"]').fill('17:30')
   await page.locator('[data-testid="save-notification-settings"]').click()
   await expect(page.getByText('Gespeichert ✓')).toBeVisible()
 
@@ -126,6 +128,8 @@ test('notification reminder times save and persist', async ({ page }) => {
   await expect(page.locator('[data-testid="daily-time"]')).toHaveValue('18:30')
   await expect(page.locator('[data-testid="weekly-day"]')).toHaveValue('2')
   await expect(page.locator('[data-testid="weekly-time"]')).toHaveValue('07:45')
+  await expect(page.locator('[data-testid="monthly-day"]')).toHaveValue('15')
+  await expect(page.locator('[data-testid="monthly-time"]')).toHaveValue('17:30')
 
   expect(errors).toEqual([])
 })

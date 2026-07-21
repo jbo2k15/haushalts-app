@@ -297,8 +297,8 @@ describe('GET /api/users/notifications', () => {
 
   it('gibt vorhandene eigene und globale Einstellungen zurück', async () => {
     const user = await createUser()
-    await prisma.notificationSettings.create({ data: { userId: user.id, dailyTime: '20:00', weeklyDay: 3, weeklyTime: '08:00' } })
-    await prisma.notificationSettings.create({ data: { userId: null, dailyTime: '21:30', weeklyDay: 6, weeklyTime: '09:30' } })
+    await prisma.notificationSettings.create({ data: { userId: user.id, dailyTime: '20:00', weeklyDay: 3, weeklyTime: '08:00', monthlyDay: 5, monthlyTime: '08:30' } })
+    await prisma.notificationSettings.create({ data: { userId: null, dailyTime: '21:30', weeklyDay: 6, weeklyTime: '09:30', monthlyDay: 1, monthlyTime: '09:00' } })
     const res = await request(app).get('/api/users/notifications').set(authHeader(user.id))
     expect(res.status).toBe(200)
     expect(res.body.user.dailyTime).toBe('20:00')
@@ -310,27 +310,31 @@ describe('PUT /api/users/notifications', () => {
   it('legt eigene Einstellungen neu an', async () => {
     const user = await createUser()
     const res = await request(app).put('/api/users/notifications').set(authHeader(user.id))
-      .send({ dailyTime: '18:00', weeklyDay: 1, weeklyTime: '07:00' })
+      .send({ dailyTime: '18:00', weeklyDay: 1, weeklyTime: '07:00', monthlyDay: 1, monthlyTime: '09:00' })
     expect(res.status).toBe(200)
     expect(res.body.dailyTime).toBe('18:00')
   })
 
   it('aktualisiert vorhandene eigene Einstellungen', async () => {
     const user = await createUser()
-    await prisma.notificationSettings.create({ data: { userId: user.id, dailyTime: '20:00', weeklyDay: 3, weeklyTime: '08:00' } })
+    await prisma.notificationSettings.create({ data: { userId: user.id, dailyTime: '20:00', weeklyDay: 3, weeklyTime: '08:00', monthlyDay: 1, monthlyTime: '09:00' } })
     const res = await request(app).put('/api/users/notifications').set(authHeader(user.id))
-      .send({ dailyTime: '19:00', weeklyDay: 4, weeklyTime: '10:00' })
+      .send({ dailyTime: '19:00', weeklyDay: 4, weeklyTime: '10:00', monthlyDay: 10, monthlyTime: '17:00' })
     expect(res.status).toBe(200)
     expect(res.body.dailyTime).toBe('19:00')
     expect(res.body.weeklyDay).toBe(4)
+    expect(res.body.monthlyDay).toBe(10)
   })
 
   it.each([
-    ['ungültige tägliche Uhrzeit', { dailyTime: '25:00', weeklyDay: 1, weeklyTime: '07:00' }],
-    ['ungültiges Uhrzeitformat', { dailyTime: '7:00', weeklyDay: 1, weeklyTime: '07:00' }],
-    ['ungültiger Wochentag (negativ)', { dailyTime: '18:00', weeklyDay: -1, weeklyTime: '07:00' }],
-    ['ungültiger Wochentag (zu groß)', { dailyTime: '18:00', weeklyDay: 7, weeklyTime: '07:00' }],
-    ['ungültige wöchentliche Uhrzeit', { dailyTime: '18:00', weeklyDay: 1, weeklyTime: 'abc' }],
+    ['ungültige tägliche Uhrzeit', { dailyTime: '25:00', weeklyDay: 1, weeklyTime: '07:00', monthlyDay: 1, monthlyTime: '09:00' }],
+    ['ungültiges Uhrzeitformat', { dailyTime: '7:00', weeklyDay: 1, weeklyTime: '07:00', monthlyDay: 1, monthlyTime: '09:00' }],
+    ['ungültiger Wochentag (negativ)', { dailyTime: '18:00', weeklyDay: -1, weeklyTime: '07:00', monthlyDay: 1, monthlyTime: '09:00' }],
+    ['ungültiger Wochentag (zu groß)', { dailyTime: '18:00', weeklyDay: 7, weeklyTime: '07:00', monthlyDay: 1, monthlyTime: '09:00' }],
+    ['ungültige wöchentliche Uhrzeit', { dailyTime: '18:00', weeklyDay: 1, weeklyTime: 'abc', monthlyDay: 1, monthlyTime: '09:00' }],
+    ['ungültiger Tag im Monat (0)', { dailyTime: '18:00', weeklyDay: 1, weeklyTime: '07:00', monthlyDay: 0, monthlyTime: '09:00' }],
+    ['ungültiger Tag im Monat (29, nicht in jedem Monat vorhanden)', { dailyTime: '18:00', weeklyDay: 1, weeklyTime: '07:00', monthlyDay: 29, monthlyTime: '09:00' }],
+    ['ungültige monatliche Uhrzeit', { dailyTime: '18:00', weeklyDay: 1, weeklyTime: '07:00', monthlyDay: 1, monthlyTime: 'abc' }],
   ])('lehnt %s ab', async (_label, payload) => {
     const user = await createUser()
     const res = await request(app).put('/api/users/notifications').set(authHeader(user.id)).send(payload)
@@ -342,16 +346,16 @@ describe('PUT /api/users/notifications/global', () => {
   it('legt globale Einstellungen neu an', async () => {
     const admin = await createUser({ role: 'admin' })
     const res = await request(app).put('/api/users/notifications/global').set(authHeader(admin.id))
-      .send({ dailyTime: '22:00', weeklyDay: 0, weeklyTime: '11:00' })
+      .send({ dailyTime: '22:00', weeklyDay: 0, weeklyTime: '11:00', monthlyDay: 1, monthlyTime: '09:00' })
     expect(res.status).toBe(200)
     expect(res.body.dailyTime).toBe('22:00')
   })
 
   it('aktualisiert vorhandene globale Einstellungen', async () => {
     const admin = await createUser({ role: 'admin' })
-    await prisma.notificationSettings.create({ data: { userId: null, dailyTime: '21:00', weeklyDay: 6, weeklyTime: '09:00' } })
+    await prisma.notificationSettings.create({ data: { userId: null, dailyTime: '21:00', weeklyDay: 6, weeklyTime: '09:00', monthlyDay: 1, monthlyTime: '09:00' } })
     const res = await request(app).put('/api/users/notifications/global').set(authHeader(admin.id))
-      .send({ dailyTime: '23:00', weeklyDay: 2, weeklyTime: '12:00' })
+      .send({ dailyTime: '23:00', weeklyDay: 2, weeklyTime: '12:00', monthlyDay: 15, monthlyTime: '18:00' })
     expect(res.status).toBe(200)
     expect(res.body.dailyTime).toBe('23:00')
   })
@@ -359,14 +363,14 @@ describe('PUT /api/users/notifications/global', () => {
   it('lehnt ungültige Werte ab', async () => {
     const admin = await createUser({ role: 'admin' })
     const res = await request(app).put('/api/users/notifications/global').set(authHeader(admin.id))
-      .send({ dailyTime: 'invalid', weeklyDay: 0, weeklyTime: '11:00' })
+      .send({ dailyTime: 'invalid', weeklyDay: 0, weeklyTime: '11:00', monthlyDay: 1, monthlyTime: '09:00' })
     expect(res.status).toBe(400)
   })
 
   it('lehnt Zugriff für Nicht-Admins ab', async () => {
     const user = await createUser()
     const res = await request(app).put('/api/users/notifications/global').set(authHeader(user.id))
-      .send({ dailyTime: '22:00', weeklyDay: 0, weeklyTime: '11:00' })
+      .send({ dailyTime: '22:00', weeklyDay: 0, weeklyTime: '11:00', monthlyDay: 1, monthlyTime: '09:00' })
     expect(res.status).toBe(403)
   })
 })

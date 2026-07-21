@@ -70,8 +70,11 @@ model NotificationSettings {
   dailyTime             String  @default("21:00")
   weeklyDay             Int     @default(6)
   weeklyTime            String  @default("09:00")
+  monthlyDay            Int     @default(1)
+  monthlyTime           String  @default("09:00")
   lastDailyNotifiedDate String?
   lastWeeklyNotifiedDate String?
+  lastMonthlyNotifiedDate String?
   user                  User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 

@@ -20,7 +20,7 @@ export default function Settings() {
   const navigate = useNavigate()
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushSupported, setPushSupported] = useState(false)
-  const [settings, setSettings] = useState({ dailyTime: '21:00', weeklyDay: 6, weeklyTime: '09:00' })
+  const [settings, setSettings] = useState({ dailyTime: '21:00', weeklyDay: 6, weeklyTime: '09:00', monthlyDay: 1, monthlyTime: '09:00' })
   const [globalSettings, setGlobalSettings] = useState(null)
   const [saved, setSaved] = useState(false)
   const [name, setName] = useState(user?.name || '')
@@ -254,6 +254,26 @@ export default function Settings() {
                   className={inputCls}
                   value={settings.weeklyTime}
                   onChange={e => setSettings(s => ({ ...s, weeklyTime: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Monatliche Erinnerung am</label>
+              <div className="flex gap-2">
+                <select
+                  data-testid="monthly-day"
+                  className={inputCls}
+                  value={settings.monthlyDay}
+                  onChange={e => setSettings(s => ({ ...s, monthlyDay: Number(e.target.value) }))}
+                >
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map(d => <option key={d} value={d}>{d}.</option>)}
+                </select>
+                <input
+                  type="time"
+                  data-testid="monthly-time"
+                  className={inputCls}
+                  value={settings.monthlyTime}
+                  onChange={e => setSettings(s => ({ ...s, monthlyTime: e.target.value }))}
                 />
               </div>
             </div>

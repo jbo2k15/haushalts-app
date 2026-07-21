@@ -191,14 +191,25 @@ export async function cleanupOldWasteTasks() {
 function berlinTime(now) {
   const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Europe/Berlin',
-    hour: 'numeric', minute: 'numeric', weekday: 'short', hour12: false,
+    hour: 'numeric', minute: 'numeric', weekday: 'short', day: 'numeric', hour12: false,
   })
   const parts = Object.fromEntries(fmt.formatToParts(now).map(p => [p.type, p.value]))
   const days = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
-  return { hour: Number(parts.hour), minute: Number(parts.minute), day: days[parts.weekday] }
+  return { hour: Number(parts.hour), minute: Number(parts.minute), day: days[parts.weekday], dayOfMonth: Number(parts.day) }
 }
 
-async function sendDailyReminders() {
+// Bei wenigen offenen Aufgaben (<=3) die Titel nennen statt nur zu zählen -
+// macht die Erinnerung handlungsleitender, ohne bei vielen offenen Aufgaben
+// unhandlich zu werden (dann bleibt es beim reinen Zähler).
+const NAMED_REMINDER_THRESHOLD = 3
+
+function reminderBody(openTitles, periodSuffix) {
+  const openCount = openTitles.length
+  if (openCount <= NAMED_REMINDER_THRESHOLD) return `Noch offen ${periodSuffix}: ${openTitles.join(', ')}.`
+  return `Du hast noch ${openCount} offene Aufgabe${openCount === 1 ? '' : 'n'} ${periodSuffix}.`
+}
+
+export async function sendDailyReminders() {
   const globalSettings = await prisma.notificationSettings.findFirst({ where: { userId: null } })
   const [hours, minutes] = (globalSettings?.dailyTime || '21:00').split(':')
   const now = new Date()
@@ -214,27 +225,25 @@ async function sendDailyReminders() {
     prisma.user.findMany({ where: { approved: true, vacationMode: false } }),
   ])
 
-  const dueTodayIds = tasks
+  const dueTodayTasks = tasks
     .filter(t => { const w = t.weekdays ? JSON.parse(t.weekdays) : null; return !w || !w.length || w.includes(todayWeekday) })
-    .map(t => t.id)
 
   const [completions, globalPause, individualPauseMap] = await Promise.all([
-    prisma.taskCompletion.findMany({ where: { forDate: today, taskId: { in: dueTodayIds } }, select: { taskId: true } }),
+    prisma.taskCompletion.findMany({ where: { forDate: today, taskId: { in: dueTodayTasks.map(t => t.id) } }, select: { taskId: true } }),
     getGlobalPause(),
-    getIndividualPausesForTasks(dueTodayIds),
+    getIndividualPausesForTasks(dueTodayTasks.map(t => t.id)),
   ])
   const completedIds = new Set(completions.map(c => c.taskId))
 
-  const openCount = dueTodayIds
-    .filter(id => !completedIds.has(id))
-    .filter(id => !isPausedOnDay(individualPauseMap.get(id), globalPause, today)).length
+  const openTasks = dueTodayTasks
+    .filter(t => !completedIds.has(t.id))
+    .filter(t => !isPausedOnDay(individualPauseMap.get(t.id), globalPause, today))
+  const openCount = openTasks.length
   console.log(`[Push] Täglich: ${openCount} offene Aufgaben, ${users.length} Nutzer, Zeit: ${berlin.hour}:${String(berlin.minute).padStart(2,'0')}`)
 
   if (openCount > 0) {
-    await Promise.all(users.map(user => sendPushToUser(user.id, {
-      title: 'Haushalt',
-      body: `Du hast heute noch ${openCount} Aufgabe${openCount === 1 ? '' : 'n'} nicht abgeschlossen.`,
-    })))
+    const body = reminderBody(openTasks.map(t => t.title), 'heute')
+    await Promise.all(users.map(user => sendPushToUser(user.id, { title: 'Haushalt', body })))
   }
 
   if (globalSettings) {
@@ -244,7 +253,7 @@ async function sendDailyReminders() {
   }
 }
 
-async function sendWeeklyReminders() {
+export async function sendWeeklyReminders() {
   const globalSettings = await prisma.notificationSettings.findFirst({ where: { userId: null } })
   const weeklyDay = globalSettings?.weeklyDay ?? 6
   const [hours, minutes] = (globalSettings?.weeklyTime || '09:00').split(':')
@@ -270,21 +279,63 @@ async function sendWeeklyReminders() {
   ])
   const completedIds = new Set(completions.map(c => c.taskId))
   const today = todayString()
-  const openCount = tasks
+  const openTasks = tasks
     .filter(t => !completedIds.has(t.id))
-    .filter(t => !isPausedOnDay(individualPauseMap.get(t.id), globalPause, today)).length
+    .filter(t => !isPausedOnDay(individualPauseMap.get(t.id), globalPause, today))
+  const openCount = openTasks.length
 
   if (openCount > 0) {
-    await Promise.all(users.map(user => sendPushToUser(user.id, {
-      title: 'Haushalt',
-      body: `Du hast noch ${openCount} offene Aufgabe${openCount === 1 ? '' : 'n'} in dieser Woche.`,
-    })))
+    const body = reminderBody(openTasks.map(t => t.title), 'in dieser Woche')
+    await Promise.all(users.map(user => sendPushToUser(user.id, { title: 'Haushalt', body })))
   }
 
   if (globalSettings) {
     await prisma.notificationSettings.update({ where: { id: globalSettings.id }, data: { lastWeeklyNotifiedDate: weekStart } })
   } else {
     await prisma.notificationSettings.create({ data: { lastWeeklyNotifiedDate: weekStart } })
+  }
+}
+
+export async function sendMonthlyReminders() {
+  const globalSettings = await prisma.notificationSettings.findFirst({ where: { userId: null } })
+  const monthlyDay = globalSettings?.monthlyDay ?? 1
+  const [hours, minutes] = (globalSettings?.monthlyTime || '09:00').split(':')
+  const now = new Date()
+  const berlin = berlinTime(now)
+  if (berlin.dayOfMonth !== monthlyDay || berlin.hour !== Number(hours) || berlin.minute !== Number(minutes)) return
+
+  const monthStart = currentMonthStart()
+  if (globalSettings?.lastMonthlyNotifiedDate === monthStart) return
+
+  const [tasks, users] = await Promise.all([
+    prisma.task.findMany({ where: { type: 'monthly', isActive: true } }),
+    prisma.user.findMany({ where: { approved: true, vacationMode: false } }),
+  ])
+
+  const [completions, globalPause, individualPauseMap] = await Promise.all([
+    tasks.length === 0 ? [] : prisma.taskCompletion.findMany({
+      where: { taskId: { in: tasks.map(t => t.id) }, forDate: { gte: monthStart } },
+      select: { taskId: true },
+    }),
+    getGlobalPause(),
+    getIndividualPausesForTasks(tasks.map(t => t.id)),
+  ])
+  const completedIds = new Set(completions.map(c => c.taskId))
+  const today = todayString()
+  const openTasks = tasks
+    .filter(t => !completedIds.has(t.id))
+    .filter(t => !isPausedOnDay(individualPauseMap.get(t.id), globalPause, today))
+  const openCount = openTasks.length
+
+  if (openCount > 0) {
+    const body = reminderBody(openTasks.map(t => t.title), 'in diesem Monat')
+    await Promise.all(users.map(user => sendPushToUser(user.id, { title: 'Haushalt', body })))
+  }
+
+  if (globalSettings) {
+    await prisma.notificationSettings.update({ where: { id: globalSettings.id }, data: { lastMonthlyNotifiedDate: monthStart } })
+  } else {
+    await prisma.notificationSettings.create({ data: { lastMonthlyNotifiedDate: monthStart } })
   }
 }
 
@@ -320,6 +371,7 @@ export function startScheduler() {
     try {
       await sendDailyReminders()
       await sendWeeklyReminders()
+      await sendMonthlyReminders()
     } catch (err) {
       console.error('[Scheduler] Fehler in Minuten-Job:', err)
     }
