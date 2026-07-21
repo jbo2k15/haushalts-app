@@ -10,7 +10,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, diese Woche, letzte Woche, diesen und letzten Monat
 - **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger; per Wisch-Geste (links/rechts, Touch oder Maus) direkt von der Startseite erreichbar
 - **Navigation** — Zwei konstante Wege: Wischen zwischen Startseite und Ruhmeshalle sowie ein einheitliches Menü (oben rechts) mit direktem Zugriff auf Aufgabenübersicht, Einstellungen, Ruhmeshalle und (für Admins) Verwaltung
-- **Push-Benachrichtigungen** — Tägliche und wöchentliche Erinnerungen an offene Aufgaben (konfigurierbare Uhrzeit)
+- **Push-Benachrichtigungen** — Tägliche, wöchentliche und monatliche Erinnerungen an offene Aufgaben (konfigurierbarer Tag/Uhrzeit); bei bis zu drei offenen Aufgaben werden deren Namen genannt, sonst nur die Anzahl
 - **Abfallkalender** — Einmalige Aufgaben aus iCal-Feed für jeden konkreten Abholtermin; laufen am Folgetag automatisch ab und erscheinen im Log als „verfallen"
 - **Wetterabhängige Aufgaben** — Tägliche Aufgaben (z.B. „Blumen gießen") können als wetterabhängig markiert werden und entfallen automatisch, sobald seit Mitternacht eine konfigurierbare Regenmenge überschritten wurde (alle 15 Minuten geprüft, Open-Meteo, kein API-Key nötig); Verwaltung zeigt den aktuellen Wetter-Status, Benachrichtigung dazu ist pro Nutzer ein-/ausschaltbar
 - **Pausenzeitraum für Aufgaben** — Tägliche, wöchentliche und monatliche Aufgaben können für einen Zeitraum pausiert werden, einzeln pro Aufgabe oder haushaltsweit über eine „Alle Aufgaben pausieren"-Karte in der Verwaltung; pausierte Aufgaben verschwinden für den Zeitraum aus der Übersicht (Sammelzeile zeigt die Anzahl), einmalige Aufgaben und Abfallkalender-Termine sind davon ausgenommen
@@ -111,7 +111,7 @@ Beim allerersten Lauf lädt Playwright einmalig Chromium herunter (~115 MB) — 
 
 ## Tests
 
-**Backend** (Vitest, 328 Tests):
+**Backend** (Vitest, 340 Tests):
 
 ```bash
 cd backend
