@@ -18,8 +18,15 @@ export default function HeaderMenu() {
     function handleClickOutside(event) {
       if (containerRef.current && !containerRef.current.contains(event.target)) setOpen(false)
     }
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setOpen(false)
+    }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [open])
 
   // Replace, not push, for the two carousel routes - keeps history consistent

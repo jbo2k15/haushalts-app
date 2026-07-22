@@ -50,6 +50,22 @@ test('clicking outside the open header menu closes it', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
+test('pressing Escape closes the open header menu', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page)
+
+  const slide = page.locator('[data-slide-path="/"]')
+  const { toggle, menu } = menuIn(page, slide)
+
+  await toggle.click()
+  await expect(menu).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(menu).toHaveCount(0)
+
+  expect(errors).toEqual([])
+})
+
 for (const path of ['/admin', '/settings']) {
   test(`header menu on ${path} navigates home`, async ({ page }) => {
     const errors = attachErrorCollector(page)

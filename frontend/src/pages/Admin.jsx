@@ -22,6 +22,20 @@ export default function Admin() {
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
   )
 
+  function closeEditModal() {
+    setEditId(null)
+    setForm(EMPTY_FORM)
+  }
+
+  useEffect(() => {
+    if (!editId) return
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') closeEditModal()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [editId])
+
   async function loadTasks() {
     try {
       const data = await api.get('/tasks/admin')
@@ -171,11 +185,11 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {editId && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => { setEditId(null); setForm(EMPTY_FORM) }}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeEditModal}>
           <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-4 space-y-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Aufgabe bearbeiten</h2>
-              <button type="button" onClick={() => { setEditId(null); setForm(EMPTY_FORM) }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
+              <button type="button" onClick={closeEditModal} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
             </div>
             <TaskFormFields form={form} setForm={setForm} />
             <button type="submit" className="w-full bg-orange-600 text-white rounded-xl py-2 text-sm font-medium">Speichern</button>
