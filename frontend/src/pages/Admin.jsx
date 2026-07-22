@@ -3,6 +3,7 @@ import { MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock.js'
 import HeaderMenu from '../components/HeaderMenu.jsx'
 import TaskFormFields from '../components/admin/TaskFormFields.jsx'
 import TasksTab from '../components/admin/TasksTab.jsx'
@@ -27,12 +28,18 @@ export default function Admin() {
     setForm(EMPTY_FORM)
   }
 
+  useBodyScrollLock(!!editId)
+
   useEffect(() => {
     if (!editId) return
     function handleKeyDown(event) {
       if (event.key === 'Escape') closeEditModal()
     }
     document.addEventListener('keydown', handleKeyDown)
+    // TaskFormFields renders the title input with a fixed id - focusing it
+    // by id avoids threading a ref through that shared component just for
+    // this one caller.
+    document.getElementById('task-title')?.focus()
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [editId])
 
@@ -186,9 +193,16 @@ export default function Admin() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {editId && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeEditModal}>
-          <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-4 space-y-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-4 space-y-3 max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-task-heading"
+          >
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Aufgabe bearbeiten</h2>
+              <h2 id="edit-task-heading" className="text-sm font-semibold text-gray-800 dark:text-gray-200">Aufgabe bearbeiten</h2>
               <button type="button" onClick={closeEditModal} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
             </div>
             <TaskFormFields form={form} setForm={setForm} />
