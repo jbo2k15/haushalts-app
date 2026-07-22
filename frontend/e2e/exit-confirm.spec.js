@@ -34,6 +34,20 @@ test('cancelling the exit-confirmation keeps the app open and asks again on the 
   expect(errors).toEqual([])
 })
 
+test('pressing Escape closes the exit-confirmation like Abbrechen', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page)
+
+  await page.goBack()
+  await expect(page.locator('[data-testid="exit-confirm-modal"]')).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[data-testid="exit-confirm-modal"]')).toHaveCount(0)
+  await expect(page).toHaveURL('/')
+
+  expect(errors).toEqual([])
+})
+
 test('confirming exit stops asking again for the rest of the session', async ({ page }) => {
   const errors = attachErrorCollector(page)
   await login(page)

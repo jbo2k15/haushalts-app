@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export const HIDE_EXIT_CONFIRM_KEY = 'hideExitConfirm'
 
 export default function ExitConfirmModal({ onCancel, onConfirm }) {
   const [dontAskAgain, setDontAskAgain] = useState(false)
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') onCancel()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onCancel])
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onCancel} data-testid="exit-confirm-modal">
