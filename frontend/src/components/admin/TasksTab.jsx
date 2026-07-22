@@ -23,21 +23,14 @@ export default function TasksTab({
         {showForm ? 'Abbrechen' : '+ Neue Aufgabe'}
       </button>
 
-      <WeatherStatusCard />
-      <GlobalPauseCard />
-
-      <div className="flex gap-2">
-        <button
-          onClick={onExport}
-          className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl py-2 text-sm font-medium"
-        >
-          ↓ Exportieren
-        </button>
-        <label className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl py-2 text-sm font-medium text-center cursor-pointer">
-          ↑ Importieren
-          <input type="file" accept=".json" className="hidden" onChange={onImport} />
-        </label>
-      </div>
+      {/* Während des Anlegens ausgeblendet, damit das Formular nicht durch
+          davorstehende Karten aus dem sichtbaren Bereich rutscht. */}
+      {!showForm && (
+        <>
+          <WeatherStatusCard />
+          <GlobalPauseCard />
+        </>
+      )}
 
       {showForm && (
         <form onSubmit={onSubmit} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
@@ -93,6 +86,19 @@ export default function TasksTab({
         <p className="text-xs text-gray-400 dark:text-gray-500 p-3">
           Diese Termine werden automatisch über den Abfallkalender-Sync verwaltet. Abgelaufene Einträge können manuell gelöscht werden und werden nach 7 Tagen automatisch entfernt.
         </p>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={onExport}
+          className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl py-2 text-sm font-medium"
+        >
+          ↓ Exportieren
+        </button>
+        <label className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl py-2 text-sm font-medium text-center cursor-pointer">
+          ↑ Importieren
+          <input type="file" accept=".json" className="hidden" onChange={onImport} />
+        </label>
       </div>
     </div>
   )
