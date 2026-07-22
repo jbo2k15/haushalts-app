@@ -88,17 +88,22 @@ export default function TasksTab({
         </p>
       </div>
 
-      <div className="flex gap-2">
-        <button
-          onClick={onExport}
-          className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl py-2 text-sm font-medium"
-        >
-          ↓ Exportieren
-        </button>
-        <label className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl py-2 text-sm font-medium text-center cursor-pointer">
-          ↑ Importieren
-          <input type="file" accept=".json" className="hidden" onChange={onImport} />
-        </label>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Export / Import</span>
+        </div>
+        <div className="p-4 flex gap-2">
+          <button
+            onClick={onExport}
+            className="flex-1 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl py-2 text-sm font-medium"
+          >
+            ↓ Exportieren
+          </button>
+          <label className="flex-1 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl py-2 text-sm font-medium text-center cursor-pointer">
+            ↑ Importieren
+            <input type="file" accept=".json" className="hidden" onChange={onImport} />
+          </label>
+        </div>
       </div>
     </div>
   )
