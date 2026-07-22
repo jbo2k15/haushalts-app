@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
+import { useZoom, ZOOM_LEVELS, DEFAULT_ZOOM } from '../context/ZoomContext.jsx'
 import { urlBase64ToUint8Array } from '../lib/push.js'
 import HeaderMenu from '../components/HeaderMenu.jsx'
 import { HIDE_EXIT_CONFIRM_KEY } from '../components/ExitConfirmModal.jsx'
@@ -18,6 +19,7 @@ const THEME_OPTIONS = [
 export default function Settings() {
   const { user, setUser } = useAuth()
   const { theme, setTheme } = useTheme()
+  const { zoom, increaseZoom, decreaseZoom, resetZoom } = useZoom()
   const navigate = useNavigate()
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushSupported, setPushSupported] = useState(false)
@@ -159,6 +161,35 @@ export default function Settings() {
                 </button>
               ))}
             </div>
+            <div className="border-t border-gray-100 dark:border-gray-700 pt-3 flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Zoom</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={decreaseZoom}
+                  disabled={zoom === ZOOM_LEVELS[0]}
+                  data-testid="zoom-decrease"
+                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium disabled:opacity-40"
+                >
+                  −
+                </button>
+                <span data-testid="zoom-level" className="text-sm font-medium text-gray-800 dark:text-gray-200 w-12 text-center">{zoom}%</span>
+                <button
+                  type="button"
+                  onClick={increaseZoom}
+                  disabled={zoom === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
+                  data-testid="zoom-increase"
+                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium disabled:opacity-40"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            {zoom !== DEFAULT_ZOOM && (
+              <button type="button" onClick={resetZoom} data-testid="zoom-reset" className="text-xs text-orange-600 dark:text-orange-400 hover:underline">
+                Auf Standardgröße zurücksetzen
+              </button>
+            )}
           </div>
 
           {/* Profil */}

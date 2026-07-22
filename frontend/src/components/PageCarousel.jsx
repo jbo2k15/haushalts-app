@@ -5,6 +5,7 @@ import Home from '../pages/Home.jsx'
 import HallOfFame from '../pages/HallOfFame.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useModalGate } from '../context/ModalGateContext.jsx'
+import { useZoom } from '../context/ZoomContext.jsx'
 import { api } from '../api/client.js'
 import ExitConfirmModal, { HIDE_EXIT_CONFIRM_KEY } from './ExitConfirmModal.jsx'
 
@@ -23,6 +24,7 @@ export default function PageCarousel() {
   const navigate = useNavigate()
   const { user, setUser } = useAuth()
   const { modalOpen, setModalOpen } = useModalGate()
+  const { zoom } = useZoom()
 
   // Read via refs inside the Embla event handler below instead of through
   // effect dependencies - re-subscribing the 'select' listener on every
@@ -74,7 +76,10 @@ export default function PageCarousel() {
 
   // A completed swipe updates the URL - replace, not push, so swiping back
   // and forth doesn't flood the browser history with entries. Registered
-  // once per emblaApi instance (see refs above for why).
+  // once per emblaApi instance (see refs above for why). Kept in a ref too
+  // (see the zoom effect below) so it can be re-attached after a reInit(),
+  // which drops every listener added via .on().
+  const onSelectRef = useRef(null)
   useEffect(() => {
     if (!emblaApi) return
     function onSelect() {
@@ -91,9 +96,24 @@ export default function PageCarousel() {
       const target = PAGES[index]
       if (target.path !== locationRef.current.pathname) navigateRef.current(target.path, { replace: true })
     }
+    onSelectRef.current = onSelect
     emblaApi.on('select', onSelect)
     return () => emblaApi.off('select', onSelect)
   }, [emblaApi])
+
+  // Changing the zoom level (see Settings.jsx) resizes the root font, which
+  // changes every slide's actual pixel width - Embla measures those once at
+  // init and doesn't re-measure on its own, so swiping would misbehave
+  // without an explicit reInit(). Skip the very first render (zoom hasn't
+  // "changed" yet, just been read from storage) and re-attach the 'select'
+  // listener afterwards, since reInit() tears down and drops it.
+  const zoomMountedRef = useRef(false)
+  useEffect(() => {
+    if (!zoomMountedRef.current) { zoomMountedRef.current = true; return }
+    if (!emblaApi) return
+    emblaApi.reInit()
+    if (onSelectRef.current) emblaApi.on('select', onSelectRef.current)
+  }, [zoom, emblaApi])
 
   useEffect(() => {
     if (user && !user.hasSeenSwipeTip) setShowTip(true)

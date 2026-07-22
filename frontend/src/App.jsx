@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
+import { ZoomProvider } from './context/ZoomContext.jsx'
 import { ModalGateProvider } from './context/ModalGateContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import ReleaseNotesModal from './components/ReleaseNotesModal.jsx'
@@ -78,13 +79,15 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <AuthProvider>
-          <ModalGateProvider>
-            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <AppRoutes />
-            </BrowserRouter>
-          </ModalGateProvider>
-        </AuthProvider>
+        <ZoomProvider>
+          <AuthProvider>
+            <ModalGateProvider>
+              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <AppRoutes />
+              </BrowserRouter>
+            </ModalGateProvider>
+          </AuthProvider>
+        </ZoomProvider>
       </ThemeProvider>
     </ErrorBoundary>
   )

@@ -28,6 +28,75 @@ test('theme toggle switches the .dark class and persists across reload', async (
   expect(errors).toEqual([])
 })
 
+test('zoom controls change the root font size and persist across reload', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page, { email: SETTINGS_EMAIL, password: SETTINGS_PASSWORD })
+
+  await page.goto('/settings')
+
+  await expect(page.locator('[data-testid="zoom-level"]')).toHaveText('100%')
+  await expect(page.locator('html')).toHaveCSS('font-size', '16px') // 100% of the 16px browser default
+  await expect(page.locator('[data-testid="zoom-reset"]')).toHaveCount(0)
+
+  await page.locator('[data-testid="zoom-increase"]').click()
+  await expect(page.locator('[data-testid="zoom-level"]')).toHaveText('110%')
+  await expect(page.locator('html')).toHaveCSS('font-size', '17.6px')
+
+  await page.reload()
+  await expect(page.locator('[data-testid="zoom-level"]')).toHaveText('110%')
+  await expect(page.locator('html')).toHaveCSS('font-size', '17.6px')
+
+  await page.locator('[data-testid="zoom-decrease"]').click()
+  await expect(page.locator('[data-testid="zoom-level"]')).toHaveText('100%')
+  await expect(page.locator('[data-testid="zoom-reset"]')).toHaveCount(0)
+
+  // Leave it back at the default so it doesn't affect whichever spec runs next.
+  expect(errors).toEqual([])
+})
+
+test('zoom reset button returns to 100% and only shows away from the default', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page, { email: SETTINGS_EMAIL, password: SETTINGS_PASSWORD })
+
+  await page.goto('/settings')
+
+  await page.locator('[data-testid="zoom-increase"]').click()
+  await page.locator('[data-testid="zoom-increase"]').click()
+  await expect(page.locator('[data-testid="zoom-level"]')).toHaveText('120%')
+
+  const resetButton = page.locator('[data-testid="zoom-reset"]')
+  await expect(resetButton).toBeVisible()
+  await resetButton.click()
+  await expect(page.locator('[data-testid="zoom-level"]')).toHaveText('100%')
+  await expect(resetButton).toHaveCount(0)
+
+  expect(errors).toEqual([])
+})
+
+test('zoom buttons disable at the min/max levels', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page, { email: SETTINGS_EMAIL, password: SETTINGS_PASSWORD })
+
+  await page.goto('/settings')
+
+  const decrease = page.locator('[data-testid="zoom-decrease"]')
+  const increase = page.locator('[data-testid="zoom-increase"]')
+
+  for (let i = 0; i < 3; i++) await increase.click()
+  await expect(page.locator('[data-testid="zoom-level"]')).toHaveText('130%')
+  await expect(increase).toBeDisabled()
+
+  for (let i = 0; i < 4; i++) await decrease.click()
+  await expect(page.locator('[data-testid="zoom-level"]')).toHaveText('85%')
+  await expect(decrease).toBeDisabled()
+
+  // Leave it back at the default so it doesn't affect whichever spec runs next.
+  await increase.click()
+  await expect(page.locator('[data-testid="zoom-level"]')).toHaveText('100%')
+
+  expect(errors).toEqual([])
+})
+
 test('changing the display name persists across reload', async ({ page }) => {
   const errors = attachErrorCollector(page)
   await login(page, { email: SETTINGS_EMAIL, password: SETTINGS_PASSWORD })
