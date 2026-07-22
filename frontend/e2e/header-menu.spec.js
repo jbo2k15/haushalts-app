@@ -28,7 +28,7 @@ test('header menu on Hall of Fame navigates home', async ({ page }) => {
   await toggle.click()
   await expect(menu).toBeVisible()
 
-  await menu.getByRole('button', { name: 'Aufgabenübersicht' }).click()
+  await menu.getByRole('menuitem', { name: 'Aufgabenübersicht' }).click()
   await expect(page).toHaveURL('/')
 
   expect(errors).toEqual([])
@@ -76,7 +76,7 @@ for (const path of ['/admin', '/settings']) {
     await page.locator('[data-testid="header-menu-toggle"]').click()
     await expect(page.locator('[data-testid="header-menu"]')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Aufgabenübersicht' }).click()
+    await page.getByRole('menuitem', { name: 'Aufgabenübersicht' }).click()
     await expect(page).toHaveURL('/')
     await expect(page.locator('[data-testid="header-menu"]')).toHaveCount(0)
 
@@ -94,7 +94,7 @@ test('browser back button leaves Settings/Admin, unlike the carousel routes whic
   // wouldn't leave a "back to here" entry at all.
   const homeSlide = page.locator('[data-slide-path="/"]')
   await menuIn(page, homeSlide).toggle.click()
-  await homeSlide.getByRole('button', { name: 'Einstellungen' }).click()
+  await homeSlide.getByRole('menuitem', { name: 'Einstellungen' }).click()
   await expect(page).toHaveURL('/settings')
 
   await page.goBack()
@@ -102,7 +102,7 @@ test('browser back button leaves Settings/Admin, unlike the carousel routes whic
 
   await expect(page.locator('[data-slide-path]')).toHaveCount(2)
   await menuIn(page, homeSlide).toggle.click()
-  await homeSlide.getByRole('button', { name: 'Verwaltung' }).click()
+  await homeSlide.getByRole('menuitem', { name: 'Verwaltung' }).click()
   await expect(page).toHaveURL('/admin')
 
   await page.goBack()
@@ -119,7 +119,7 @@ test('header menu on Home navigates to Settings, Hall of Fame and Admin', async 
   const { toggle } = menuIn(page, homeSlide)
 
   await toggle.click()
-  await homeSlide.getByRole('button', { name: 'Einstellungen' }).click()
+  await homeSlide.getByRole('menuitem', { name: 'Einstellungen' }).click()
   await expect(page).toHaveURL('/settings')
 
   // Settings isn't part of the carousel, so its menu is a single top-level
@@ -129,11 +129,11 @@ test('header menu on Home navigates to Settings, Hall of Fame and Admin', async 
   // DOM and the unscoped locator below trips strict mode (seen on the server).
   await expect(page.locator('[data-slide-path]')).toHaveCount(0)
   await page.locator('[data-testid="header-menu-toggle"]').click()
-  await page.getByRole('button', { name: 'Ruhmeshalle' }).click()
+  await page.getByRole('menuitem', { name: 'Ruhmeshalle' }).click()
   await expect(page).toHaveURL(/\/hall-of-fame/)
 
   await menuIn(page, page.locator('[data-slide-path="/hall-of-fame"]')).toggle.click()
-  await page.locator('[data-slide-path="/hall-of-fame"]').getByRole('button', { name: 'Verwaltung' }).click()
+  await page.locator('[data-slide-path="/hall-of-fame"]').getByRole('menuitem', { name: 'Verwaltung' }).click()
   await expect(page).toHaveURL('/admin')
 
   expect(errors).toEqual([])
