@@ -169,7 +169,7 @@ export default function Settings() {
                   onClick={decreaseZoom}
                   disabled={zoom === ZOOM_LEVELS[0]}
                   data-testid="zoom-decrease"
-                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium disabled:opacity-40"
+                  className="w-11 h-11 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium disabled:opacity-40"
                 >
                   −
                 </button>
@@ -179,7 +179,7 @@ export default function Settings() {
                   onClick={increaseZoom}
                   disabled={zoom === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
                   data-testid="zoom-increase"
-                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium disabled:opacity-40"
+                  className="w-11 h-11 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium disabled:opacity-40"
                 >
                   +
                 </button>

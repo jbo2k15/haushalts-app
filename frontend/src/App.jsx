@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { ZoomProvider } from './context/ZoomContext.jsx'
-import { ModalGateProvider } from './context/ModalGateContext.jsx'
+import { ModalGateProvider, useModalGate } from './context/ModalGateContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import ReleaseNotesModal from './components/ReleaseNotesModal.jsx'
 import Login from './pages/Login.jsx'
@@ -52,24 +52,30 @@ function ReleaseNotesGate() {
 }
 
 function AppRoutes() {
+  const { releaseNotesOpen } = useModalGate()
   return (
     <Suspense fallback={<PageFallback />}>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-        {/* Home and Hall of Fame are swipeable slides of the same carousel -
-            both routes render it so direct navigation/bookmarks to either
-            URL still work, PageCarousel itself decides which slide is active. */}
-        <Route path="/" element={<ProtectedRoute><PageCarousel /></ProtectedRoute>} />
-        <Route path="/hall-of-fame" element={<ProtectedRoute><PageCarousel /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <VersionFooter />
+      {/* inert while the release notes modal is up (see ReleaseNotesGate
+          below) - traps focus/pointer interaction inside the modal instead
+          of letting Tab or a stray tap reach the page underneath. */}
+      <div inert={releaseNotesOpen}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+          {/* Home and Hall of Fame are swipeable slides of the same carousel -
+              both routes render it so direct navigation/bookmarks to either
+              URL still work, PageCarousel itself decides which slide is active. */}
+          <Route path="/" element={<ProtectedRoute><PageCarousel /></ProtectedRoute>} />
+          <Route path="/hall-of-fame" element={<ProtectedRoute><PageCarousel /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <VersionFooter />
+      </div>
       <ReleaseNotesGate />
     </Suspense>
   )

@@ -55,7 +55,7 @@ export default function HeaderMenu() {
   return (
     <div className="relative" ref={containerRef}>
       <button
-        className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-700 dark:text-orange-400 font-medium text-sm"
+        className="w-11 h-11 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-700 dark:text-orange-400 font-medium text-sm"
         onClick={() => setOpen(o => !o)}
         data-testid="header-menu-toggle"
         aria-haspopup="true"
@@ -64,7 +64,7 @@ export default function HeaderMenu() {
         {user?.name?.[0]?.toUpperCase()}
       </button>
       {open && (
-        <div className="absolute right-0 top-11 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs w-48 z-10 overflow-hidden" data-testid="header-menu" role="menu">
+        <div className="absolute right-0 top-13 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs w-48 z-10 overflow-hidden" data-testid="header-menu" role="menu">
           <button ref={firstItemRef} role="menuitem" className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5" onClick={() => goCarousel('/')}>
             <span>📋</span> Aufgabenübersicht
           </button>

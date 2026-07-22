@@ -20,6 +20,49 @@ function getGreeting() {
   return 'Gute Nacht'
 }
 
+const TASK_CATEGORIES = ['once', 'daily', 'weekly', 'monthly']
+
+function buildTaskMap(data) {
+  const map = new Map()
+  for (const cat of TASK_CATEGORIES) {
+    for (const task of data[cat] || []) {
+      map.set(task.id, { title: task.title, completed: task.completed, count: task.count ?? null, completedBy: task.completedBy || null })
+    }
+  }
+  return map
+}
+
+// Compares the previously known task state against a freshly loaded one to
+// produce a human-readable summary of what changed - used to announce
+// remote (SSE-triggered) changes via an aria-live region, since those
+// otherwise only update the list visually with no signal for screen reader
+// users. Only handles completed/uncompleted/count changes and newly added
+// tasks - a task disappearing (skipped, no longer due today, or deleted) is
+// ambiguous from this data alone, so that case is deliberately not announced
+// rather than risk announcing something incorrect.
+function describeTaskChanges(prevMap, data) {
+  const messages = []
+  for (const cat of TASK_CATEGORIES) {
+    for (const task of data[cat] || []) {
+      const prev = prevMap.get(task.id)
+      if (!prev) {
+        if (prevMap.size > 0) messages.push(`Neue Aufgabe "${task.title}" hinzugefügt`)
+        continue
+      }
+      const by = task.completedBy ? ` von ${task.completedBy}` : ''
+      if (task.count != null && prev.count != null) {
+        if (task.count > prev.count) messages.push(`"${task.title}" wurde${by} erledigt`)
+        else if (task.count < prev.count) messages.push(`"${task.title}" wurde zurückgenommen`)
+      } else if (task.completed && !prev.completed) {
+        messages.push(`"${task.title}" wurde${by} erledigt`)
+      } else if (!task.completed && prev.completed) {
+        messages.push(`"${task.title}" wurde zurückgenommen`)
+      }
+    }
+  }
+  return messages.length > 0 ? messages.join('; ') : null
+}
+
 function getGreetingMessage(firstName, dailyTasks) {
   const completed = dailyTasks.filter(t => t.completed).length
   const open = dailyTasks.filter(t => !t.completed).length
@@ -35,6 +78,8 @@ export default function Home() {
   const [error, setError] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [logRefreshKey, setLogRefreshKey] = useState(0)
+  const [liveMessage, setLiveMessage] = useState('')
+  const prevTasksMapRef = useRef(new Map())
 
   const dateLabel = useMemo(() => {
     const now = new Date()
@@ -43,12 +88,26 @@ export default function Home() {
 
   const loadTasksPromise = useRef(null)
 
-  const loadTasks = useCallback(async () => {
+  const loadTasks = useCallback(async ({ announce = false } = {}) => {
     if (loadTasksPromise.current) return loadTasksPromise.current
 
     const promise = (async () => {
       try {
         const data = await api.get('/tasks')
+        // Only remote-triggered refreshes (SSE, fallback polling) announce
+        // what changed - the user's own toggle already gets immediate
+        // visual+interactive feedback, so announcing it again would just be
+        // noise for screen reader users.
+        if (announce) {
+          const message = describeTaskChanges(prevTasksMapRef.current, data)
+          if (message) {
+            // aria-live only announces on a text change - clear first so the
+            // same message re-announces even if it's identical to the last one.
+            setLiveMessage('')
+            requestAnimationFrame(() => setLiveMessage(message))
+          }
+        }
+        prevTasksMapRef.current = buildTaskMap(data)
         setTasks(data)
         setError(false)
         setLoaded(true)
@@ -86,7 +145,7 @@ export default function Home() {
       }
       if (cancelled || !ticket) return
       es = new EventSource(`/api/events?ticket=${encodeURIComponent(ticket)}`)
-      es.addEventListener('tasks-updated', () => loadTasks())
+      es.addEventListener('tasks-updated', () => loadTasks({ announce: true }))
       es.onerror = () => {
         es?.close()
         es = null
@@ -105,13 +164,14 @@ export default function Home() {
   // Fallback-Polling (greift wenn SSE nicht verbunden ist)
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!document.hidden) loadTasks()
+      if (!document.hidden) loadTasks({ announce: true })
     }, 30000)
     return () => clearInterval(interval)
   }, [loadTasks])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div role="status" aria-live="polite" className="sr-only">{liveMessage}</div>
       <div className="max-w-lg mx-auto px-4 pb-8">
         <div className="flex items-center justify-between py-2">
           <div>
