@@ -12,13 +12,22 @@ export default function HeaderMenu() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
 
-  function go(path) {
+  // Replace, not push, for the two carousel routes - keeps history consistent
+  // with the carousel's own swipe navigation (see PageCarousel.jsx), which
+  // also only replaces. Mixing push and replace between the menu and swiping
+  // created extra history entries that could point at a stale URL.
+  function goCarousel(path) {
     setOpen(false)
-    // Replace, not push - keeps history consistent with the carousel's own
-    // swipe navigation (see PageCarousel.jsx), which also only replaces.
-    // Mixing push and replace between the menu and swiping created extra
-    // history entries that could point at a stale URL.
     navigate(path, { replace: true })
+  }
+
+  // Settings/Admin sit outside the carousel entirely, so the history-mismatch
+  // issue above doesn't apply here - push normally instead, so the native
+  // browser/OS back gesture (and hardware back button on Android) actually
+  // works to leave these pages, not just the menu.
+  function goPush(path) {
+    setOpen(false)
+    navigate(path)
   }
 
   return (
@@ -32,17 +41,17 @@ export default function HeaderMenu() {
       </button>
       {open && (
         <div className="absolute right-0 top-11 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs w-48 z-10 overflow-hidden" data-testid="header-menu">
-          <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5" onClick={() => go('/')}>
+          <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5" onClick={() => goCarousel('/')}>
             <span>📋</span> Aufgabenübersicht
           </button>
-          <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => go('/settings')}>
+          <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => goPush('/settings')}>
             <span>⚙️</span> Einstellungen
           </button>
-          <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => go('/hall-of-fame')}>
+          <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => goCarousel('/hall-of-fame')}>
             <span>🏆</span> Ruhmeshalle
           </button>
           {user?.role === 'admin' && (
-            <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => go('/admin')}>
+            <button className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2.5" onClick={() => goPush('/admin')}>
               <span>🛠️</span> Verwaltung
             </button>
           )}

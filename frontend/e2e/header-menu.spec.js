@@ -52,6 +52,33 @@ for (const path of ['/admin', '/settings']) {
   })
 }
 
+test('browser back button leaves Settings/Admin, unlike the carousel routes which replace history', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page)
+
+  // Settings/Admin push a new history entry (see HeaderMenu.jsx goPush),
+  // so the native back gesture/button should return to wherever the user
+  // came from - unlike Home/Hall of Fame, which replace and therefore
+  // wouldn't leave a "back to here" entry at all.
+  const homeSlide = page.locator('[data-slide-path="/"]')
+  await menuIn(page, homeSlide).toggle.click()
+  await homeSlide.getByRole('button', { name: 'Einstellungen' }).click()
+  await expect(page).toHaveURL('/settings')
+
+  await page.goBack()
+  await expect(page).toHaveURL('/')
+
+  await expect(page.locator('[data-slide-path]')).toHaveCount(2)
+  await menuIn(page, homeSlide).toggle.click()
+  await homeSlide.getByRole('button', { name: 'Verwaltung' }).click()
+  await expect(page).toHaveURL('/admin')
+
+  await page.goBack()
+  await expect(page).toHaveURL('/')
+
+  expect(errors).toEqual([])
+})
+
 test('header menu on Home navigates to Settings, Hall of Fame and Admin', async ({ page }) => {
   const errors = attachErrorCollector(page)
   await login(page)
