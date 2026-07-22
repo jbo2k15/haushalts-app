@@ -6,6 +6,7 @@ import HallOfFame from '../pages/HallOfFame.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useModalGate } from '../context/ModalGateContext.jsx'
 import { api } from '../api/client.js'
+import ExitConfirmModal, { HIDE_EXIT_CONFIRM_KEY } from './ExitConfirmModal.jsx'
 
 // Ordered list of swipeable pages. Both are mounted at once (not just the
 // active one) so Hall of Fame's stats are already loaded by the time a user
@@ -21,7 +22,7 @@ export default function PageCarousel() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, setUser } = useAuth()
-  const { modalOpen } = useModalGate()
+  const { modalOpen, setModalOpen } = useModalGate()
 
   // Read via refs inside the Embla event handler below instead of through
   // effect dependencies - re-subscribing the 'select' listener on every
@@ -104,6 +105,40 @@ export default function PageCarousel() {
     try { await api.put('/users/me/swipe-tip-seen') } catch {}
   }
 
+  // Pressing back from Home/Hall of Fame (the app's root screens) would
+  // otherwise exit the PWA immediately. Push one extra history entry so the
+  // first back-press pops it (a popstate we intercept) instead of actually
+  // leaving; showing the modal re-pushes the guard so a repeated back-press
+  // asks again. allowExitRef lets the confirm button's own history.back()
+  // call pass through without re-triggering this same handler.
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const allowExitRef = useRef(false)
+
+  useEffect(() => {
+    if (localStorage.getItem(HIDE_EXIT_CONFIRM_KEY) === 'true') return
+    window.history.pushState({ exitGuard: true }, '')
+    function handlePopState() {
+      if (allowExitRef.current) return
+      setShowExitConfirm(true)
+      window.history.pushState({ exitGuard: true }, '')
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  useEffect(() => { setModalOpen(showExitConfirm) }, [showExitConfirm, setModalOpen])
+
+  function cancelExit() {
+    setShowExitConfirm(false)
+  }
+
+  function confirmExit(dontAskAgain) {
+    if (dontAskAgain) localStorage.setItem(HIDE_EXIT_CONFIRM_KEY, 'true')
+    setShowExitConfirm(false)
+    allowExitRef.current = true
+    window.history.back()
+  }
+
   return (
     <div className="relative">
       <div className="overflow-hidden" ref={emblaRef} data-testid="page-carousel">
@@ -147,6 +182,8 @@ export default function PageCarousel() {
           </div>
         </div>
       )}
+
+      {showExitConfirm && <ExitConfirmModal onCancel={cancelExit} onConfirm={confirmExit} />}
     </div>
   )
 }
