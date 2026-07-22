@@ -56,3 +56,46 @@ test('drag-and-drop reorder persists across reload', async ({ page }) => {
 
   expect(errors).toEqual([])
 })
+
+test('drag-and-drop reorder still works at 130% zoom', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page)
+
+  // Root font-size scaling (see ZoomContext.jsx) grows the whole page, so
+  // this needs an even taller viewport than the 100%-zoom test above to
+  // keep both rows in view without scrolling - dnd-kit's raw mouse
+  // coordinates only work within the visible viewport (see comment above).
+  await page.evaluate(() => localStorage.setItem('zoom', '130'))
+  await page.setViewportSize({ width: 1280, height: 1800 })
+
+  await page.goto('/admin')
+  await expect(page.locator('html')).toHaveCSS('font-size', '20.8px') // 130% of the 16px browser default
+  await expect(page.locator('[data-testid="sortable-task"]').first()).toBeVisible()
+
+  // Swap whichever two tasks currently sit first/second - independent of the
+  // exact order left behind by the 100%-zoom test above, since both tests
+  // share one DB across the run.
+  const [firstTitle, secondTitle] = await dailyTaskTitles(page)
+
+  const handleFirst = page.locator(`[data-testid="sortable-task"][data-task-title="${firstTitle}"] [data-testid="drag-handle"]`)
+  const secondRow = page.locator(`[data-testid="sortable-task"][data-task-title="${secondTitle}"]`)
+
+  const handleBox = await handleFirst.boundingBox()
+  const targetBox = await secondRow.boundingBox()
+
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2)
+  await page.mouse.down()
+  // Small initial move to clear @dnd-kit's activation distance threshold.
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2 + 10, { steps: 5 })
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height - 2, { steps: 10 })
+  await page.mouse.up()
+
+  const reorderResponse = page.waitForResponse(r => r.url().includes('/tasks/admin/reorder') && r.request().method() === 'POST')
+  await reorderResponse
+
+  const titlesAfter = await dailyTaskTitles(page)
+  expect(titlesAfter[0]).toBe(secondTitle)
+  expect(titlesAfter[1]).toBe(firstTitle)
+
+  expect(errors).toEqual([])
+})
