@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { urlBase64ToUint8Array } from '../lib/push.js'
 import HeaderMenu from '../components/HeaderMenu.jsx'
+import { HIDE_EXIT_CONFIRM_KEY } from '../components/ExitConfirmModal.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 
@@ -28,6 +29,7 @@ export default function Settings() {
   const [nameError, setNameError] = useState('')
   const [vacationMode, setVacationMode] = useState(user?.vacationMode || false)
   const [weatherNotify, setWeatherNotify] = useState(user?.notifyOnWeatherSkip ?? true)
+  const [exitConfirmEnabled, setExitConfirmEnabled] = useState(() => localStorage.getItem(HIDE_EXIT_CONFIRM_KEY) !== 'true')
 
   useEffect(() => {
     setPushSupported('serviceWorker' in navigator && 'PushManager' in window)
@@ -87,6 +89,13 @@ export default function Settings() {
       setVacationMode(updated.vacationMode)
       setUser(updated)
     } catch {}
+  }
+
+  function toggleExitConfirm() {
+    const next = !exitConfirmEnabled
+    setExitConfirmEnabled(next)
+    if (next) localStorage.removeItem(HIDE_EXIT_CONFIRM_KEY)
+    else localStorage.setItem(HIDE_EXIT_CONFIRM_KEY, 'true')
   }
 
   async function toggleWeatherNotify() {
@@ -220,6 +229,25 @@ export default function Settings() {
                 className={`w-11 h-6 rounded-full transition-colors ${vacationMode ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
               >
                 <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-0.5 ${vacationMode ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+            <h2 className="font-medium text-gray-800 dark:text-gray-200">Navigation</h2>
+            <div className="flex items-center justify-between">
+              <div className="pr-3">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Bestätigung beim Schließen der App</span>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Fragt nach, bevor ein Zurück-Tastendruck auf der Startseite die App verlässt.</p>
+              </div>
+              <button
+                onClick={toggleExitConfirm}
+                data-testid="exit-confirm-toggle"
+                data-exit-confirm-enabled={exitConfirmEnabled}
+                className={`shrink-0 w-11 h-6 rounded-full transition-colors ${exitConfirmEnabled ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-0.5 ${exitConfirmEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
           </div>
