@@ -4,7 +4,7 @@ import { useModalGate } from '../context/ModalGateContext.jsx'
 
 export default function ReleaseNotesModal() {
   const [notes, setNotes] = useState([])
-  const { setModalOpen } = useModalGate()
+  const { setModalOpen, setReleaseNotesOpen } = useModalGate()
 
   useEffect(() => {
     // Tell the backend which version this browser is actually running - the
@@ -25,8 +25,12 @@ export default function ReleaseNotesModal() {
   // is up - two competing gesture surfaces at once is asking for bugs.
   useEffect(() => {
     setModalOpen(notes.length > 0)
-    return () => setModalOpen(false)
-  }, [notes.length, setModalOpen])
+    setReleaseNotesOpen(notes.length > 0)
+    return () => {
+      setModalOpen(false)
+      setReleaseNotesOpen(false)
+    }
+  }, [notes.length, setModalOpen, setReleaseNotesOpen])
 
   async function dismiss() {
     setNotes([])
@@ -48,7 +52,7 @@ export default function ReleaseNotesModal() {
       >
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Was ist neu — v{latest}</h2>
-          <button onClick={dismiss} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
+          <button onClick={dismiss} aria-label="Schließen" className="shrink-0 w-11 h-11 -my-2 -mr-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
         </div>
         <div className="space-y-4">
           {notes.map(n => (

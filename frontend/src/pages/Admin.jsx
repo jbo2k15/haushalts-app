@@ -203,14 +203,17 @@ export default function Admin() {
           >
             <div className="flex items-center justify-between mb-1">
               <h2 id="edit-task-heading" className="text-sm font-semibold text-gray-800 dark:text-gray-200">Aufgabe bearbeiten</h2>
-              <button type="button" onClick={closeEditModal} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
+              <button type="button" onClick={closeEditModal} aria-label="Schließen" className="shrink-0 w-11 h-11 -my-2 -mr-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
             </div>
             <TaskFormFields form={form} setForm={setForm} />
             <button type="submit" className="w-full bg-orange-600 text-white rounded-xl py-2 text-sm font-medium">Speichern</button>
           </form>
         </div>
       )}
-      <div className="max-w-lg mx-auto px-4 pb-8">
+      {/* inert while the edit modal is up - traps focus/pointer interaction
+          inside the modal instead of letting Tab or a stray tap reach the
+          page underneath. */}
+      <div className="max-w-lg mx-auto px-4 pb-8" inert={!!editId}>
         <div className="flex items-center justify-between py-4">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Verwaltung</h1>
           <HeaderMenu />
