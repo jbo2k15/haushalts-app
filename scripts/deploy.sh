@@ -30,20 +30,35 @@ fi
 # 2026-07-24). Notfall-Ueberbrueckung: SKIP_CI_CHECK=1 bash scripts/deploy.sh
 if [ "${SKIP_CI_CHECK:-0}" = "1" ]; then
   echo "▸ CI-Check uebersprungen (SKIP_CI_CHECK=1)."
-elif ! command -v gh >/dev/null 2>&1; then
-  echo "✗ gh (GitHub CLI) nicht gefunden — CI-Status nicht pruefbar." >&2
-  echo "  gh installieren + 'gh auth login', oder mit SKIP_CI_CHECK=1 ueberbruecken." >&2
-  exit 1
 else
   echo "▸ Pruefe CI-Status fuer $CURRENT_HEAD..."
-  CI_CONCLUSION="$(gh run list --workflow=ci.yml --branch=main --limit 40 \
-    --json headSha,status,conclusion \
-    --jq "[.[] | select(.headSha==\"$CURRENT_HEAD\" and .status==\"completed\")] | first | .conclusion" \
-    2>/dev/null || echo "")"
+  CI_CONCLUSION=""
+  # Bevorzugt der praezise Pfad ueber die GitHub CLI (falls installiert +
+  # authentifiziert).
+  if command -v gh >/dev/null 2>&1; then
+    CI_CONCLUSION="$(gh run list --workflow=ci.yml --branch=main --limit 40 \
+      --json headSha,status,conclusion \
+      --jq "[.[] | select(.headSha==\"$CURRENT_HEAD\" and .status==\"completed\")] | first | .conclusion" \
+      2>/dev/null || echo "")"
+    [ "$CI_CONCLUSION" = "null" ] && CI_CONCLUSION=""
+  fi
+  # Fallback ohne gh: das Repo ist oeffentlich, also laesst sich die GitHub-
+  # REST-API anonym per curl abfragen (kein Token/Login noetig). Liefert die
+  # ci.yml-Laeufe fuer genau diesen Commit (neueste zuerst); wir nehmen die
+  # conclusion des ersten abgeschlossenen Laufs (in-progress -> conclusion null,
+  # wird uebersprungen).
+  if [ -z "$CI_CONCLUSION" ] && command -v curl >/dev/null 2>&1; then
+    GH_API="https://api.github.com/repos/jbo2k15/haushalts-app/actions/workflows/ci.yml/runs?head_sha=${CURRENT_HEAD}&per_page=20"
+    RUNS_JSON="$(curl -fsSL -H 'Accept: application/vnd.github+json' "$GH_API" 2>/dev/null || echo "")"
+    CI_CONCLUSION="$(printf '%s' "$RUNS_JSON" \
+      | grep -oE '"conclusion"[[:space:]]*:[[:space:]]*(null|"[a-z_]+")' \
+      | sed -E 's/.*:[[:space:]]*//; s/"//g' \
+      | grep -v '^null$' | head -n1)"
+  fi
   if [ "$CI_CONCLUSION" = "success" ]; then
     echo "▸ CI gruen fuer diesen Commit."
   elif [ -z "$CI_CONCLUSION" ]; then
-    echo "✗ Kein abgeschlossener CI-Lauf fuer $CURRENT_HEAD gefunden (laeuft noch oder fehlt)." >&2
+    echo "✗ Kein abgeschlossener CI-Lauf fuer $CURRENT_HEAD gefunden (laeuft noch, fehlt, oder API nicht erreichbar)." >&2
     echo "  Warten bis CI durch ist, oder mit SKIP_CI_CHECK=1 ueberbruecken." >&2
     exit 1
   else
