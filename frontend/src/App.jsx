@@ -8,6 +8,7 @@ import { DialogProvider } from './context/DialogContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import ReleaseNotesModal from './components/ReleaseNotesModal.jsx'
 import BottomNav from './components/BottomNav.jsx'
+import UpdatePrompt from './components/UpdatePrompt.jsx'
 import Login from './pages/Login.jsx'
 import PageCarousel from './components/PageCarousel.jsx'
 
@@ -69,6 +70,7 @@ function AppRoutes() {
         <BottomNav />
       </div>
       <ReleaseNotesGate />
+      <UpdatePrompt />
     </Suspense>
   )
 }
