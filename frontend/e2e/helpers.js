@@ -12,7 +12,18 @@ export const PASSWORD = 'E2eTest1234!'
 // session exists yet — an expected, gracefully-handled 401 (see
 // api/client.js), not a real problem. Chrome's devtools log this at the
 // network level as a console error regardless of whether the app handles it.
-const BENIGN_PATTERNS = [/Failed to load resource.*401.*auth\/refresh/i, /Failed to load resource.*401 \(Unauthorized\)/i]
+// Requests still in flight from a just-mounted page (Home fires /tasks,
+// /tasks/stats, /tasks/log and opens an SSE EventSource to /api/events) get
+// cancelled when a spec does a hard page.goto right after login(). Chrome
+// logs that cancellation as a network-level console error
+// ("net::ERR_ABORTED") even though it's navigation teardown, not an app bug -
+// same category as the auth/refresh 401 above. Was an intermittent source of
+// flakiness on the goto-after-login specs (e.g. hall-of-fame).
+const BENIGN_PATTERNS = [
+  /Failed to load resource.*401.*auth\/refresh/i,
+  /Failed to load resource.*401 \(Unauthorized\)/i,
+  /net::ERR_ABORTED/i,
+]
 
 export function attachErrorCollector(page) {
   const errors = []
