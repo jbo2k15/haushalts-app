@@ -38,16 +38,18 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="bg-surface-container rounded-card border border-outline p-6 space-y-4">
           {error && <div className="bg-danger-container border border-danger text-on-danger-container rounded-card p-3 text-sm">{error}</div>}
           <div>
-            <label className="block text-sm text-ink-muted mb-1">E-Mail</label>
+            <label htmlFor="login-email" className="block text-sm text-ink-muted mb-1">E-Mail</label>
             <input
+              id="login-email"
               type="email" required autoComplete="email"
               className={inputCls}
               value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
             />
           </div>
           <div>
-            <label className="block text-sm text-ink-muted mb-1">Passwort</label>
+            <label htmlFor="login-password" className="block text-sm text-ink-muted mb-1">Passwort</label>
             <input
+              id="login-password"
               type="password" required autoComplete="current-password"
               className={inputCls}
               value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}

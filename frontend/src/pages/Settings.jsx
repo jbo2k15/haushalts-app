@@ -253,8 +253,9 @@ export default function Settings() {
               <p className="text-sm text-ink-muted px-3 py-2 bg-surface-container-high rounded-control border border-outline">{user?.email}</p>
             </div>
             <div>
-              <label className="block text-sm text-ink-muted mb-1">Anzeigename</label>
+              <label htmlFor="settings-name" className="block text-sm text-ink-muted mb-1">Anzeigename</label>
               <input
+                id="settings-name"
                 type="text"
                 data-testid="name-input"
                 className={`w-full ${inputCls}`}
@@ -275,7 +276,7 @@ export default function Settings() {
             ) : (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-ink-muted">Auf diesem Gerät aktivieren</span>
-                <Switch checked={pushEnabled} onChange={togglePush} />
+                <Switch checked={pushEnabled} onChange={togglePush} aria-label="Push-Benachrichtigungen auf diesem Gerät aktivieren" />
               </div>
             )}
             <div className="border-t border-outline pt-3 flex items-center justify-between">
@@ -286,6 +287,7 @@ export default function Settings() {
               <Switch
                 checked={weatherNotify}
                 onChange={toggleWeatherNotify}
+                aria-label="Benachrichtigung bei wetterbedingt erledigten Aufgaben"
                 data-testid="weather-notify-toggle"
                 data-weather-notify-enabled={weatherNotify}
               />
@@ -301,6 +303,7 @@ export default function Settings() {
               <Switch
                 checked={vacationMode}
                 onChange={toggleVacation}
+                aria-label="Urlaubsmodus aktivieren"
                 data-testid="vacation-toggle"
                 data-vacation-enabled={vacationMode}
               />
@@ -318,6 +321,7 @@ export default function Settings() {
               <Switch
                 checked={exitConfirmEnabled}
                 onChange={toggleExitConfirm}
+                aria-label="Bestätigung beim Schließen der App"
                 data-testid="exit-confirm-toggle"
                 data-exit-confirm-enabled={exitConfirmEnabled}
               />
@@ -328,8 +332,9 @@ export default function Settings() {
           <Card className="p-4 space-y-4">
             <h2 className="font-medium text-ink">Erinnerungszeiten {user.role === 'admin' && <span className="text-xs text-ink-faint font-normal">(gilt für alle)</span>}</h2>
             <div>
-              <label className="block text-sm text-ink-muted mb-1">Tägliche Erinnerung um</label>
+              <label htmlFor="settings-daily-time" className="block text-sm text-ink-muted mb-1">Tägliche Erinnerung um</label>
               <input
+                id="settings-daily-time"
                 type="time"
                 data-testid="daily-time"
                 className={inputCls}
@@ -338,10 +343,11 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm text-ink-muted mb-1">Wöchentliche Erinnerung am</label>
+              <span className="block text-sm text-ink-muted mb-1">Wöchentliche Erinnerung am</span>
               <div className="flex gap-2">
                 <select
                   data-testid="weekly-day"
+                  aria-label="Wöchentliche Erinnerung: Wochentag"
                   className={inputCls}
                   value={settings.weeklyDay}
                   onChange={e => setSettings(s => ({ ...s, weeklyDay: Number(e.target.value) }))}
@@ -351,6 +357,7 @@ export default function Settings() {
                 <input
                   type="time"
                   data-testid="weekly-time"
+                  aria-label="Wöchentliche Erinnerung: Uhrzeit"
                   className={inputCls}
                   value={settings.weeklyTime}
                   onChange={e => setSettings(s => ({ ...s, weeklyTime: e.target.value }))}
@@ -358,10 +365,11 @@ export default function Settings() {
               </div>
             </div>
             <div>
-              <label className="block text-sm text-ink-muted mb-1">Monatliche Erinnerung am</label>
+              <span className="block text-sm text-ink-muted mb-1">Monatliche Erinnerung am</span>
               <div className="flex gap-2">
                 <select
                   data-testid="monthly-day"
+                  aria-label="Monatliche Erinnerung: Tag im Monat"
                   className={inputCls}
                   value={settings.monthlyDay}
                   onChange={e => setSettings(s => ({ ...s, monthlyDay: Number(e.target.value) }))}
@@ -371,6 +379,7 @@ export default function Settings() {
                 <input
                   type="time"
                   data-testid="monthly-time"
+                  aria-label="Monatliche Erinnerung: Uhrzeit"
                   className={inputCls}
                   value={settings.monthlyTime}
                   onChange={e => setSettings(s => ({ ...s, monthlyTime: e.target.value }))}

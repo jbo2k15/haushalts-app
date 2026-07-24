@@ -49,7 +49,7 @@ const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle, pauseInfo }) 
       <div className="flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container-high">
         <span className="text-base">{config.icon}</span>
         <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">{config.label}</span>
-        <span className="ml-auto text-xs text-ink-faint">
+        <span className="ml-auto text-xs text-ink-muted">
           {completedCount}/{tasks.length}
         </span>
       </div>

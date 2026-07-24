@@ -19,8 +19,8 @@ export default function TaskFormFields({ form, setForm }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm text-ink-muted mb-1">Typ</label>
-          <select className={inputCls}
+          <label htmlFor="task-type" className="block text-sm text-ink-muted mb-1">Typ</label>
+          <select id="task-type" className={inputCls}
             value={form.type} onChange={e => {
               const type = e.target.value
               const today = new Date().toISOString().slice(0, 10)
@@ -33,8 +33,8 @@ export default function TaskFormFields({ form, setForm }) {
           </select>
         </div>
         <div>
-          <label className="block text-sm text-ink-muted mb-1">Priorität</label>
-          <select className={inputCls}
+          <label htmlFor="task-priority" className="block text-sm text-ink-muted mb-1">Priorität</label>
+          <select id="task-priority" className={inputCls}
             value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
             <option value="high">Hoch</option>
             <option value="normal">Normal</option>
@@ -74,8 +74,8 @@ export default function TaskFormFields({ form, setForm }) {
       )}
       {form.type === 'weekly' && (
         <div>
-          <label className="block text-sm text-ink-muted mb-1">Fixer Wochentag (optional)</label>
-          <select className={inputCls}
+          <label htmlFor="task-fixed-weekday" className="block text-sm text-ink-muted mb-1">Fixer Wochentag (optional)</label>
+          <select id="task-fixed-weekday" className={inputCls}
             value={form.fixedWeekday} onChange={e => setForm(f => ({ ...f, fixedWeekday: e.target.value }))}>
             <option value="">Keiner</option>
             {WEEKDAY_LABELS.map((d, i) => <option key={i} value={i}>{d}</option>)}
@@ -84,27 +84,27 @@ export default function TaskFormFields({ form, setForm }) {
       )}
       {form.type === 'monthly' && (
         <div>
-          <label className="block text-sm text-ink-muted mb-1">Fixer Tag im Monat (optional)</label>
-          <input type="number" min="1" max="31"
+          <label htmlFor="task-fixed-day" className="block text-sm text-ink-muted mb-1">Fixer Tag im Monat (optional)</label>
+          <input id="task-fixed-day" type="number" min="1" max="31"
             className={inputCls}
             value={form.fixedDayOfMonth} onChange={e => setForm(f => ({ ...f, fixedDayOfMonth: e.target.value }))} />
         </div>
       )}
       {form.type === 'once' && (
         <div>
-          <label className="block text-sm text-ink-muted mb-1">Fälligkeitsdatum</label>
-          <input type="date" required
+          <label htmlFor="task-due-date" className="block text-sm text-ink-muted mb-1">Fälligkeitsdatum</label>
+          <input id="task-due-date" type="date" required
             className={inputCls}
             value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
         </div>
       )}
       {form.type !== 'once' && (
         <div>
-          <label className="block text-sm text-ink-muted mb-1">Pausenzeitraum (optional)</label>
+          <span className="block text-sm text-ink-muted mb-1">Pausenzeitraum (optional)</span>
           <div className="grid grid-cols-2 gap-3">
-            <input type="date" className={inputCls} value={form.pauseFrom}
+            <input type="date" aria-label="Pausenzeitraum von" className={inputCls} value={form.pauseFrom}
               onChange={e => setForm(f => ({ ...f, pauseFrom: e.target.value }))} />
-            <input type="date" className={inputCls} value={form.pauseTo}
+            <input type="date" aria-label="Pausenzeitraum bis" className={inputCls} value={form.pauseTo}
               onChange={e => setForm(f => ({ ...f, pauseTo: e.target.value }))} />
           </div>
         </div>
