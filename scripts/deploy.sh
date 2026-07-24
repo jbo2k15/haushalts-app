@@ -24,6 +24,34 @@ if [ "$LAST_DEPLOYED" = "$CURRENT_HEAD" ] && [ "$BACKEND_IMAGE_MISSING" = false 
   exit 0
 fi
 
+# ── CI-Gate ────────────────────────────────────────────────────────────────
+# Nur deployen, wenn der GitHub-Actions-CI-Lauf (.github/workflows/ci.yml) fuer
+# genau diesen Commit gruen abgeschlossen ist (Kopplung an CI, beschlossen
+# 2026-07-24). Notfall-Ueberbrueckung: SKIP_CI_CHECK=1 bash scripts/deploy.sh
+if [ "${SKIP_CI_CHECK:-0}" = "1" ]; then
+  echo "▸ CI-Check uebersprungen (SKIP_CI_CHECK=1)."
+elif ! command -v gh >/dev/null 2>&1; then
+  echo "✗ gh (GitHub CLI) nicht gefunden — CI-Status nicht pruefbar." >&2
+  echo "  gh installieren + 'gh auth login', oder mit SKIP_CI_CHECK=1 ueberbruecken." >&2
+  exit 1
+else
+  echo "▸ Pruefe CI-Status fuer $CURRENT_HEAD..."
+  CI_CONCLUSION="$(gh run list --workflow=ci.yml --branch=main --limit 40 \
+    --json headSha,status,conclusion \
+    --jq "[.[] | select(.headSha==\"$CURRENT_HEAD\" and .status==\"completed\")] | first | .conclusion" \
+    2>/dev/null || echo "")"
+  if [ "$CI_CONCLUSION" = "success" ]; then
+    echo "▸ CI gruen fuer diesen Commit."
+  elif [ -z "$CI_CONCLUSION" ]; then
+    echo "✗ Kein abgeschlossener CI-Lauf fuer $CURRENT_HEAD gefunden (laeuft noch oder fehlt)." >&2
+    echo "  Warten bis CI durch ist, oder mit SKIP_CI_CHECK=1 ueberbruecken." >&2
+    exit 1
+  else
+    echo "✗ CI fuer diesen Commit nicht gruen (conclusion: $CI_CONCLUSION)." >&2
+    exit 1
+  fi
+fi
+
 if [ -z "$LAST_DEPLOYED" ]; then
   BACKEND_CHANGED=true
   FRONTEND_CHANGED=true
