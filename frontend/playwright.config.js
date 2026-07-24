@@ -31,6 +31,12 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   workers: 1,
+  // Auf CI (langsamerer Headless-Runner) Umgebungs-Flakes abfangen - z.B. der
+  // Timing-Race zwischen goBack() und dem Neu-Mounten des Exit-Guards in
+  // header-menu.spec (Code, den Phase 3 ohnehin ablöst). Playwright meldet
+  // erfolgreiche Wiederholungen als "flaky", maskiert also nichts; lokal 0,
+  // damit Flakes sichtbar bleiben.
+  retries: process.env.CI ? 2 : 0,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:4173',
