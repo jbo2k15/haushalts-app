@@ -59,8 +59,8 @@ export default function GlobalPauseCard() {
         {!loading && !pause && (
           <form onSubmit={startPause} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <input type="date" required className={inputCls} value={pauseFrom} onChange={e => setPauseFrom(e.target.value)} />
-              <input type="date" required className={inputCls} value={pauseTo} onChange={e => setPauseTo(e.target.value)} />
+              <input type="date" required aria-label="Globale Pause von" className={inputCls} value={pauseFrom} onChange={e => setPauseFrom(e.target.value)} />
+              <input type="date" required aria-label="Globale Pause bis" className={inputCls} value={pauseTo} onChange={e => setPauseTo(e.target.value)} />
             </div>
             <Button type="submit" variant="primary" className="w-full">Pause starten</Button>
           </form>

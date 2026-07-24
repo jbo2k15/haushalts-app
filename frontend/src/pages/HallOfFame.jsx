@@ -110,7 +110,7 @@ export default function HallOfFame() {
           {stats.filter(userStat => userStat.dayTrophies === 0 && userStat.weekTrophies === 0 && userStat.monthTrophies === 0).length > 0 && (
             <Card className="mt-4 overflow-hidden">
               <div className="px-4 py-3 border-b border-outline bg-surface-container-high">
-                <span className="text-xs font-semibold text-ink-faint uppercase tracking-wide">Noch keine Pokale</span>
+                <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Noch keine Pokale</span>
               </div>
               <div className="divide-y divide-outline">
                 {stats.filter(userStat => userStat.dayTrophies === 0 && userStat.weekTrophies === 0 && userStat.monthTrophies === 0).map(userStat => (

@@ -183,7 +183,10 @@ export default function PageCarousel() {
                     natural height, and since both stay mounted the whole
                     time, each one's scroll position is remembered for free
                     (it's just that DOM node's own scrollTop). */}
-                <div className="h-dvh overflow-y-auto" data-testid="carousel-slide-scroll" data-slide-path={path}>
+                {/* tabIndex=0: der eigene Scroll-Container jedes Slides muss per
+                    Tastatur erreichbar sein, damit auch ohne Maus/Touch
+                    gescrollt werden kann (axe: scrollable-region-focusable). */}
+                <div className="h-dvh overflow-y-auto" tabIndex={0} data-testid="carousel-slide-scroll" data-slide-path={path}>
                   <Component />
                 </div>
               </div>
@@ -193,7 +196,7 @@ export default function PageCarousel() {
 
         {showTip && (
           <div className="fixed bottom-24 inset-x-0 flex justify-center px-4 z-20 pointer-events-none" data-testid="swipe-tip">
-            <div className="bg-orange-600 text-white text-xs rounded-xl px-3 py-2 flex items-center gap-2 shadow-sm pointer-events-auto">
+            <div className="bg-primary text-on-primary text-xs rounded-xl px-3 py-2 flex items-center gap-2 shadow-sm pointer-events-auto">
               <span>Tipp: Wische nach links oder rechts für die Ruhmeshalle</span>
               <button onClick={dismissTip} data-testid="swipe-tip-dismiss" aria-label="Tipp schließen" className="shrink-0 w-11 h-11 -my-2 -mr-2 flex items-center justify-center font-semibold leading-none">✕</button>
             </div>

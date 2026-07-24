@@ -66,7 +66,7 @@ Reihenfolge bewusst so, dass verhaltens-/testneutrale Schritte zuerst kommen und
   - Bewusst NICHT tokenisiert (eigene, universelle Bedeutung): Medaillenfarben (Bronze/Silber/Gold) in der Ruhmeshalle, Prioritäts-Randfarben in `TaskRow` (Violett/Grau), der grüne „erledigt"-Haken.
 - **Phase 2 — Custom-Dialoge ✅ (2026-07-24).** Promise-basierter `DialogProvider`/`useDialog()` (`confirm`/`alert`) + `ConfirmDialog` (Token-Optik, Escape/Backdrop, Autofokus auf die sichere Aktion, Fokus-Falle via App-level `inert`). Ersetzt alle nativen `confirm()`/`alert()` (Aufgabe löschen, globale Pause beenden, Nutzer sperren/löschen/Rolle, Import-/Fehlermeldungen). 6 E2E-Specs von `page.on('dialog')` auf Klick des Dialog-Buttons umgestellt. E2E 53/53 grün.
 - **Phase 3 — Navigation** (Bottom-Nav + Carousel-Merge, Zurück-Knopf-Modell). Bottom-Nav als `<nav>`-Landmark; „Zum Inhalt springen"-Skip-Link ergänzen. Größter E2E-Impact → zuletzt, mit Test-Anpassung.
-- **Phase 4 — Palette final anwenden** (Kontraste bereits in Phase 0/1 verifiziert; ggf. Feinschliff am Bildschirm).
+- **Phase 4 — Palette-Finale + a11y-Audit ✅ (2026-07-24).** Palette am Bildschirm in Hell/Dunkel bestätigt (Nutzer). Automatisiertes a11y-Audit mit `@axe-core/playwright` eingeführt (`frontend/e2e/a11y.spec.js`, scannt Login/Home/Ruhmeshalle/Einstellungen/Verwaltung inkl. geöffnetem Aufgabenformular gegen WCAG 2.0/2.1 A/AA — läuft in der CI, wiederholbar). Behobene Befunde: fehlende Form-Labels (Login/Einstellungen/Verwaltung), Switches/Selects ohne `aria`-Namen, `text-ink-faint`-auf-`surface-container-high`-Kontrast (TaskBlock-Zähler + Ruhmeshallen-Header → `text-ink-muted`), Carousel-Slide nicht tastaturfokussierbar (`tabIndex=0`), letztes Orange-Relikt im Swipe-Tipp → Tokens. App-Icon auf Terrakotta `#a8492a` (`icon.svg` + `scripts/render-icons.mjs` für die PNGs). PWA-Install-Screenshots im neuen Design reproduzierbar neu aufgenommen (`npm run screenshots`) und aus dem SW-Precache genommen. Backend 340 + E2E 55 grün.
 
 ---
 
@@ -107,8 +107,8 @@ Alle Detailfragen entschieden → nächster Schritt ist **Phase 0** (Tokens + Ba
 **Umzusetzen (eigene Schritte, nicht Teil von Phase 3):**
 - **CI** (GitHub Actions, Vitest + Playwright, Trigger push+PR auf `main`) — angelegt in `.github/workflows/ci.yml`. **Deploy an grünen CI-Lauf koppeln** — Mechanismus noch festzulegen.
 - **SQLite `PRAGMA journal_mode=WAL; busy_timeout=5000`** — beugt „database is locked" beim Mehr-Seiten-Burst vor.
-- **Screenshots** aus SW-Precache nehmen **und** nach Phase 4 neu aufnehmen (zeigen noch Orange).
-- **axe/Lighthouse-Audit** vor dem Palette-Finale (Phase 4).
+- ~~**Screenshots** aus SW-Precache nehmen **und** nach Phase 4 neu aufnehmen (zeigen noch Orange).~~ ✅ erledigt (Phase 4).
+- ~~**axe/Lighthouse-Audit** vor dem Palette-Finale (Phase 4).~~ ✅ erledigt (Phase 4, axe in Playwright/CI).
 - **L1 Per-Account-Lockout** — später (verbessert Sicherheit + Haushalts-UX).
 - **L2 Push-Endpoint-Reassignment** — **zu klären**: widerspricht der bewussten Entscheidung vom 2026-07-14 (Übernahme erlaubt + geloggt, für Besitzerwechsel auf geteiltem Gerät).
 

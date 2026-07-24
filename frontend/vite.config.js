@@ -24,7 +24,12 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      includeAssets: ['icons/*.png', 'screenshots/*.png'],
+      // Screenshots bewusst NICHT über includeAssets in den Precache ziehen —
+      // sie werden nur einmalig in der Installations-UI des Browsers gebraucht
+      // (manifest.screenshots), nicht im Offline-Betrieb. Vite kopiert sie
+      // ohnehin aus public/ nach dist/, also bleiben sie per Netzwerk
+      // erreichbar. Vgl. globIgnores unten.
+      includeAssets: ['icons/*.png'],
       manifest: {
         name: 'Haushalt',
         short_name: 'Haushalt',
@@ -46,6 +51,9 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // Install-Screenshots aus dem Precache halten (~850 KB, nur für die
+        // Installations-UI relevant). Werden weiter aus dist/ ausgeliefert.
+        globIgnores: ['**/screenshots/**'],
       },
     }),
   ],
