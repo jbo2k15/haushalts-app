@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
+import { MouseSensor, TouchSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { api } from '../api/client.js'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.js'
 import { useDialog } from '../context/DialogContext.jsx'
@@ -21,6 +21,9 @@ export default function Admin() {
   const sensors = useSensors(
     useSensor(MouseSensor),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    // Tastatur-Zugänglichkeit fürs Sortieren (Leertaste aufnehmen, Pfeile
+    // bewegen, Leertaste ablegen) — vorher nur Maus/Touch.
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
   function closeEditModal() {
