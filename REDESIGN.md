@@ -38,6 +38,7 @@ Ziel: konsistentes, modernes Erscheinungsbild und einheitliche Bedienung. Entwur
 3. **Tonale Karten / Elevation** über Oberflächenton statt reiner 1px-Trennlinie (Kontrast in beiden Modi prüfen — tonaler Look darf die Kartentrennung im Dunkelmodus nicht unter die Wahrnehmungsschwelle drücken).
 4. **Unified Navigation** (Bottom-Nav + Carousel-Merge, siehe Entscheidungen).
 5. **Eigene Bestätigungsdialoge** statt `confirm()`/`alert()` — im bestehenden Modal-System (inkl. der bereits vorhandenen Fokus-Falle/ARIA).
+6. **Barrierefreiheit mitgezogen** (nicht als separater Durchlauf): Farbkontraste der Tokens gegen WCAG 4.5:1 geprüft; `Switch` mit `role="switch"`/`aria-checked`; je Screen semantische Landmarks (`<main>`/`<nav>`) statt `<div>`; globales `prefers-reduced-motion`-Handling; Skip-Link mit der Bottom-Nav. Deckt die offenen Punkte 3, 5–7 aus der Barrierefreiheits-Liste in TODO.md ab.
 
 ---
 
@@ -59,10 +60,10 @@ Gegenwarnung: **nicht** spekulativ eine halbe Multi-Tenancy einbauen — eine ha
 Reihenfolge bewusst so, dass verhaltens-/testneutrale Schritte zuerst kommen und der testintensive Navigations-Umbau zuletzt.
 
 - **Phase 0 — Tokens + Basis-Komponenten. ✅ erledigt (2026-07-24).** Semantische Tokens (Palette B) in `index.css` via `@theme inline` + `.dark`-Umschaltung; Radius-Skala (`control`/`card`/`modal`) und zwei Elevation-Stufen. Basis-Komponenten unter `src/components/ui/`: `Button`, `Card`, `Badge`, `Switch` (noch nicht eingebunden, rein additiv). Build ok, Tokens im generierten CSS verifiziert, Backend 340/340 + E2E 53/53 grün.
-- **Phase 1 — Screens visuell umstellen** (Token-Klassen statt roher Klassen): Home → Einstellungen → Verwaltung → Ruhmeshalle → Login/Register/Passwort-Flows.
+- **Phase 1 — Screens visuell umstellen** (Token-Klassen + Basis-Komponenten statt roher Klassen). Reihenfolge: **Einstellungen ✅ (2026-07-24)** → Verwaltung → Ruhmeshalle → Home → Login/Register/Passwort-Flows. Barrierefreiheit je Screen mitziehen: semantische Landmarks (`<main>` statt `<div>`) ergänzen; `prefers-reduced-motion` global in `index.css` einführen (Übergänge/Animationen respektieren die OS-Einstellung).
 - **Phase 2 — Custom-Dialoge** statt `confirm()`/`alert()`.
-- **Phase 3 — Navigation** (Bottom-Nav + Carousel-Merge, Zurück-Knopf-Modell). Größter E2E-Impact → zuletzt, mit Test-Anpassung.
-- **Phase 4 — Palette final anwenden** (sobald entschieden).
+- **Phase 3 — Navigation** (Bottom-Nav + Carousel-Merge, Zurück-Knopf-Modell). Bottom-Nav als `<nav>`-Landmark; „Zum Inhalt springen"-Skip-Link ergänzen. Größter E2E-Impact → zuletzt, mit Test-Anpassung.
+- **Phase 4 — Palette final anwenden** (Kontraste bereits in Phase 0/1 verifiziert; ggf. Feinschliff am Bildschirm).
 
 ---
 

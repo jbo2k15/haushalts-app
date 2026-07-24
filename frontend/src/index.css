@@ -27,9 +27,10 @@
   text-ink, border-outline, ...). Additiv: bestehende gray-/orange-Klassen
   bleiben unberührt, bis sie in Phase 1 Screen für Screen ersetzt werden.
 
-  HINWEIS: Die Hex-Werte sind bewusst provisorisch. Vor der finalen Anwendung
-  (Phase 4) müssen die farbigen Flächen in Hell UND Dunkel gegen WCAG 4.5:1
-  geprüft werden (siehe REDESIGN.md + TODO.md "Farbkontrast").
+  Kontraste am 2026-07-24 gegen WCAG 4.5:1 geprüft (Text/Buttons/Badges in
+  Hell und Dunkel); `ink-faint` (hell) wurde dabei von #8a8580 auf #736e67
+  nachgezogen, um im Hellmodus 4.5:1 zu erreichen. Bei künftigen Wert-
+  Änderungen erneut prüfen (siehe REDESIGN.md + TODO.md "Farbkontrast").
 */
 :root {
   --sys-surface: #faf8f6;
@@ -60,7 +61,7 @@
 
   --sys-ink: #2c2c2a;
   --sys-ink-muted: #6b655f;
-  --sys-ink-faint: #8a8580;
+  --sys-ink-faint: #736e67;
 }
 
 .dark {
