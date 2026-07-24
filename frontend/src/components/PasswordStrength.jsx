@@ -17,7 +17,7 @@ export default function PasswordStrength({ password }) {
       {RULES.map(({ label, test }) => {
         const ok = test(password)
         return (
-          <li key={label} className={`flex items-center gap-1.5 text-xs ${ok ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+          <li key={label} className={`flex items-center gap-1.5 text-xs ${ok ? 'text-green-600 dark:text-green-400' : 'text-ink-faint'}`}>
             <span className="shrink-0">{ok ? '✓' : '○'}</span>
             {label}
           </li>

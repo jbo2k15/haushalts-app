@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { api } from '../api/client.js'
+import Button from '../components/ui/Button.jsx'
+
+const inputCls = 'w-full border border-outline rounded-control px-3 py-2.5 text-sm bg-surface-container-high text-ink focus:outline-hidden focus:ring-2 focus:ring-primary'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -17,36 +20,36 @@ export default function ForgotPassword() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 text-center">
-          <p className="text-gray-700 dark:text-gray-300 text-sm">Falls die E-Mail-Adresse registriert ist, hast du einen Link zum Zurücksetzen des Passworts erhalten.</p>
-          <Link to="/login" className="mt-4 inline-block text-orange-600 dark:text-orange-400 text-sm">Zur Anmeldung</Link>
-        </div>
+      <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+        <main className="w-full max-w-sm bg-surface-container rounded-card border border-outline p-6 text-center">
+          <p className="text-ink text-sm">Falls die E-Mail-Adresse registriert ist, hast du einen Link zum Zurücksetzen des Passworts erhalten.</p>
+          <Link to="/login" className="mt-4 inline-block text-primary text-sm">Zur Anmeldung</Link>
+        </main>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+      <main className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Passwort vergessen</h1>
+          <h1 className="text-2xl font-semibold text-ink">Passwort vergessen</h1>
         </div>
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-surface-container rounded-card border border-outline p-6 space-y-4">
           <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">E-Mail</label>
+            <label className="block text-sm text-ink-muted mb-1">E-Mail</label>
             <input
               type="email" required
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-orange-400"
+              className={inputCls}
               value={email} onChange={e => setEmail(e.target.value)}
             />
           </div>
-          <button type="submit" disabled={loading} className="w-full bg-orange-600 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50">
+          <Button type="submit" variant="primary" size="lg" disabled={loading} className="w-full">
             {loading ? 'Senden…' : 'Link senden'}
-          </button>
-          <div className="text-center"><Link to="/login" className="text-sm text-orange-600 dark:text-orange-400">Zurück zur Anmeldung</Link></div>
+          </Button>
+          <div className="text-center"><Link to="/login" className="text-sm text-primary">Zurück zur Anmeldung</Link></div>
         </form>
-      </div>
+      </main>
     </div>
   )
 }
