@@ -49,8 +49,8 @@ test('admin can start and end a global pause covering all tasks', async ({ page 
   await expect(page.getByText(/Aufgaben pausiert/).first()).toBeVisible()
 
   await page.goto('/admin')
-  page.once('dialog', dialog => dialog.accept())
   await page.getByRole('button', { name: 'Beenden' }).click()
+  await page.locator('[data-testid="confirm-dialog-confirm"]').click()
 
   // Once ended, the "Von"/"Bis" display should be replaced by the empty
   // start-pause form (two date inputs + "Pause starten" button) again.
@@ -63,8 +63,8 @@ test('admin can start and end a global pause covering all tasks', async ({ page 
   // Aufräumen - andere Tests laufen gegen dieselbe geteilte DB und erwarten
   // eine feste Liste seed-basierter Aufgaben ohne globale Pause.
   await page.goto('/admin')
-  page.once('dialog', dialog => dialog.accept())
   await row.getByRole('button', { name: 'Löschen' }).click()
+  await page.locator('[data-testid="confirm-dialog-confirm"]').click()
   await expect(row).toHaveCount(0)
 
   expect(errors).toEqual([])

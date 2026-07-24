@@ -5,13 +5,13 @@ import { attachErrorCollector, login } from './helpers.js'
 // throwaway users seeded in backend/scripts/e2e-seed.js, kept separate from
 // any account another spec logs in with.
 //
-// Seit dem Redesign-IA-Umbau (siehe REDESIGN.md) liegt die Nutzerverwaltung
-// als admin-only Abschnitt in den Einstellungen (/settings), nicht mehr im
-// Verwaltungs-Tab. Die user-row/Aktions-testids sind unverändert.
+// Seit dem Redesign-IA-Umbau liegt die Nutzerverwaltung als admin-only
+// Abschnitt in den Einstellungen (/settings). Destruktive Aktionen laufen
+// seit Phase 2 über einen eigenen Bestätigungsdialog (statt window.confirm) -
+// Bestätigung per Klick auf [data-testid="confirm-dialog-confirm"].
 
 test('admin can approve and then lock a pending user', async ({ page }) => {
   const errors = attachErrorCollector(page)
-  page.on('dialog', dialog => dialog.accept())
   await login(page)
 
   await page.goto('/settings')
@@ -20,13 +20,15 @@ test('admin can approve and then lock a pending user', async ({ page }) => {
   await expect(row).toHaveAttribute('data-user-approved', 'false')
   await expect(row.getByRole('button', { name: 'Freischalten' })).toBeVisible()
 
+  // Approving a pending user needs no confirmation.
   await row.locator('[data-testid="toggle-approve"]').click()
   await expect(row).toHaveAttribute('data-user-approved', 'true')
   await expect(row.getByRole('button', { name: 'Sperren' })).toBeVisible()
 
-  // Locking a previously-approved user goes through a confirm() dialog
-  // (auto-accepted above) since it immediately revokes access.
+  // Locking a previously-approved user goes through the confirm dialog since
+  // it immediately revokes access.
   await row.locator('[data-testid="toggle-approve"]').click()
+  await page.locator('[data-testid="confirm-dialog-confirm"]').click()
   await expect(row).toHaveAttribute('data-user-approved', 'false')
   await expect(row.getByRole('button', { name: 'Freischalten' })).toBeVisible()
 
@@ -35,7 +37,6 @@ test('admin can approve and then lock a pending user', async ({ page }) => {
 
 test('admin can promote a user to admin and back', async ({ page }) => {
   const errors = attachErrorCollector(page)
-  page.on('dialog', dialog => dialog.accept())
   await login(page)
 
   await page.goto('/settings')
@@ -46,10 +47,12 @@ test('admin can promote a user to admin and back', async ({ page }) => {
   await expect(adminBadge).toHaveCount(0)
 
   await row.locator('[data-testid="toggle-role"]').click()
+  await page.locator('[data-testid="confirm-dialog-confirm"]').click()
   await expect(row).toHaveAttribute('data-user-role', 'admin')
   await expect(adminBadge).toBeVisible()
 
   await row.locator('[data-testid="toggle-role"]').click()
+  await page.locator('[data-testid="confirm-dialog-confirm"]').click()
   await expect(row).toHaveAttribute('data-user-role', 'user')
   await expect(adminBadge).toHaveCount(0)
 
@@ -71,7 +74,6 @@ test('admin cannot see a delete button on their own row', async ({ page }) => {
 
 test('admin can permanently delete a user', async ({ page }) => {
   const errors = attachErrorCollector(page)
-  page.on('dialog', dialog => dialog.accept())
   await login(page)
 
   await page.goto('/settings')
@@ -80,6 +82,7 @@ test('admin can permanently delete a user', async ({ page }) => {
   await expect(row).toBeVisible()
 
   await row.locator('[data-testid="delete-user"]').click()
+  await page.locator('[data-testid="confirm-dialog-confirm"]').click()
   await expect(row).toHaveCount(0)
 
   // Reload to confirm the deletion was persisted server-side, not just

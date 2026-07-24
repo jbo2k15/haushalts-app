@@ -64,7 +64,7 @@ Reihenfolge bewusst so, dass verhaltens-/testneutrale Schritte zuerst kommen und
   - Verwaltung enthielt zugleich den **IA-Umbau**: Nutzerverwaltung → Einstellungen (admin-only Abschnitt), interne Unter-Tabs entfernt, `admin-user-management.spec.js` auf `/settings` umgestellt.
   - **Barrierefreiheit mitgezogen:** `prefers-reduced-motion` global in `index.css` ✅. `<header>`/`<main>`-Landmarks in Einstellungen, Verwaltung, Ruhmeshalle und Home ✅ (offen: Auth-Seiten). Neues `info`-Token (Blau) für „Wetter/automatisch"-Badges; alle Token-Kontraste (inkl. `info`) gegen WCAG 4.5:1 verifiziert.
   - Bewusst NICHT tokenisiert (eigene, universelle Bedeutung): Medaillenfarben (Bronze/Silber/Gold) in der Ruhmeshalle, Prioritäts-Randfarben in `TaskRow` (Violett/Grau), der grüne „erledigt"-Haken.
-- **Phase 2 — Custom-Dialoge** statt `confirm()`/`alert()`.
+- **Phase 2 — Custom-Dialoge ✅ (2026-07-24).** Promise-basierter `DialogProvider`/`useDialog()` (`confirm`/`alert`) + `ConfirmDialog` (Token-Optik, Escape/Backdrop, Autofokus auf die sichere Aktion, Fokus-Falle via App-level `inert`). Ersetzt alle nativen `confirm()`/`alert()` (Aufgabe löschen, globale Pause beenden, Nutzer sperren/löschen/Rolle, Import-/Fehlermeldungen). 6 E2E-Specs von `page.on('dialog')` auf Klick des Dialog-Buttons umgestellt. E2E 53/53 grün.
 - **Phase 3 — Navigation** (Bottom-Nav + Carousel-Merge, Zurück-Knopf-Modell). Bottom-Nav als `<nav>`-Landmark; „Zum Inhalt springen"-Skip-Link ergänzen. Größter E2E-Impact → zuletzt, mit Test-Anpassung.
 - **Phase 4 — Palette final anwenden** (Kontraste bereits in Phase 0/1 verifiziert; ggf. Feinschliff am Bildschirm).
 

@@ -27,8 +27,8 @@ test('pressing Escape closes the Aufgabe-bearbeiten modal without saving changes
 
   // Aufräumen - andere Tests laufen gegen dieselbe geteilte DB und erwarten
   // eine feste Liste seed-basierter Aufgaben.
-  page.once('dialog', dialog => dialog.accept())
   await row.getByRole('button', { name: 'Löschen' }).click()
+  await page.locator('[data-testid="confirm-dialog-confirm"]').click()
   await expect(row).toHaveCount(0)
 
   expect(errors).toEqual([])

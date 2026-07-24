@@ -3,6 +3,7 @@ import { api } from '../../api/client.js'
 import { inputCls } from './constants.js'
 import Card from '../ui/Card.jsx'
 import Button from '../ui/Button.jsx'
+import { useDialog } from '../../context/DialogContext.jsx'
 
 function formatDate(str) {
   return str.split('-').reverse().join('.')
@@ -12,6 +13,7 @@ function formatDate(str) {
 // Pausenzeiträumen pro Aufgabe (siehe TaskFormFields.jsx). Wirkt additiv
 // (ODER-verknüpft), überschreibt individuelle Zeiträume nicht.
 export default function GlobalPauseCard() {
+  const dialog = useDialog()
   const [pause, setPause] = useState(null)
   const [loading, setLoading] = useState(true)
   const [pauseFrom, setPauseFrom] = useState('')
@@ -32,17 +34,17 @@ export default function GlobalPauseCard() {
       setPauseTo('')
       load()
     } catch (err) {
-      alert(err.message)
+      dialog.alert(err.message)
     }
   }
 
   async function endPause() {
-    if (!confirm('Globale Pause wirklich beenden?')) return
+    if (!(await dialog.confirm({ title: 'Globale Pause beenden?', message: 'Globale Pause wirklich beenden?', confirmLabel: 'Beenden', tone: 'danger' }))) return
     try {
       await api.delete('/pauses/global')
       load()
     } catch (err) {
-      alert(err.message)
+      dialog.alert(err.message)
     }
   }
 

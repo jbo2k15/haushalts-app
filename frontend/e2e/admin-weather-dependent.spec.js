@@ -28,8 +28,8 @@ test('admin can mark a daily task as weather-dependent and unmark it again', asy
 
   // Aufräumen - andere Tests (z.B. drag-drop-reorder) erwarten eine feste
   // Liste seed-basierter Aufgaben und laufen gegen dieselbe geteilte DB.
-  page.once('dialog', dialog => dialog.accept())
   await row.getByRole('button', { name: 'Löschen' }).click()
+  await page.locator('[data-testid="confirm-dialog-confirm"]').click()
   await expect(row).toHaveCount(0)
 
   expect(errors).toEqual([])

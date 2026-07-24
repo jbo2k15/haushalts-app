@@ -3,6 +3,7 @@ import { MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { api } from '../api/client.js'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.js'
+import { useDialog } from '../context/DialogContext.jsx'
 import HeaderMenu from '../components/HeaderMenu.jsx'
 import TaskFormFields from '../components/admin/TaskFormFields.jsx'
 import TasksTab from '../components/admin/TasksTab.jsx'
@@ -13,6 +14,7 @@ import { EMPTY_FORM } from '../components/admin/constants.js'
 // Aufgabenverwaltung. Die Nutzerverwaltung ist als admin-only Abschnitt in
 // die Einstellungen umgezogen (Settings.jsx).
 export default function Admin() {
+  const dialog = useDialog()
   const [tasks, setTasks] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [editId, setEditId] = useState(null)
@@ -67,9 +69,9 @@ export default function Admin() {
     if (!file) return
     const text = await file.text()
     let data
-    try { data = JSON.parse(text) } catch { alert('Ungültige JSON-Datei'); return }
+    try { data = JSON.parse(text) } catch { dialog.alert('Ungültige JSON-Datei'); return }
     const result = await api.post('/tasks/admin/import', data)
-    alert(result.message)
+    dialog.alert(result.message)
     loadTasks()
     e.target.value = ''
   }
@@ -98,7 +100,7 @@ export default function Admin() {
       setShowForm(false)
       loadTasks()
     } catch (err) {
-      alert(err.message)
+      dialog.alert(err.message)
     }
   }
 
@@ -122,12 +124,12 @@ export default function Admin() {
   }
 
   async function deleteTask(id) {
-    if (!confirm('Aufgabe wirklich löschen?')) return
+    if (!(await dialog.confirm({ title: 'Aufgabe löschen?', message: 'Aufgabe wirklich löschen?', confirmLabel: 'Löschen', tone: 'danger' }))) return
     try {
       await api.delete(`/tasks/admin/${id}`)
       loadTasks()
     } catch (err) {
-      alert(err.message)
+      dialog.alert(err.message)
     }
   }
 

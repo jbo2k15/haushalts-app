@@ -64,8 +64,8 @@ test('admin can set an individual pause period on a task and clear it again', as
   // Aufräumen - andere Tests (z.B. drag-drop-reorder) erwarten eine feste
   // Liste seed-basierter Aufgaben und laufen gegen dieselbe geteilte DB.
   await page.goto('/admin')
-  page.once('dialog', dialog => dialog.accept())
   await row.getByRole('button', { name: 'Löschen' }).click()
+  await page.locator('[data-testid="confirm-dialog-confirm"]').click()
   await expect(row).toHaveCount(0)
 
   expect(errors).toEqual([])
