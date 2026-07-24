@@ -97,6 +97,13 @@ test('browser back button leaves Settings/Admin, unlike the carousel routes whic
   await homeSlide.getByRole('menuitem', { name: 'Einstellungen' }).click()
   await expect(page).toHaveURL('/settings')
 
+  // Vor goBack sicherstellen, dass PageCarousel wirklich unmounted ist: unter
+  // React-Router startTransition kann toHaveURL('/settings') schon greifen,
+  // bevor der Unmount committed ist. Sonst haengt der Exit-Guard-popstate-
+  // Listener beim Zurueck noch, faengt das goBack ab und zeigt faelschlich
+  // "App schliessen?" (auf dem langsameren CI-Runner deterministisch).
+  await expect(page.locator('[data-slide-path]')).toHaveCount(0)
+
   await page.goBack()
   await expect(page).toHaveURL('/')
 
@@ -104,6 +111,9 @@ test('browser back button leaves Settings/Admin, unlike the carousel routes whic
   await menuIn(page, homeSlide).toggle.click()
   await homeSlide.getByRole('menuitem', { name: 'Verwaltung' }).click()
   await expect(page).toHaveURL('/admin')
+
+  // Gleiches Warten wie oben: Carousel-Unmount vor goBack abwarten.
+  await expect(page.locator('[data-slide-path]')).toHaveCount(0)
 
   await page.goBack()
   await expect(page).toHaveURL('/')
