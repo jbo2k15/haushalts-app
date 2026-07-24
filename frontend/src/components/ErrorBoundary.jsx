@@ -10,12 +10,12 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.error) {
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl border border-red-200 p-6 max-w-sm w-full">
-            <p className="text-sm font-semibold text-red-700 mb-1">Fehler beim Laden</p>
-            <p className="text-xs text-gray-500 font-mono break-all">{this.state.error.message}</p>
+        <div className="min-h-screen bg-surface flex items-center justify-center px-4">
+          <div className="bg-surface-container rounded-card border border-danger p-6 max-w-sm w-full">
+            <p className="text-sm font-semibold text-danger mb-1">Fehler beim Laden</p>
+            <p className="text-xs text-ink-muted font-mono break-all">{this.state.error.message}</p>
             <button
-              className="mt-4 text-sm text-orange-600 underline"
+              className="mt-4 text-sm text-primary underline"
               onClick={() => window.location.reload()}
             >
               Seite neu laden

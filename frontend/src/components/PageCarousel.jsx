@@ -53,11 +53,17 @@ export default function PageCarousel() {
   // react reInit() the engine on navigation, which (see comment above)
   // silently drops the 'select' listener registered below.
   const initialIndexRef = useRef(Math.max(0, PAGES.findIndex(p => p.path === location.pathname)))
+  // Bei „Bewegung reduzieren" die Wisch-/scrollTo-Animation instant machen —
+  // Embla ist JS-gesteuert, die prefers-reduced-motion-CSS-Regel (index.css)
+  // greift dort nicht. Einmalig gelesen; die OS-Einstellung ändert sich
+  // praktisch nie mitten in einer Sitzung.
+  const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
     align: 'start',
     startIndex: initialIndexRef.current,
     watchDrag: () => !modalOpenRef.current,
+    duration: prefersReducedMotion ? 0 : 25,
   })
   const [showTip, setShowTip] = useState(false)
   const syncingFromUrl = useRef(false)
