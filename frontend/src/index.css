@@ -20,6 +20,123 @@
   }
 }
 
+/*
+  Design-Tokens (Redesign, siehe REDESIGN.md) — Palette B "Terrakotta/Clay".
+  Semantische Rollen als CSS-Variablen, die unter `.dark` umschalten; per
+  `@theme inline` weiter unten zu Tailwind-Utilities gemappt (bg-primary,
+  text-ink, border-outline, ...). Additiv: bestehende gray-/orange-Klassen
+  bleiben unberührt, bis sie in Phase 1 Screen für Screen ersetzt werden.
+
+  HINWEIS: Die Hex-Werte sind bewusst provisorisch. Vor der finalen Anwendung
+  (Phase 4) müssen die farbigen Flächen in Hell UND Dunkel gegen WCAG 4.5:1
+  geprüft werden (siehe REDESIGN.md + TODO.md "Farbkontrast").
+*/
+:root {
+  --sys-surface: #faf8f6;
+  --sys-surface-container: #ffffff;
+  --sys-surface-container-high: #f5f1ed;
+
+  --sys-primary: #a8492a;
+  --sys-on-primary: #ffffff;
+  --sys-primary-container: #f5e0d5;
+  --sys-on-primary-container: #5c2e12;
+
+  --sys-secondary-container: #ecfccb;
+  --sys-on-secondary-container: #3f6212;
+
+  --sys-danger: #b91c1c;
+  --sys-on-danger: #ffffff;
+  --sys-danger-container: #fde8e8;
+  --sys-on-danger-container: #7f1d1d;
+
+  --sys-success-container: #e1f5ee;
+  --sys-on-success-container: #0b5340;
+
+  --sys-warning-container: #fdf0e7;
+  --sys-on-warning-container: #7a3e08;
+
+  --sys-outline: #e5e1dc;
+  --sys-outline-strong: #d9d2cc;
+
+  --sys-ink: #2c2c2a;
+  --sys-ink-muted: #6b655f;
+  --sys-ink-faint: #8a8580;
+}
+
+.dark {
+  --sys-surface: #17140f;
+  --sys-surface-container: #211c16;
+  --sys-surface-container-high: #2a241d;
+
+  --sys-primary: #d08a6b;
+  --sys-on-primary: #3a1a0c;
+  --sys-primary-container: #5c2e12;
+  --sys-on-primary-container: #f5e0d5;
+
+  --sys-secondary-container: #2c3a10;
+  --sys-on-secondary-container: #d9e9b0;
+
+  --sys-danger: #f08a8a;
+  --sys-on-danger: #4a1010;
+  --sys-danger-container: #4a1515;
+  --sys-on-danger-container: #f7c1c1;
+
+  --sys-success-container: #10362b;
+  --sys-on-success-container: #9fe1cb;
+
+  --sys-warning-container: #3a2a15;
+  --sys-on-warning-container: #f5d9b5;
+
+  --sys-outline: #3a342c;
+  --sys-outline-strong: #4a443c;
+
+  --sys-ink: #ece7e1;
+  --sys-ink-muted: #b4aea6;
+  --sys-ink-faint: #8a857d;
+}
+
+@theme inline {
+  --color-surface: var(--sys-surface);
+  --color-surface-container: var(--sys-surface-container);
+  --color-surface-container-high: var(--sys-surface-container-high);
+
+  --color-primary: var(--sys-primary);
+  --color-on-primary: var(--sys-on-primary);
+  --color-primary-container: var(--sys-primary-container);
+  --color-on-primary-container: var(--sys-on-primary-container);
+
+  --color-secondary-container: var(--sys-secondary-container);
+  --color-on-secondary-container: var(--sys-on-secondary-container);
+
+  --color-danger: var(--sys-danger);
+  --color-on-danger: var(--sys-on-danger);
+  --color-danger-container: var(--sys-danger-container);
+  --color-on-danger-container: var(--sys-on-danger-container);
+
+  --color-success-container: var(--sys-success-container);
+  --color-on-success-container: var(--sys-on-success-container);
+
+  --color-warning-container: var(--sys-warning-container);
+  --color-on-warning-container: var(--sys-on-warning-container);
+
+  --color-outline: var(--sys-outline);
+  --color-outline-strong: var(--sys-outline-strong);
+
+  --color-ink: var(--sys-ink);
+  --color-ink-muted: var(--sys-ink-muted);
+  --color-ink-faint: var(--sys-ink-faint);
+}
+
+/* Radius- und Elevation-Skala (statisch, kein Dark-Umschalten nötig). */
+@theme {
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-modal: 24px;
+
+  --shadow-e1: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.10);
+  --shadow-e2: 0 4px 8px rgb(0 0 0 / 0.08), 0 2px 4px rgb(0 0 0 / 0.06);
+}
+
 @layer base {
   html { font-size: 16px; }
   body { @apply bg-gray-50 text-gray-900 antialiased; }
