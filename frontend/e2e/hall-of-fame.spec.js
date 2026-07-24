@@ -25,7 +25,9 @@ test('hall of fame ranks users by trophy score and shows trophy-less users separ
 
   await page.route('**/api/tasks/stats', route => route.fulfill({ json: MOCK_STATS }))
   await page.goto('/hall-of-fame')
-  await expect(page.getByText('Ruhmeshalle')).toBeVisible()
+  // Auf die Seiten-Überschrift zeigen, nicht auf das gleichnamige Bottom-Nav-
+  // Label (seit Phase 3), sonst trifft getByText zwei Elemente.
+  await expect(page.getByRole('heading', { name: 'Ruhmeshalle' })).toBeVisible()
 
   const rankedRows = page.locator('[data-testid="hof-ranked-row"]')
   await expect(rankedRows).toHaveCount(3)
