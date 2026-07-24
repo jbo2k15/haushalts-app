@@ -86,6 +86,30 @@ Alle Detailfragen entschieden → nächster Schritt ist **Phase 0** (Tokens + Ba
 
 ---
 
+## Phase 3 — Navigation: finale Entscheidungen (2026-07-24)
+
+- Bottom-Nav + Carousel vereint; **Wischen nur zwischen Aufgaben ↔ Ruhmeshalle**, Verwaltung/Einstellungen nur per Tap.
+- Header-Menü entfällt; **„Abmelden" wandert in die Einstellungen**.
+- Icons: **`lucide-react`** (tree-shakeable) für die Bottom-Nav. Emojis bleiben selektiv erhalten (Medaillen 🥇🥈🥉, Gruß, Abschnitts-Header) — keine flächendeckende Ent-Emojisierung.
+- Bottom-Nav immer sichtbar; Zurück-Knopf: nicht-Aufgaben → Aufgaben-Tab → „App schließen?".
+- **Mit Phase 3 gebündelt:** SW-Update-Prompt (`registerType: 'prompt'` + „Neue Version"-Banner — behebt das stille Stale-App-Problem, HIGH-Finding); Embla `duration: 0` bei `prefers-reduced-motion`; `KeyboardSensor` fürs Admin-Drag&Drop; `<nav>`-Landmark + `aria-current` + „Zum Inhalt springen"-Skip-Link; Aufräumen der Token-Reste (PageCarousel-Dots/Tip, ExitConfirmModal, ReleaseNotesModal, ErrorBoundary).
+- **Merge-Risiken** (aus Tech-Audit): `PAGES` wird rollengefiltert (Admin nur Admins → Länge 3 vs. 4) → Modulo-Index, `startIndex`-Ref und Re-Attach des `select`-Listeners nach `reInit()` müssen variable Länge verkraften; History-Exit-Guard + „Zurück → Aufgaben"-Modell sorgfältig sequenzieren. E2E-Aufwand: `swipe-carousel`, `header-menu`, `exit-confirm` + Navigationseinstiege in `hall-of-fame`/`settings`/`route-smoke`/`admin-*` anpassen.
+
+## Engineering-/NFR-/Security-Backlog (Audit 2026-07-24)
+
+**Umzusetzen (eigene Schritte, nicht Teil von Phase 3):**
+- **CI** (GitHub Actions, Vitest + Playwright, Trigger push+PR auf `main`) — angelegt in `.github/workflows/ci.yml`. **Deploy an grünen CI-Lauf koppeln** — Mechanismus noch festzulegen.
+- **SQLite `PRAGMA journal_mode=WAL; busy_timeout=5000`** — beugt „database is locked" beim Mehr-Seiten-Burst vor.
+- **Screenshots** aus SW-Precache nehmen **und** nach Phase 4 neu aufnehmen (zeigen noch Orange).
+- **axe/Lighthouse-Audit** vor dem Palette-Finale (Phase 4).
+- **L1 Per-Account-Lockout** — später (verbessert Sicherheit + Haushalts-UX).
+- **L2 Push-Endpoint-Reassignment** — **zu klären**: widerspricht der bewussten Entscheidung vom 2026-07-14 (Übernahme erlaubt + geloggt, für Besitzerwechsel auf geteiltem Gerät).
+
+**Bewusst akzeptiert:**
+- **M1 CSP `'unsafe-inline'` (styles)** — Fix bräche Emblas dynamische Inline-Transforms + Zoom/Rand-Styles; praktisches Risiko minimal (`script-src` fest auf `'self'`, keine Injektions-Sinks).
+- **L3 `/api/health` unauth** — aktiv von Deploy-Smoke-Test + Monitoring genutzt, Info-Leak minimal.
+- **L4 Reset-Token in URL** (Standard, entschärft), **L5 CORS-Fallback** (nur Nicht-Prod, in Prod fatal abgesichert).
+
 ## Recherche-Quellen (2025–2026)
 
 - m3.material.io/foundations/design-tokens
