@@ -10,6 +10,7 @@ import { HIDE_EXIT_CONFIRM_KEY } from '../components/ExitConfirmModal.jsx'
 import Card from '../components/ui/Card.jsx'
 import Switch from '../components/ui/Switch.jsx'
 import Button from '../components/ui/Button.jsx'
+import UsersTab from '../components/admin/UsersTab.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 
@@ -35,6 +36,7 @@ export default function Settings() {
   const [vacationMode, setVacationMode] = useState(user?.vacationMode || false)
   const [weatherNotify, setWeatherNotify] = useState(user?.notifyOnWeatherSkip ?? true)
   const [exitConfirmEnabled, setExitConfirmEnabled] = useState(() => localStorage.getItem(HIDE_EXIT_CONFIRM_KEY) !== 'true')
+  const [users, setUsers] = useState([])
 
   useEffect(() => {
     setPushSupported('serviceWorker' in navigator && 'PushManager' in window)
@@ -60,6 +62,53 @@ export default function Settings() {
       })
     }
   }, [])
+
+  // Nutzerverwaltung ist seit dem IA-Umbau (siehe REDESIGN.md) hier statt in
+  // der Verwaltung angesiedelt - nur für Admins geladen und angezeigt.
+  useEffect(() => {
+    if (user?.role !== 'admin') return
+    loadUsers()
+  }, [user?.role])
+
+  async function loadUsers() {
+    try { setUsers(await api.get('/users')) } catch {}
+  }
+
+  async function toggleUser(id) {
+    const userRecord = users.find(u => u.id === id)
+    if (userRecord?.approved) {
+      if (!confirm(`Möchtest du "${userRecord.name}" wirklich sperren? Der Nutzer verliert sofort den Zugriff.`)) return
+    }
+    try {
+      await api.post(`/users/${id}/approve`)
+      loadUsers()
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  async function deleteUser(id) {
+    const userRecord = users.find(u => u.id === id)
+    if (!confirm(`Möchtest du "${userRecord.name}" (${userRecord.email}) wirklich dauerhaft löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return
+    try {
+      await api.delete(`/users/${id}`)
+      loadUsers()
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  async function toggleRole(id) {
+    const userRecord = users.find(u => u.id === id)
+    const action = userRecord?.role === 'admin' ? 'zum normalen Nutzer machen' : 'zum Admin machen'
+    if (!confirm(`Möchtest du "${userRecord.name}" wirklich ${action}?`)) return
+    try {
+      await api.post(`/users/${id}/role`)
+      loadUsers()
+    } catch (err) {
+      alert(err.message)
+    }
+  }
 
   async function togglePush() {
     const reg = await navigator.serviceWorker.ready
@@ -137,12 +186,12 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-surface">
       <div className="max-w-lg mx-auto px-4 pb-8">
-        <div className="flex items-center justify-between py-4">
+        <header className="flex items-center justify-between py-4">
           <h1 className="text-xl font-semibold text-ink">Einstellungen</h1>
           <HeaderMenu />
-        </div>
+        </header>
 
-        <div className="space-y-4">
+        <main className="space-y-4">
 
           {/* Erscheinungsbild */}
           <Card className="p-4 space-y-3">
@@ -332,7 +381,22 @@ export default function Settings() {
               {saved ? 'Gespeichert ✓' : 'Speichern'}
             </Button>
           </Card>
-        </div>
+
+          {/* Nutzerverwaltung - seit dem IA-Umbau hier statt in der Verwaltung
+              (siehe REDESIGN.md); nur für Admins sichtbar. */}
+          {user?.role === 'admin' && (
+            <section className="space-y-2">
+              <h2 className="font-medium text-ink">Nutzerverwaltung <span className="text-xs text-ink-faint font-normal">(gilt für alle)</span></h2>
+              <UsersTab
+                users={users}
+                currentUserId={user?.id}
+                onToggleRole={toggleRole}
+                onToggleApprove={toggleUser}
+                onDeleteUser={deleteUser}
+              />
+            </section>
+          )}
+        </main>
       </div>
     </div>
   )
