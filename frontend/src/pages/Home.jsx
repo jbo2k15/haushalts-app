@@ -7,6 +7,7 @@ import LogSection from '../components/LogSection.jsx'
 import PushPromptBanner from '../components/PushPromptBanner.jsx'
 import HeaderIllustration from '../components/HeaderIllustration.jsx'
 import HeaderMenu from '../components/HeaderMenu.jsx'
+import Button from '../components/ui/Button.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
@@ -170,46 +171,43 @@ export default function Home() {
   }, [loadTasks])
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-surface">
       <div role="status" aria-live="polite" className="sr-only">{liveMessage}</div>
       <div className="max-w-lg mx-auto px-4 pb-8">
-        <div className="flex items-center justify-between py-2">
+        <header className="flex items-center justify-between py-2">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Haushalt</h1>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{dateLabel}</p>
+            <h1 className="text-xl font-semibold text-ink">Haushalt</h1>
+            <p className="text-xs text-ink-faint mt-0.5">{dateLabel}</p>
           </div>
           <HeaderIllustration />
           <HeaderMenu />
-        </div>
+        </header>
+
+        <main>
 
         {error && !loaded && (
           <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
             <div className="text-4xl">📡</div>
-            <p className="text-gray-700 dark:text-gray-300 font-medium">Server nicht erreichbar</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500">Bitte überprüfe deine Internetverbindung.</p>
-            <button
-              onClick={loadTasks}
-              className="mt-2 px-4 py-2 bg-orange-500 text-white text-sm rounded-xl font-medium"
-            >
-              Erneut versuchen
-            </button>
+            <p className="text-ink font-medium">Server nicht erreichbar</p>
+            <p className="text-sm text-ink-faint">Bitte überprüfe deine Internetverbindung.</p>
+            <Button onClick={loadTasks} variant="primary" className="mt-2">Erneut versuchen</Button>
           </div>
         )}
         {error && loaded && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-400 rounded-xl p-3 text-sm mb-4">
+          <div className="bg-danger-container border border-danger text-on-danger-container rounded-card p-3 text-sm mb-4">
             Verbindung unterbrochen — Daten könnten veraltet sein.
           </div>
         )}
 
         {!loaded && !error && (
           <div className="flex justify-center py-24">
-            <div className="w-6 h-6 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
         {(loaded || error) && <>
-          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/40 rounded-2xl px-4 py-3 mb-2">
-            <p className="text-sm text-orange-800 dark:text-orange-300 font-medium">
+          <div className="bg-primary-container rounded-card px-4 py-3 mb-2">
+            <p className="text-sm text-on-primary-container font-medium">
               {getGreetingMessage(user?.name?.split(' ')[0] || '', tasks.daily)}
             </p>
           </div>
@@ -225,6 +223,7 @@ export default function Home() {
             <LogSection refreshKey={logRefreshKey} />
           </div>
         </>}
+        </main>
       </div>
     </div>
   )

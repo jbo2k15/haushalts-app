@@ -1,8 +1,22 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client.js'
+import Card from './ui/Card.jsx'
+import Badge from './ui/Badge.jsx'
 
 function formatDate(str) {
   return new Date(str).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+const STATUS = {
+  completed: { tone: 'success', label: 'erledigt' },
+  'system-completed': { tone: 'info', label: '☔ automatisch' },
+  skipped: { tone: 'primary', label: 'abgelehnt' },
+}
+
+function statusBadge(log) {
+  if (STATUS[log.status]) return STATUS[log.status]
+  if (log.taskId === null) return { tone: 'neutral', label: 'gelöscht' }
+  return { tone: 'danger', label: 'verfallen' }
 }
 
 export default function LogSection({ refreshKey }) {
@@ -14,40 +28,31 @@ export default function LogSection({ refreshKey }) {
   }, [refreshKey])
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <Card className="overflow-hidden">
       <button
-        className="w-full flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50"
+        className="w-full flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container-high"
         onClick={() => setOpen(o => !o)}
       >
         <span className="text-base">📋</span>
-        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Verlauf</span>
-        <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">{open ? '▲' : '▼'}</span>
+        <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Verlauf</span>
+        <span className="ml-auto text-xs text-ink-faint">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-96 overflow-y-auto">
-          {logs.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500 p-4 text-center">Noch keine Einträge</p>}
-          {logs.map(log => (
-            <div key={log.id} className="flex items-center gap-3 px-4 py-2.5">
-              <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{log.taskTitle}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                log.status === 'completed' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                : log.status === 'system-completed' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                : log.status === 'skipped' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
-                : log.taskId === null ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-              }`}>
-                {log.status === 'completed' ? 'erledigt'
-                : log.status === 'system-completed' ? '☔ automatisch'
-                : log.status === 'skipped' ? 'abgelehnt'
-                : log.taskId === null ? 'gelöscht'
-                : 'verfallen'}
-              </span>
-              {log.userName && <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{log.userName}</span>}
-              <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{formatDate(log.loggedAt)}</span>
-            </div>
-          ))}
+        <div className="divide-y divide-outline max-h-96 overflow-y-auto">
+          {logs.length === 0 && <p className="text-sm text-ink-faint p-4 text-center">Noch keine Einträge</p>}
+          {logs.map(log => {
+            const badge = statusBadge(log)
+            return (
+              <div key={log.id} className="flex items-center gap-3 px-4 py-2.5">
+                <span className="flex-1 text-sm text-ink truncate">{log.taskTitle}</span>
+                <Badge tone={badge.tone} className="shrink-0">{badge.label}</Badge>
+                {log.userName && <span className="text-xs text-ink-faint shrink-0">{log.userName}</span>}
+                <span className="text-xs text-ink-faint shrink-0">{formatDate(log.loggedAt)}</span>
+              </div>
+            )
+          })}
         </div>
       )}
-    </div>
+    </Card>
   )
 }

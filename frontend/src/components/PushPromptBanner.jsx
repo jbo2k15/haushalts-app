@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client.js'
 import { urlBase64ToUint8Array } from '../lib/push.js'
+import Button from './ui/Button.jsx'
 
 const SNOOZE_KEY = 'pushSnoozedUntil'
 
@@ -90,41 +91,43 @@ export default function PushPromptBanner() {
   if (!visible) return null
 
   return (
-    <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 rounded-2xl px-4 py-3 mb-2">
+    <div className="bg-primary-container rounded-card px-4 py-3 mb-2">
       <div className="flex items-start gap-3">
         <span className="text-xl mt-0.5">🔔</span>
         <div className="flex-1 min-w-0">
           {denied ? (
             <>
-              <p className="text-sm font-medium text-orange-900 dark:text-orange-300">Push-Benachrichtigungen blockiert</p>
-              <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
+              <p className="text-sm font-medium text-on-primary-container">Push-Benachrichtigungen blockiert</p>
+              <p className="text-xs text-on-primary-container mt-0.5">
                 Bitte erlaube Benachrichtigungen in den Browser-Einstellungen für diese Seite.
               </p>
             </>
           ) : (
             <>
-              <p className="text-sm font-medium text-orange-900 dark:text-orange-300">Push-Benachrichtigungen aktivieren?</p>
-              <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
+              <p className="text-sm font-medium text-on-primary-container">Push-Benachrichtigungen aktivieren?</p>
+              <p className="text-xs text-on-primary-container mt-0.5">
                 Erhalte Erinnerungen an offene Aufgaben.
               </p>
             </>
           )}
           <div className="flex gap-2 mt-2">
             {!denied && (
-              <button
+              <Button
                 onClick={enable}
                 disabled={loading}
-                className="bg-orange-600 text-white rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-60"
+                variant="primary"
+                className="px-3 py-1.5 text-xs"
               >
                 {loading ? 'Wird aktiviert…' : 'Einschalten'}
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               onClick={remindTomorrow}
-              className="text-orange-700 dark:text-orange-400 border border-orange-300 dark:border-orange-700 rounded-lg px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800"
+              variant="secondary"
+              className="px-3 py-1.5 text-xs bg-surface-container"
             >
               Morgen erinnern
-            </button>
+            </Button>
           </div>
         </div>
       </div>

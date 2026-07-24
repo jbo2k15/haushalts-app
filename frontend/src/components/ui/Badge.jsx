@@ -10,6 +10,7 @@ const TONES = {
   success: 'bg-success-container text-on-success-container',
   warning: 'bg-warning-container text-on-warning-container',
   danger: 'bg-danger-container text-on-danger-container',
+  info: 'bg-info-container text-on-info-container',
 }
 
 export default function Badge({ tone = 'neutral', className = '', children }) {

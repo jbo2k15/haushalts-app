@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { api } from '../api/client.js'
+import Card from './ui/Card.jsx'
 
 export default function StatsSection({ refreshKey }) {
   const navigate = useNavigate()
@@ -19,26 +20,26 @@ export default function StatsSection({ refreshKey }) {
   if (stats.length === 0) return null
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+    <Card className="overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-outline bg-surface-container-high">
         <div className="flex items-center gap-2">
           <span className="text-base">📊</span>
-          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Statistik</span>
+          <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Statistik</span>
         </div>
         <button
           onClick={() => navigate('/hall-of-fame', { replace: true })}
-          className="text-xs text-orange-600 dark:text-orange-400 font-medium"
+          className="text-xs text-primary font-medium"
         >
           🏆 Ruhmeshalle
         </button>
       </div>
 
-      <div className="divide-y divide-gray-100 dark:divide-gray-700">
+      <div className="divide-y divide-outline">
         <div className="flex items-center gap-2 px-4 py-1.5">
           <span className="flex-1" />
-          <span className="w-14 text-center text-xs text-gray-400 dark:text-gray-500 font-medium">Heute</span>
-          <span className="w-14 text-center text-xs text-gray-400 dark:text-gray-500 font-medium">Woche</span>
-          <span className="w-14 text-center text-xs text-gray-400 dark:text-gray-500 font-medium">Monat</span>
+          <span className="w-14 text-center text-xs text-ink-faint font-medium">Heute</span>
+          <span className="w-14 text-center text-xs text-ink-faint font-medium">Woche</span>
+          <span className="w-14 text-center text-xs text-ink-faint font-medium">Monat</span>
         </div>
 
         {stats.map(userStat => {
@@ -47,20 +48,20 @@ export default function StatsSection({ refreshKey }) {
           const monthLeader = maxMonth > 0 && userStat.curMonth === maxMonth
           return (
             <div key={userStat.id} className="flex items-center gap-2 px-4 py-2.5">
-              <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{userStat.name}</span>
-              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${dayLeader ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20' : 'text-gray-400 dark:text-gray-500'}`}>
+              <span className="flex-1 text-sm text-ink truncate">{userStat.name}</span>
+              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${dayLeader ? 'text-on-primary-container bg-primary-container' : 'text-ink-faint'}`}>
                 {userStat.curDay}
               </span>
-              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${weekLeader ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20' : 'text-gray-400 dark:text-gray-500'}`}>
+              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${weekLeader ? 'text-on-primary-container bg-primary-container' : 'text-ink-faint'}`}>
                 {userStat.curWeek}
               </span>
-              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${monthLeader ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20' : 'text-gray-400 dark:text-gray-500'}`}>
+              <span className={`w-14 text-center text-sm font-semibold rounded-lg py-0.5 ${monthLeader ? 'text-on-primary-container bg-primary-container' : 'text-ink-faint'}`}>
                 {userStat.curMonth}
               </span>
             </div>
           )
         })}
       </div>
-    </div>
+    </Card>
   )
 }
