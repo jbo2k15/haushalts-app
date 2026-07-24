@@ -56,6 +56,9 @@
   --sys-warning-container: #fdf0e7;
   --sys-on-warning-container: #7a3e08;
 
+  --sys-info-container: #e6f1fb;
+  --sys-on-info-container: #0c447c;
+
   --sys-outline: #e5e1dc;
   --sys-outline-strong: #d9d2cc;
 
@@ -87,6 +90,9 @@
 
   --sys-warning-container: #3a2a15;
   --sys-on-warning-container: #f5d9b5;
+
+  --sys-info-container: #0c3a5e;
+  --sys-on-info-container: #b5d4f4;
 
   --sys-outline: #3a342c;
   --sys-outline-strong: #4a443c;
@@ -120,6 +126,9 @@
   --color-warning-container: var(--sys-warning-container);
   --color-on-warning-container: var(--sys-on-warning-container);
 
+  --color-info-container: var(--sys-info-container);
+  --color-on-info-container: var(--sys-on-info-container);
+
   --color-outline: var(--sys-outline);
   --color-outline-strong: var(--sys-outline-strong);
 
@@ -142,4 +151,21 @@
   html { font-size: 16px; }
   body { @apply bg-gray-50 text-gray-900 antialiased; }
   .dark body { @apply bg-gray-900 text-gray-100; }
+}
+
+/*
+  Barrierefreiheit: OS-Einstellung „Bewegung reduzieren" respektieren.
+  Neutralisiert CSS-Transitions/Animationen (Farbwechsel, Toggle-Slides,
+  Lade-Spinner). Der Embla-Wisch-Carousel ist JS-gesteuert und davon nicht
+  betroffen — bei Bedarf separat über dessen duration-Option behandeln.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

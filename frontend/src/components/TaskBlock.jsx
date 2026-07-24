@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import TaskRow from './TaskRow.jsx'
+import Card from './ui/Card.jsx'
 
 const BLOCK_CONFIG = {
   once: { label: 'Einmalig', icon: '📌' },
@@ -44,16 +45,16 @@ const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle, pauseInfo }) 
   const completedCount = tasks.filter(t => t.completed).length
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+    <Card className="overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container-high">
         <span className="text-base">{config.icon}</span>
-        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{config.label}</span>
-        <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
+        <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">{config.label}</span>
+        <span className="ml-auto text-xs text-ink-faint">
           {completedCount}/{tasks.length}
         </span>
       </div>
       {pauseInfo?.paused > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+        <div className="flex items-center gap-2 px-4 py-2 text-xs text-ink-muted border-b border-outline last:border-b-0">
           <span>⏸</span>
           <span>{pauseInfo.paused} von {pauseInfo.total} Aufgaben pausiert</span>
         </div>
@@ -61,7 +62,7 @@ const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle, pauseInfo }) 
       {markedTasks.map(task => (
         <TaskRow key={task.id} task={task} onToggle={onToggle} />
       ))}
-    </div>
+    </Card>
   )
 })
 
