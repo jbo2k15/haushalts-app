@@ -13,7 +13,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' statt 'autoUpdate': ein neuer Build greift sonst (bei
+      // injectManifest ohne skipWaiting) erst, wenn alle PWA-Fenster komplett
+      // geschlossen wurden. Mit 'prompt' + useRegisterSW (UpdatePrompt.jsx)
+      // kann der Nutzer per Klick sofort neu laden. injectRegister: false, weil
+      // useRegisterSW den Service Worker selbst registriert (keine Doppel-
+      // Registrierung).
+      registerType: 'prompt',
+      injectRegister: false,
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',

@@ -97,7 +97,8 @@ Alle Detailfragen entschieden → nächster Schritt ist **Phase 0** (Tokens + Ba
 
 **Fortschritt:**
 - **3a ✅ (2026-07-24):** `BottomNav` (lucide-react) eingeführt, Header-Menü entfernt, „Abmelden" → Einstellungen, globaler `VersionFooter` → Versionszeile in den Einstellungen, Carousel-Dots entfernt (Nav zeigt die aktive Position via `aria-current`), Wisch-Tipp über die Nav gehoben, Seiten-Padding (`pb-24`) für die fixe Nav. E2E: `header-menu.spec` → `bottom-nav.spec`, `swipe-carousel` auf Nav-`aria-current` umgestellt. Lokal 50/50 grün.
-- **Offen:** 3b (Zurück-Modell „nicht-Aufgaben → Aufgaben → App schließen?"), 3c (SW-Update-Prompt), 3d (Embla `duration:0` bei reduced-motion, `KeyboardSensor`, `<nav>`-Landmark hat BottomNav bereits/Skip-Link, Token-Reste in PageCarousel/ExitConfirmModal/ReleaseNotesModal/ErrorBoundary).
+- **3b zurückgestellt (2026-07-24):** „Zurück auf Ruhmeshalle → Aufgaben" ließ sich nicht mit einem kleinen `popstate`-Handler-Zweig lösen — react-router hat die Location im synchronen Handler bereits aufgelöst, sodass sich „Zurück von Ruhmeshalle" nicht von „Zurück von Aufgaben" unterscheiden ließ (zwei Ansätze via `locationRef`/`currentSlideRef` gescheitert, beide zeigten fälschlich den Exit-Dialog). Eine korrekte Umsetzung braucht einen **Umbau des Carousel-History-Modells** (push- statt replace-basiert mit Dedupe, oder app-weite History-State-Machine) — eigener, gründlicher Schritt, hohes Regressionsrisiko im fragilsten Code. Aktuelles Verhalten bleibt (Zurück auf Ruhmeshalle → Exit-Dialog; Abbrechen bleibt dort). Bereits erfüllt: Verwaltung/Einstellungen→Aufgaben, Aufgaben→Exit.
+- **Offen:** 3c (SW-Update-Prompt), 3d (Embla `duration:0` bei reduced-motion, `KeyboardSensor`, Skip-Link — `<nav>`-Landmark hat BottomNav bereits, Token-Reste in PageCarousel/ExitConfirmModal/ReleaseNotesModal/ErrorBoundary).
 
 ## Engineering-/NFR-/Security-Backlog (Audit 2026-07-24)
 
