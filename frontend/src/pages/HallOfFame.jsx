@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client.js'
-import HeaderMenu from '../components/HeaderMenu.jsx'
 import Card from '../components/ui/Card.jsx'
 
 const TROPHY_TYPES = [
@@ -46,10 +45,9 @@ export default function HallOfFame() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <div className="max-w-lg mx-auto px-4 pb-8">
+      <div className="max-w-lg mx-auto px-4 pb-24">
         <header className="flex items-center justify-between py-4">
           <h1 className="text-xl font-semibold text-ink">Ruhmeshalle</h1>
-          <HeaderMenu />
         </header>
 
         <main>

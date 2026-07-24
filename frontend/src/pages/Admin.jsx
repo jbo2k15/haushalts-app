@@ -4,7 +4,6 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { api } from '../api/client.js'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.js'
 import { useDialog } from '../context/DialogContext.jsx'
-import HeaderMenu from '../components/HeaderMenu.jsx'
 import TaskFormFields from '../components/admin/TaskFormFields.jsx'
 import TasksTab from '../components/admin/TasksTab.jsx'
 import Button from '../components/ui/Button.jsx'
@@ -171,13 +170,10 @@ export default function Admin() {
       {/* inert while the edit modal is up - traps focus/pointer interaction
           inside the modal instead of letting Tab or a stray tap reach the
           page underneath. */}
-      <div className="max-w-lg mx-auto px-4 pb-8" inert={!!editId}>
-        <header className="flex items-center justify-between py-4">
-          <div>
-            <h1 className="text-xl font-semibold text-ink">Verwaltung</h1>
-            <p className="text-xs text-ink-faint mt-0.5">Aufgaben des Haushalts</p>
-          </div>
-          <HeaderMenu />
+      <div className="max-w-lg mx-auto px-4 pb-24" inert={!!editId}>
+        <header className="py-4">
+          <h1 className="text-xl font-semibold text-ink">Verwaltung</h1>
+          <p className="text-xs text-ink-faint mt-0.5">Aufgaben des Haushalts</p>
         </header>
 
         <main>

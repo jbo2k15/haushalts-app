@@ -93,7 +93,11 @@ Alle Detailfragen entschieden → nächster Schritt ist **Phase 0** (Tokens + Ba
 - Icons: **`lucide-react`** (tree-shakeable) für die Bottom-Nav. Emojis bleiben selektiv erhalten (Medaillen 🥇🥈🥉, Gruß, Abschnitts-Header) — keine flächendeckende Ent-Emojisierung.
 - Bottom-Nav immer sichtbar; Zurück-Knopf: nicht-Aufgaben → Aufgaben-Tab → „App schließen?".
 - **Mit Phase 3 gebündelt:** SW-Update-Prompt (`registerType: 'prompt'` + „Neue Version"-Banner — behebt das stille Stale-App-Problem, HIGH-Finding); Embla `duration: 0` bei `prefers-reduced-motion`; `KeyboardSensor` fürs Admin-Drag&Drop; `<nav>`-Landmark + `aria-current` + „Zum Inhalt springen"-Skip-Link; Aufräumen der Token-Reste (PageCarousel-Dots/Tip, ExitConfirmModal, ReleaseNotesModal, ErrorBoundary).
-- **Merge-Risiken** (aus Tech-Audit): `PAGES` wird rollengefiltert (Admin nur Admins → Länge 3 vs. 4) → Modulo-Index, `startIndex`-Ref und Re-Attach des `select`-Listeners nach `reInit()` müssen variable Länge verkraften; History-Exit-Guard + „Zurück → Aufgaben"-Modell sorgfältig sequenzieren. E2E-Aufwand: `swipe-carousel`, `header-menu`, `exit-confirm` + Navigationseinstiege in `hall-of-fame`/`settings`/`route-smoke`/`admin-*` anpassen.
+- **Merge-Risiken** (aus Tech-Audit): entschärft, weil das Carousel bei 2 Slides bleibt (Wischen nur Aufgaben↔Ruhmeshalle) — Verwaltung/Einstellungen bleiben eigene Routen. Die befürchtete variable `PAGES`-Länge/Modulo-Mathematik entfällt.
+
+**Fortschritt:**
+- **3a ✅ (2026-07-24):** `BottomNav` (lucide-react) eingeführt, Header-Menü entfernt, „Abmelden" → Einstellungen, globaler `VersionFooter` → Versionszeile in den Einstellungen, Carousel-Dots entfernt (Nav zeigt die aktive Position via `aria-current`), Wisch-Tipp über die Nav gehoben, Seiten-Padding (`pb-24`) für die fixe Nav. E2E: `header-menu.spec` → `bottom-nav.spec`, `swipe-carousel` auf Nav-`aria-current` umgestellt. Lokal 50/50 grün.
+- **Offen:** 3b (Zurück-Modell „nicht-Aufgaben → Aufgaben → App schließen?"), 3c (SW-Update-Prompt), 3d (Embla `duration:0` bei reduced-motion, `KeyboardSensor`, `<nav>`-Landmark hat BottomNav bereits/Skip-Link, Token-Reste in PageCarousel/ExitConfirmModal/ReleaseNotesModal/ErrorBoundary).
 
 ## Engineering-/NFR-/Security-Backlog (Audit 2026-07-24)
 

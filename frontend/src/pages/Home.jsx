@@ -6,7 +6,6 @@ import StatsSection from '../components/StatsSection.jsx'
 import LogSection from '../components/LogSection.jsx'
 import PushPromptBanner from '../components/PushPromptBanner.jsx'
 import HeaderIllustration from '../components/HeaderIllustration.jsx'
-import HeaderMenu from '../components/HeaderMenu.jsx'
 import Button from '../components/ui/Button.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
@@ -173,14 +172,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-surface">
       <div role="status" aria-live="polite" className="sr-only">{liveMessage}</div>
-      <div className="max-w-lg mx-auto px-4 pb-8">
+      <div className="max-w-lg mx-auto px-4 pb-24">
         <header className="flex items-center justify-between py-2">
           <div>
             <h1 className="text-xl font-semibold text-ink">Haushalt</h1>
             <p className="text-xs text-ink-faint mt-0.5">{dateLabel}</p>
           </div>
           <HeaderIllustration />
-          <HeaderMenu />
         </header>
 
         <main>

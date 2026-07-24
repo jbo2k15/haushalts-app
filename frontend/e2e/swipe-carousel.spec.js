@@ -20,22 +20,23 @@ test('swiping (dragging) left and right navigates between Home and Hall of Fame'
   const errors = attachErrorCollector(page)
   await login(page)
 
-  const dots = page.locator('[data-testid="carousel-dot"]')
-  await expect(dots).toHaveCount(2)
-  await expect(dots.nth(0)).toHaveAttribute('data-active', 'true')
-  await expect(dots.nth(1)).toHaveAttribute('data-active', 'false')
+  // Aktive Position wird jetzt über die Bottom-Nav angezeigt (aria-current),
+  // die Carousel-Dots sind entfallen (Redesign Phase 3).
+  const navHome = page.locator('[data-testid="nav-home"]')
+  const navHof = page.locator('[data-testid="nav-hall-of-fame"]')
   await expect(page).toHaveURL('/')
+  await expect(navHome).toHaveAttribute('aria-current', 'page')
 
   // Drag from right to left -> advance to the next slide (Hall of Fame).
   await dragCarousel(page, { fromX: 1000, toX: 300 })
   await expect(page).toHaveURL(/\/hall-of-fame/)
-  await expect(dots.nth(1)).toHaveAttribute('data-active', 'true')
+  await expect(navHof).toHaveAttribute('aria-current', 'page')
   await expect(page.getByText('Ruhmeshalle').first()).toBeVisible()
 
   // Drag from left to right -> back to Home.
   await dragCarousel(page, { fromX: 300, toX: 1000 })
   await expect(page).toHaveURL('/')
-  await expect(dots.nth(0)).toHaveAttribute('data-active', 'true')
+  await expect(navHome).toHaveAttribute('aria-current', 'page')
 
   expect(errors).toEqual([])
 })
@@ -46,7 +47,7 @@ test('the existing "Ruhmeshalle" button still navigates and keeps the carousel i
 
   await page.getByRole('button', { name: '🏆 Ruhmeshalle' }).click()
   await expect(page).toHaveURL(/\/hall-of-fame/)
-  await expect(page.locator('[data-testid="carousel-dot"]').nth(1)).toHaveAttribute('data-active', 'true')
+  await expect(page.locator('[data-testid="nav-hall-of-fame"]')).toHaveAttribute('aria-current', 'page')
 
   // Swiping back from here must still work after a non-swipe navigation in.
   await dragCarousel(page, { fromX: 300, toX: 1000 })
@@ -61,7 +62,7 @@ test('a short drag that does not cross the threshold does not change the page', 
 
   await dragCarousel(page, { fromX: 700, toX: 650 })
   await expect(page).toHaveURL('/')
-  await expect(page.locator('[data-testid="carousel-dot"]').nth(0)).toHaveAttribute('data-active', 'true')
+  await expect(page.locator('[data-testid="nav-home"]')).toHaveAttribute('aria-current', 'page')
 
   expect(errors).toEqual([])
 })

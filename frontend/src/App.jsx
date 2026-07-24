@@ -7,6 +7,7 @@ import { ModalGateProvider, useModalGate } from './context/ModalGateContext.jsx'
 import { DialogProvider } from './context/DialogContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import ReleaseNotesModal from './components/ReleaseNotesModal.jsx'
+import BottomNav from './components/BottomNav.jsx'
 import Login from './pages/Login.jsx'
 import PageCarousel from './components/PageCarousel.jsx'
 
@@ -34,16 +35,6 @@ function ProtectedRoute({ children, adminOnly = false }) {
   }
   if (adminOnly && user.role !== 'admin') return <Navigate to="/" replace />
   return children
-}
-
-function VersionFooter() {
-  const { user } = useAuth()
-  if (!user) return null
-  return (
-    <p className="fixed bottom-0 inset-x-0 text-center text-[10px] text-gray-300 dark:text-gray-600 py-1 pointer-events-none z-10">
-      v{__APP_VERSION__}
-    </p>
-  )
 }
 
 function ReleaseNotesGate() {
@@ -75,7 +66,7 @@ function AppRoutes() {
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        <VersionFooter />
+        <BottomNav />
       </div>
       <ReleaseNotesGate />
     </Suspense>

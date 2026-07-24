@@ -59,7 +59,6 @@ export default function PageCarousel() {
     startIndex: initialIndexRef.current,
     watchDrag: () => !modalOpenRef.current,
   })
-  const [selectedIndex, setSelectedIndex] = useState(() => Math.max(0, PAGES.findIndex(p => p.path === location.pathname)))
   const [showTip, setShowTip] = useState(false)
   const syncingFromUrl = useRef(false)
 
@@ -91,7 +90,6 @@ export default function PageCarousel() {
       // would then reload).
       const rawIndex = emblaApi.selectedScrollSnap()
       const index = ((rawIndex % PAGES.length) + PAGES.length) % PAGES.length
-      setSelectedIndex(index)
       if (syncingFromUrl.current) { syncingFromUrl.current = false; return }
       const target = PAGES[index]
       if (target.path !== locationRef.current.pathname) navigateRef.current(target.path, { replace: true })
@@ -187,19 +185,8 @@ export default function PageCarousel() {
           </div>
         </div>
 
-        <div className="fixed bottom-6 inset-x-0 flex justify-center gap-1.5 pointer-events-none z-20" data-testid="carousel-dots">
-          {PAGES.map((p, i) => (
-            <span
-              key={p.path}
-              data-testid="carousel-dot"
-              data-active={i === selectedIndex}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${i === selectedIndex ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
-            />
-          ))}
-        </div>
-
         {showTip && (
-          <div className="fixed bottom-12 inset-x-0 flex justify-center px-4 z-20 pointer-events-none" data-testid="swipe-tip">
+          <div className="fixed bottom-24 inset-x-0 flex justify-center px-4 z-20 pointer-events-none" data-testid="swipe-tip">
             <div className="bg-orange-600 text-white text-xs rounded-xl px-3 py-2 flex items-center gap-2 shadow-sm pointer-events-auto">
               <span>Tipp: Wische nach links oder rechts für die Ruhmeshalle</span>
               <button onClick={dismissTip} data-testid="swipe-tip-dismiss" aria-label="Tipp schließen" className="shrink-0 w-11 h-11 -my-2 -mr-2 flex items-center justify-center font-semibold leading-none">✕</button>

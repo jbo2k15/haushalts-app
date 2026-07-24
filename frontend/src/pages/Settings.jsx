@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { useZoom, ZOOM_LEVELS, DEFAULT_ZOOM } from '../context/ZoomContext.jsx'
 import { urlBase64ToUint8Array } from '../lib/push.js'
-import HeaderMenu from '../components/HeaderMenu.jsx'
 import { HIDE_EXIT_CONFIRM_KEY } from '../components/ExitConfirmModal.jsx'
 import Card from '../components/ui/Card.jsx'
 import Switch from '../components/ui/Switch.jsx'
@@ -22,7 +21,7 @@ const THEME_OPTIONS = [
 ]
 
 export default function Settings() {
-  const { user, setUser } = useAuth()
+  const { user, setUser, logout } = useAuth()
   const dialog = useDialog()
   const { theme, setTheme } = useTheme()
   const { zoom, increaseZoom, decreaseZoom, resetZoom } = useZoom()
@@ -187,10 +186,9 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <div className="max-w-lg mx-auto px-4 pb-8">
-        <header className="flex items-center justify-between py-4">
+      <div className="max-w-lg mx-auto px-4 pb-24">
+        <header className="py-4">
           <h1 className="text-xl font-semibold text-ink">Einstellungen</h1>
-          <HeaderMenu />
         </header>
 
         <main className="space-y-4">
@@ -398,6 +396,11 @@ export default function Settings() {
               />
             </section>
           )}
+
+          <Card className="p-4">
+            <Button variant="secondary" onClick={logout} className="w-full" data-testid="logout">Abmelden</Button>
+          </Card>
+          <p className="text-center text-xs text-ink-faint">Version {__APP_VERSION__}</p>
         </main>
       </div>
     </div>
