@@ -4,14 +4,17 @@ import { attachErrorCollector, login } from './helpers.js'
 // The e2e admin (E2E_EMAIL from helpers.js) manages three dedicated
 // throwaway users seeded in backend/scripts/e2e-seed.js, kept separate from
 // any account another spec logs in with.
+//
+// Seit dem Redesign-IA-Umbau (siehe REDESIGN.md) liegt die Nutzerverwaltung
+// als admin-only Abschnitt in den Einstellungen (/settings), nicht mehr im
+// Verwaltungs-Tab. Die user-row/Aktions-testids sind unverändert.
 
 test('admin can approve and then lock a pending user', async ({ page }) => {
   const errors = attachErrorCollector(page)
   page.on('dialog', dialog => dialog.accept())
   await login(page)
 
-  await page.goto('/admin')
-  await page.getByRole('button', { name: 'Nutzer' }).click()
+  await page.goto('/settings')
 
   const row = page.locator('[data-testid="user-row"][data-user-email="e2e-pending@example.com"]')
   await expect(row).toHaveAttribute('data-user-approved', 'false')
@@ -35,8 +38,7 @@ test('admin can promote a user to admin and back', async ({ page }) => {
   page.on('dialog', dialog => dialog.accept())
   await login(page)
 
-  await page.goto('/admin')
-  await page.getByRole('button', { name: 'Nutzer' }).click()
+  await page.goto('/settings')
 
   const row = page.locator('[data-testid="user-row"][data-user-email="e2e-plain@example.com"]')
   const adminBadge = row.locator('span', { hasText: 'Admin' }) // excludes the "↑ Admin" button (different tag)
@@ -58,8 +60,7 @@ test('admin cannot see a delete button on their own row', async ({ page }) => {
   const errors = attachErrorCollector(page)
   await login(page)
 
-  await page.goto('/admin')
-  await page.getByRole('button', { name: 'Nutzer' }).click()
+  await page.goto('/settings')
 
   const ownRow = page.locator('[data-testid="user-row"][data-user-email="e2e@example.com"]')
   await expect(ownRow).toBeVisible()
@@ -73,8 +74,7 @@ test('admin can permanently delete a user', async ({ page }) => {
   page.on('dialog', dialog => dialog.accept())
   await login(page)
 
-  await page.goto('/admin')
-  await page.getByRole('button', { name: 'Nutzer' }).click()
+  await page.goto('/settings')
 
   const row = page.locator('[data-testid="user-row"][data-user-email="e2e-delete-me@example.com"]')
   await expect(row).toBeVisible()
@@ -85,7 +85,6 @@ test('admin can permanently delete a user', async ({ page }) => {
   // Reload to confirm the deletion was persisted server-side, not just
   // held in local optimistic state.
   await page.reload()
-  await page.getByRole('button', { name: 'Nutzer' }).click()
   await expect(page.locator('[data-testid="user-row"][data-user-email="e2e-delete-me@example.com"]')).toHaveCount(0)
 
   expect(errors).toEqual([])

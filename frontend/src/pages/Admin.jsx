@@ -2,19 +2,18 @@ import { useEffect, useState } from 'react'
 import { MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { api } from '../api/client.js'
-import { useAuth } from '../context/AuthContext.jsx'
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.js'
 import HeaderMenu from '../components/HeaderMenu.jsx'
 import TaskFormFields from '../components/admin/TaskFormFields.jsx'
 import TasksTab from '../components/admin/TasksTab.jsx'
-import UsersTab from '../components/admin/UsersTab.jsx'
+import Button from '../components/ui/Button.jsx'
 import { EMPTY_FORM } from '../components/admin/constants.js'
 
+// Verwaltung: seit dem IA-Umbau (siehe REDESIGN.md) ausschließlich
+// Aufgabenverwaltung. Die Nutzerverwaltung ist als admin-only Abschnitt in
+// die Einstellungen umgezogen (Settings.jsx).
 export default function Admin() {
-  const { user: currentUser } = useAuth()
   const [tasks, setTasks] = useState([])
-  const [users, setUsers] = useState([])
-  const [tab, setTab] = useState('tasks')
   const [form, setForm] = useState(EMPTY_FORM)
   const [editId, setEditId] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -50,14 +49,7 @@ export default function Admin() {
     } catch {}
   }
 
-  async function loadUsers() {
-    try {
-      const data = await api.get('/users')
-      setUsers(data)
-    } catch {}
-  }
-
-  useEffect(() => { Promise.all([loadTasks(), loadUsers()]) }, [])
+  useEffect(() => { loadTasks() }, [])
 
   async function handleExport() {
     const data = await api.get('/tasks/admin/export')
@@ -139,42 +131,6 @@ export default function Admin() {
     }
   }
 
-  async function toggleUser(id) {
-    const userRecord = users.find(u => u.id === id)
-    if (userRecord?.approved) {
-      if (!confirm(`Möchtest du "${userRecord.name}" wirklich sperren? Der Nutzer verliert sofort den Zugriff.`)) return
-    }
-    try {
-      await api.post(`/users/${id}/approve`)
-      loadUsers()
-    } catch (err) {
-      alert(err.message)
-    }
-  }
-
-  async function deleteUser(id) {
-    const userRecord = users.find(u => u.id === id)
-    if (!confirm(`Möchtest du "${userRecord.name}" (${userRecord.email}) wirklich dauerhaft löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return
-    try {
-      await api.delete(`/users/${id}`)
-      loadUsers()
-    } catch (err) {
-      alert(err.message)
-    }
-  }
-
-  async function toggleRole(id) {
-    const userRecord = users.find(u => u.id === id)
-    const action = userRecord?.role === 'admin' ? 'zum normalen Nutzer machen' : 'zum Admin machen'
-    if (!confirm(`Möchtest du "${userRecord.name}" wirklich ${action}?`)) return
-    try {
-      await api.post(`/users/${id}/role`)
-      loadUsers()
-    } catch (err) {
-      alert(err.message)
-    }
-  }
-
   async function handleDragEnd(event) {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -190,23 +146,23 @@ export default function Admin() {
     .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''))
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-surface">
       {editId && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeEditModal}>
           <form
             onSubmit={handleSubmit}
-            className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-4 space-y-3 max-h-[90vh] overflow-y-auto"
+            className="bg-surface-container rounded-modal w-full max-w-md p-4 space-y-3 max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-task-heading"
           >
             <div className="flex items-center justify-between mb-1">
-              <h2 id="edit-task-heading" className="text-sm font-semibold text-gray-800 dark:text-gray-200">Aufgabe bearbeiten</h2>
-              <button type="button" onClick={closeEditModal} aria-label="Schließen" className="shrink-0 w-11 h-11 -my-2 -mr-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
+              <h2 id="edit-task-heading" className="text-sm font-semibold text-ink">Aufgabe bearbeiten</h2>
+              <button type="button" onClick={closeEditModal} aria-label="Schließen" className="shrink-0 w-11 h-11 -my-2 -mr-2 flex items-center justify-center text-ink-faint hover:text-ink text-lg leading-none">✕</button>
             </div>
             <TaskFormFields form={form} setForm={setForm} />
-            <button type="submit" className="w-full bg-orange-600 text-white rounded-xl py-2 text-sm font-medium">Speichern</button>
+            <Button type="submit" variant="primary" className="w-full">Speichern</Button>
           </form>
         </div>
       )}
@@ -214,17 +170,15 @@ export default function Admin() {
           inside the modal instead of letting Tab or a stray tap reach the
           page underneath. */}
       <div className="max-w-lg mx-auto px-4 pb-8" inert={!!editId}>
-        <div className="flex items-center justify-between py-4">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Verwaltung</h1>
+        <header className="flex items-center justify-between py-4">
+          <div>
+            <h1 className="text-xl font-semibold text-ink">Verwaltung</h1>
+            <p className="text-xs text-ink-faint mt-0.5">Aufgaben des Haushalts</p>
+          </div>
           <HeaderMenu />
-        </div>
+        </header>
 
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => setTab('tasks')} className={`flex-1 py-2 rounded-xl text-sm font-medium ${tab === 'tasks' ? 'bg-orange-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'}`}>Aufgaben</button>
-          <button onClick={() => setTab('users')} className={`flex-1 py-2 rounded-xl text-sm font-medium ${tab === 'users' ? 'bg-orange-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'}`}>Nutzer</button>
-        </div>
-
-        {tab === 'tasks' && (
+        <main>
           <TasksTab
             tasks={tasks}
             wasteTasks={wasteTasks}
@@ -240,17 +194,7 @@ export default function Admin() {
             onEdit={startEdit}
             onDelete={deleteTask}
           />
-        )}
-
-        {tab === 'users' && (
-          <UsersTab
-            users={users}
-            currentUserId={currentUser?.id}
-            onToggleRole={toggleRole}
-            onToggleApprove={toggleUser}
-            onDeleteUser={deleteUser}
-          />
-        )}
+        </main>
       </div>
     </div>
   )
