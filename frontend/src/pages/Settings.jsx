@@ -7,6 +7,9 @@ import { useZoom, ZOOM_LEVELS, DEFAULT_ZOOM } from '../context/ZoomContext.jsx'
 import { urlBase64ToUint8Array } from '../lib/push.js'
 import HeaderMenu from '../components/HeaderMenu.jsx'
 import { HIDE_EXIT_CONFIRM_KEY } from '../components/ExitConfirmModal.jsx'
+import Card from '../components/ui/Card.jsx'
+import Switch from '../components/ui/Switch.jsx'
+import Button from '../components/ui/Button.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 
@@ -129,31 +132,31 @@ export default function Settings() {
     } catch {}
   }
 
-  const inputCls = 'border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-orange-400'
+  const inputCls = 'border border-outline rounded-control px-3 py-2 text-sm bg-surface-container-high text-ink focus:outline-hidden focus:ring-2 focus:ring-primary'
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-surface">
       <div className="max-w-lg mx-auto px-4 pb-8">
         <div className="flex items-center justify-between py-4">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Einstellungen</h1>
+          <h1 className="text-xl font-semibold text-ink">Einstellungen</h1>
           <HeaderMenu />
         </div>
 
         <div className="space-y-4">
 
           {/* Erscheinungsbild */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-            <h2 className="font-medium text-gray-800 dark:text-gray-200">Erscheinungsbild</h2>
+          <Card className="p-4 space-y-3">
+            <h2 className="font-medium text-ink">Erscheinungsbild</h2>
             <div className="flex gap-2">
               {THEME_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
                   onClick={() => setTheme(opt.value)}
                   data-testid={`theme-${opt.value}`}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-colors ${
+                  className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-control border text-xs font-medium transition-colors ${
                     theme === opt.value
-                      ? 'bg-orange-600 border-orange-600 text-white'
-                      : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-orange-300 dark:hover:border-orange-600'
+                      ? 'bg-primary border-primary text-on-primary'
+                      : 'bg-surface-container-high border-outline text-ink-muted hover:border-primary'
                   }`}
                 >
                   <span className="text-base">{opt.icon}</span>
@@ -161,47 +164,47 @@ export default function Settings() {
                 </button>
               ))}
             </div>
-            <div className="border-t border-gray-100 dark:border-gray-700 pt-3 flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Zoom</span>
+            <div className="border-t border-outline pt-3 flex items-center justify-between">
+              <span className="text-sm text-ink-muted">Zoom</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={decreaseZoom}
                   disabled={zoom === ZOOM_LEVELS[0]}
                   data-testid="zoom-decrease"
-                  className="w-11 h-11 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium disabled:opacity-40"
+                  className="w-11 h-11 flex items-center justify-center rounded-control border border-outline text-ink-muted font-medium disabled:opacity-40"
                 >
                   −
                 </button>
-                <span data-testid="zoom-level" className="text-sm font-medium text-gray-800 dark:text-gray-200 w-12 text-center">{zoom}%</span>
+                <span data-testid="zoom-level" className="text-sm font-medium text-ink w-12 text-center">{zoom}%</span>
                 <button
                   type="button"
                   onClick={increaseZoom}
                   disabled={zoom === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
                   data-testid="zoom-increase"
-                  className="w-11 h-11 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium disabled:opacity-40"
+                  className="w-11 h-11 flex items-center justify-center rounded-control border border-outline text-ink-muted font-medium disabled:opacity-40"
                 >
                   +
                 </button>
               </div>
             </div>
             {zoom !== DEFAULT_ZOOM && (
-              <button type="button" onClick={resetZoom} data-testid="zoom-reset" className="text-xs text-orange-600 dark:text-orange-400 hover:underline">
+              <button type="button" onClick={resetZoom} data-testid="zoom-reset" className="text-xs text-primary hover:underline">
                 Auf Standardgröße zurücksetzen
               </button>
             )}
-          </div>
+          </Card>
 
           {/* Profil */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
-            <h2 className="font-medium text-gray-800 dark:text-gray-200">Mein Profil</h2>
-            {nameError && <p className="text-sm text-red-600 dark:text-red-400">{nameError}</p>}
+          <Card className="p-4 space-y-4">
+            <h2 className="font-medium text-ink">Mein Profil</h2>
+            {nameError && <p className="text-sm text-danger">{nameError}</p>}
             <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">E-Mail</label>
-              <p className="text-sm text-gray-500 dark:text-gray-400 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">{user?.email}</p>
+              <label className="block text-sm text-ink-muted mb-1">E-Mail</label>
+              <p className="text-sm text-ink-muted px-3 py-2 bg-surface-container-high rounded-control border border-outline">{user?.email}</p>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Anzeigename</label>
+              <label className="block text-sm text-ink-muted mb-1">Anzeigename</label>
               <input
                 type="text"
                 data-testid="name-input"
@@ -210,84 +213,73 @@ export default function Settings() {
                 onChange={e => setName(e.target.value)}
               />
             </div>
-            <button onClick={saveName} data-testid="save-name" className="bg-orange-600 text-white rounded-xl px-4 py-2 text-sm font-medium">
+            <Button variant="primary" onClick={saveName} data-testid="save-name">
               {nameSaved ? 'Gespeichert ✓' : 'Name speichern'}
-            </button>
-          </div>
+            </Button>
+          </Card>
 
           {/* Push */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
-            <h2 className="font-medium text-gray-800 dark:text-gray-200">Push-Benachrichtigungen</h2>
+          <Card className="p-4 space-y-4">
+            <h2 className="font-medium text-ink">Push-Benachrichtigungen</h2>
             {!pushSupported ? (
-              <p className="text-sm text-gray-400 dark:text-gray-500">Dein Browser unterstützt keine Push-Benachrichtigungen.</p>
+              <p className="text-sm text-ink-faint">Dein Browser unterstützt keine Push-Benachrichtigungen.</p>
             ) : (
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Auf diesem Gerät aktivieren</span>
-                <button
-                  onClick={togglePush}
-                  className={`w-11 h-6 rounded-full transition-colors ${pushEnabled ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
-                >
-                  <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-0.5 ${pushEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
+                <span className="text-sm text-ink-muted">Auf diesem Gerät aktivieren</span>
+                <Switch checked={pushEnabled} onChange={togglePush} />
               </div>
             )}
-            <div className="border-t border-gray-100 dark:border-gray-700 pt-3 flex items-center justify-between">
+            <div className="border-t border-outline pt-3 flex items-center justify-between">
               <div className="pr-3">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Wetterbedingt erledigte Aufgaben</span>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Benachrichtigt dich, wenn eine Aufgabe wegen Regen automatisch erledigt wurde.</p>
+                <span className="text-sm text-ink-muted">Wetterbedingt erledigte Aufgaben</span>
+                <p className="text-xs text-ink-faint mt-0.5">Benachrichtigt dich, wenn eine Aufgabe wegen Regen automatisch erledigt wurde.</p>
               </div>
-              <button
-                onClick={toggleWeatherNotify}
+              <Switch
+                checked={weatherNotify}
+                onChange={toggleWeatherNotify}
                 data-testid="weather-notify-toggle"
                 data-weather-notify-enabled={weatherNotify}
-                className={`shrink-0 w-11 h-6 rounded-full transition-colors ${weatherNotify ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
-              >
-                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-0.5 ${weatherNotify ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
+              />
             </div>
-          </div>
+          </Card>
 
           {/* Urlaub */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-            <h2 className="font-medium text-gray-800 dark:text-gray-200">Urlaubsmodus</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Im Urlaubsmodus erhältst du keine Push-Benachrichtigungen.</p>
+          <Card className="p-4 space-y-3">
+            <h2 className="font-medium text-ink">Urlaubsmodus</h2>
+            <p className="text-sm text-ink-muted">Im Urlaubsmodus erhältst du keine Push-Benachrichtigungen.</p>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Aktivieren</span>
-              <button
-                onClick={toggleVacation}
+              <span className="text-sm text-ink-muted">Aktivieren</span>
+              <Switch
+                checked={vacationMode}
+                onChange={toggleVacation}
                 data-testid="vacation-toggle"
                 data-vacation-enabled={vacationMode}
-                className={`w-11 h-6 rounded-full transition-colors ${vacationMode ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
-              >
-                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-0.5 ${vacationMode ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
+              />
             </div>
-          </div>
+          </Card>
 
           {/* Navigation */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-            <h2 className="font-medium text-gray-800 dark:text-gray-200">Navigation</h2>
+          <Card className="p-4 space-y-3">
+            <h2 className="font-medium text-ink">Navigation</h2>
             <div className="flex items-center justify-between">
               <div className="pr-3">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Bestätigung beim Schließen der App</span>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Fragt nach, bevor ein Zurück-Tastendruck auf der Startseite die App verlässt.</p>
+                <span className="text-sm text-ink-muted">Bestätigung beim Schließen der App</span>
+                <p className="text-xs text-ink-faint mt-0.5">Fragt nach, bevor ein Zurück-Tastendruck auf der Startseite die App verlässt.</p>
               </div>
-              <button
-                onClick={toggleExitConfirm}
+              <Switch
+                checked={exitConfirmEnabled}
+                onChange={toggleExitConfirm}
                 data-testid="exit-confirm-toggle"
                 data-exit-confirm-enabled={exitConfirmEnabled}
-                className={`shrink-0 w-11 h-6 rounded-full transition-colors ${exitConfirmEnabled ? 'bg-orange-600' : 'bg-gray-300 dark:bg-gray-600'}`}
-              >
-                <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-0.5 ${exitConfirmEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
+              />
             </div>
-          </div>
+          </Card>
 
           {/* Erinnerungszeiten */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
-            <h2 className="font-medium text-gray-800 dark:text-gray-200">Erinnerungszeiten {user.role === 'admin' && <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">(gilt für alle)</span>}</h2>
+          <Card className="p-4 space-y-4">
+            <h2 className="font-medium text-ink">Erinnerungszeiten {user.role === 'admin' && <span className="text-xs text-ink-faint font-normal">(gilt für alle)</span>}</h2>
             <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Tägliche Erinnerung um</label>
+              <label className="block text-sm text-ink-muted mb-1">Tägliche Erinnerung um</label>
               <input
                 type="time"
                 data-testid="daily-time"
@@ -297,7 +289,7 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Wöchentliche Erinnerung am</label>
+              <label className="block text-sm text-ink-muted mb-1">Wöchentliche Erinnerung am</label>
               <div className="flex gap-2">
                 <select
                   data-testid="weekly-day"
@@ -317,7 +309,7 @@ export default function Settings() {
               </div>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Monatliche Erinnerung am</label>
+              <label className="block text-sm text-ink-muted mb-1">Monatliche Erinnerung am</label>
               <div className="flex gap-2">
                 <select
                   data-testid="monthly-day"
@@ -336,14 +328,10 @@ export default function Settings() {
                 />
               </div>
             </div>
-            <button
-              onClick={saveSettings}
-              data-testid="save-notification-settings"
-              className="bg-orange-600 text-white rounded-xl px-4 py-2 text-sm font-medium"
-            >
+            <Button variant="primary" onClick={saveSettings} data-testid="save-notification-settings">
               {saved ? 'Gespeichert ✓' : 'Speichern'}
-            </button>
-          </div>
+            </Button>
+          </Card>
         </div>
       </div>
     </div>
