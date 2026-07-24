@@ -11,6 +11,7 @@ import Card from '../components/ui/Card.jsx'
 import Switch from '../components/ui/Switch.jsx'
 import Button from '../components/ui/Button.jsx'
 import UsersTab from '../components/admin/UsersTab.jsx'
+import { useDialog } from '../context/DialogContext.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
 
@@ -22,6 +23,7 @@ const THEME_OPTIONS = [
 
 export default function Settings() {
   const { user, setUser } = useAuth()
+  const dialog = useDialog()
   const { theme, setTheme } = useTheme()
   const { zoom, increaseZoom, decreaseZoom, resetZoom } = useZoom()
   const navigate = useNavigate()
@@ -77,36 +79,36 @@ export default function Settings() {
   async function toggleUser(id) {
     const userRecord = users.find(u => u.id === id)
     if (userRecord?.approved) {
-      if (!confirm(`Möchtest du "${userRecord.name}" wirklich sperren? Der Nutzer verliert sofort den Zugriff.`)) return
+      if (!(await dialog.confirm({ title: 'Nutzer sperren?', message: `"${userRecord.name}" verliert sofort den Zugriff.`, confirmLabel: 'Sperren', tone: 'danger' }))) return
     }
     try {
       await api.post(`/users/${id}/approve`)
       loadUsers()
     } catch (err) {
-      alert(err.message)
+      dialog.alert(err.message)
     }
   }
 
   async function deleteUser(id) {
     const userRecord = users.find(u => u.id === id)
-    if (!confirm(`Möchtest du "${userRecord.name}" (${userRecord.email}) wirklich dauerhaft löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return
+    if (!(await dialog.confirm({ title: 'Nutzer löschen?', message: `"${userRecord.name}" (${userRecord.email}) wird dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.`, confirmLabel: 'Löschen', tone: 'danger' }))) return
     try {
       await api.delete(`/users/${id}`)
       loadUsers()
     } catch (err) {
-      alert(err.message)
+      dialog.alert(err.message)
     }
   }
 
   async function toggleRole(id) {
     const userRecord = users.find(u => u.id === id)
     const action = userRecord?.role === 'admin' ? 'zum normalen Nutzer machen' : 'zum Admin machen'
-    if (!confirm(`Möchtest du "${userRecord.name}" wirklich ${action}?`)) return
+    if (!(await dialog.confirm({ title: 'Rolle ändern?', message: `"${userRecord.name}" wirklich ${action}?`, confirmLabel: 'Ändern' }))) return
     try {
       await api.post(`/users/${id}/role`)
       loadUsers()
     } catch (err) {
-      alert(err.message)
+      dialog.alert(err.message)
     }
   }
 

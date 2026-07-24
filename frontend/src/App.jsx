@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { ZoomProvider } from './context/ZoomContext.jsx'
 import { ModalGateProvider, useModalGate } from './context/ModalGateContext.jsx'
+import { DialogProvider } from './context/DialogContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import ReleaseNotesModal from './components/ReleaseNotesModal.jsx'
 import Login from './pages/Login.jsx'
@@ -88,9 +89,11 @@ export default function App() {
         <ZoomProvider>
           <AuthProvider>
             <ModalGateProvider>
-              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                <AppRoutes />
-              </BrowserRouter>
+              <DialogProvider>
+                <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                  <AppRoutes />
+                </BrowserRouter>
+              </DialogProvider>
             </ModalGateProvider>
           </AuthProvider>
         </ZoomProvider>

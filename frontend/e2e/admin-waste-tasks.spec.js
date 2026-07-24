@@ -23,8 +23,8 @@ test('waste-calendar tasks are separated from manual task management in Admin', 
   await expect(upcomingRow.getByRole('button', { name: 'Löschen' })).toHaveCount(0)
 
   const expiredRow = wasteSection.getByText('E2E Waste Expired').locator('../..')
-  page.once('dialog', dialog => dialog.accept()) // deleteTask() uses window.confirm()
   await expiredRow.getByRole('button', { name: 'Löschen' }).click()
+  await page.locator('[data-testid="confirm-dialog-confirm"]').click() // eigener Bestätigungsdialog statt window.confirm()
   await expect(wasteSection.getByText('E2E Waste Expired')).toHaveCount(0)
 
   expect(errors).toEqual([])
