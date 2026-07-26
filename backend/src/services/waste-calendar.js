@@ -35,6 +35,19 @@ export function subtractOneDay(dateStr) {
   return toDateString(d)
 }
 
+export function addDays(dateStr, n) {
+  const [y, m, day] = dateStr.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, day + n)).toISOString().slice(0, 10)
+}
+
+// Wie weit im Voraus eine Aufgabe bereits angelegt ("gebankt") wird, sobald ihr
+// Termin im Feed steht — nicht erst am Faelligkeitstag. So sichert ein
+// erfolgreicher Sync irgendwann in dieser Woche den Termin, und ein Feed-
+// Ausfall am Faelligkeitstag (EDG 503/404) fuehrt nicht mehr zu einem
+// fehlenden Reminder. Die Anzeige bleibt gestaffelt (siehe domain/tasks.js):
+// erst ab 3 Tagen vor der Abholung sichtbar.
+const BANK_LEAD_DAYS = 7
+
 function todayBerlin() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date())
 }
@@ -101,10 +114,13 @@ export async function syncWasteCalendar() {
       if (!current || dueDate < current) nearestByTitle.set(wasteType.title, dueDate)
     }
 
-    // Only actually materialize a task once it's due (the day before
-    // collection, or later if a sync run was missed) — not weeks in advance.
+    // Aufgabe schon bis zu BANK_LEAD_DAYS im Voraus anlegen ("banken"), sobald
+    // der Termin bekannt ist — nicht erst am Faelligkeitstag. Damit ueberlebt
+    // der Termin einen Feed-Ausfall am Faelligkeitstag. Die Staffelung der
+    // Sichtbarkeit passiert in der Anzeige (domain/tasks.js), nicht hier.
+    const horizon = addDays(today, BANK_LEAD_DAYS)
     const upcoming = [...nearestByTitle.entries()]
-      .filter(([, dueDate]) => dueDate <= today)
+      .filter(([, dueDate]) => dueDate <= horizon)
       .map(([title, dueDate]) => ({ title, dueDate }))
 
     // Remove legacy daily-type auto-generated tasks (old format without dueDate)

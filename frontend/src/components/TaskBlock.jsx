@@ -42,16 +42,21 @@ const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle, pauseInfo }) 
 
   if (!markedTasks.length && !(pauseInfo?.paused > 0)) return null
 
-  const completedCount = tasks.filter(t => t.completed).length
+  // Vorab-Info-Aufgaben (gebankte, noch nicht faellige Abfall-Termine) zaehlen
+  // nicht zum "erledigt/gesamt" — sie sind reine Vorschau, nicht abhakbar.
+  const actionableTasks = tasks.filter(t => !t.infoOnly)
+  const completedCount = actionableTasks.filter(t => t.completed).length
 
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container-high">
         <span className="text-base">{config.icon}</span>
         <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">{config.label}</span>
-        <span className="ml-auto text-xs text-ink-muted">
-          {completedCount}/{tasks.length}
-        </span>
+        {actionableTasks.length > 0 && (
+          <span className="ml-auto text-xs text-ink-muted">
+            {completedCount}/{actionableTasks.length}
+          </span>
+        )}
       </div>
       {pauseInfo?.paused > 0 && (
         <div className="flex items-center gap-2 px-4 py-2 text-xs text-ink-muted border-b border-outline last:border-b-0">
