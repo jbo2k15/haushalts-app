@@ -39,6 +39,35 @@ function todayBerlin() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date())
 }
 
+function fetchIcalWithTimeout(url, timeoutMs) {
+  let timer
+  return Promise.race([
+    ical.async.fromURL(url),
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('iCal fetch timeout')), timeoutMs) }),
+  ]).finally(() => clearTimeout(timer))
+}
+
+// Der EDG-Feed liefert gelegentlich transiente Fehler (503/Timeout/Netz); ein
+// einzelner Fehlschlag soll nicht den ganzen Sync-Lauf (und damit den am
+// Vortag faelligen Tonnen-Reminder) verschlucken. Daher mehrere Versuche mit
+// ansteigendem Backoff. Exportiert, damit die Retry-Logik direkt testbar ist.
+export async function fetchIcalWithRetry(url, { attempts = 3, timeoutMs = 15000, backoffMs = 5000 } = {}) {
+  let lastErr
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fetchIcalWithTimeout(url, timeoutMs)
+    } catch (err) {
+      lastErr = err
+      if (attempt < attempts) {
+        const wait = backoffMs * attempt
+        console.warn(`Abfallkalender: Abrufversuch ${attempt}/${attempts} fehlgeschlagen (${err.message}) — neuer Versuch in ${Math.round(wait / 1000)}s…`)
+        await new Promise(r => setTimeout(r, wait))
+      }
+    }
+  }
+  throw lastErr
+}
+
 export async function syncWasteCalendar() {
   const url = process.env.WASTE_ICAL_URL
   if (!url) return
@@ -48,10 +77,7 @@ export async function syncWasteCalendar() {
   }
 
   try {
-    const events = await Promise.race([
-      ical.async.fromURL(url),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('iCal fetch timeout')), 15000)),
-    ])
+    const events = await fetchIcalWithRetry(url)
 
     const today = todayBerlin()
 

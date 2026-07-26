@@ -411,6 +411,20 @@ export function startScheduler() {
     }
   }, { timezone: 'Europe/Berlin' })
 
+  // Abfallkalender zusaetzlich tagsueber (06/12/18 Uhr) synchronisieren, nicht
+  // nur um Mitternacht im Nacht-Batch: EDGs iCal-Feed liefert gelegentlich
+  // 503/404, und ein einzelner Fehlschlag um 00:00 wuerde sonst den am Vortag
+  // faelligen Tonnen-Reminder fuer den ganzen Tag verschlucken. So wird ein
+  // transienter Ausfall noch am selben Tag aufgeholt, sobald der Feed wieder
+  // antwortet (syncWasteCalendar ist idempotent).
+  cron.schedule('0 6,12,18 * * *', async () => {
+    try {
+      await syncWasteCalendar()
+    } catch (err) {
+      console.error('[Scheduler] Fehler bei syncWasteCalendar (tagsueber):', err.message)
+    }
+  }, { timezone: 'Europe/Berlin' })
+
   syncWasteCalendar().catch(err => console.error('[Scheduler] Fehler bei initialem Kalender-Sync:', err))
   updateTrophyCache().catch(err => console.error('[Scheduler] Fehler bei initialem Trophy-Cache:', err))
   checkWeatherDependentTasks().catch(err => console.error('[Scheduler] Fehler beim initialen Wetter-Check:', err.message))
