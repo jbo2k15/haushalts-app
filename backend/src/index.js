@@ -24,9 +24,26 @@ console.error = (...a) => _origError(ts(), ...a)
 
 import { createApp } from './app.js'
 import { startScheduler } from './services/scheduler.js'
+import prisma from './lib/prisma.js'
+
+// SQLite WAL + busy_timeout: WAL erlaubt gleichzeitige Leser waehrend eines
+// Schreibers (verhindert transiente "database is locked", z.B. beim parallelen
+// Laden mehrerer Seiten); busy_timeout laesst eine kurze Sperre automatisch
+// abwarten statt sofort zu scheitern. journal_mode=WAL persistiert in der
+// DB-Datei (einmalig), busy_timeout ist verbindungsgebunden. queryRaw (nicht
+// executeRaw), weil PRAGMAs eine Ergebniszeile zurueckgeben.
+async function initDbPragmas() {
+  try {
+    await prisma.$queryRawUnsafe('PRAGMA journal_mode=WAL')
+    await prisma.$queryRawUnsafe('PRAGMA busy_timeout=5000')
+  } catch (err) {
+    console.error('SQLite-PRAGMAs (WAL/busy_timeout) konnten nicht gesetzt werden:', err.message)
+  }
+}
 
 const app = createApp()
 
+await initDbPragmas()
 startScheduler()
 
 const PORT = process.env.PORT || 3001

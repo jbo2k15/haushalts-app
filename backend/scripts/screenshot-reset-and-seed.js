@@ -5,7 +5,9 @@
 import { execSync } from 'child_process'
 import { existsSync, unlinkSync } from 'fs'
 
-if (existsSync('./screenshot.db')) unlinkSync('./screenshot.db')
+for (const f of ['./screenshot.db', './screenshot.db-wal', './screenshot.db-shm']) {
+  if (existsSync(f)) unlinkSync(f)
+}
 
 execSync('npx prisma db push --force-reset --url file:./screenshot.db', {
   stdio: 'inherit',

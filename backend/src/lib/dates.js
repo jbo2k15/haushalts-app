@@ -33,3 +33,15 @@ export function currentWeekStart() {
 export function currentMonthStart() {
   return dateStringInBerlin(0).slice(0, 7) + '-01'
 }
+
+// Wie currentWeekStart(), aber fuer ein beliebiges YYYY-MM-DD statt "heute" -
+// gebraucht, um die Wochengrenze eines vergangenen Stichtags (Retention-
+// Cutoff) zu bestimmen. UTC-basiert (nicht Server-Lokalzeit), damit das
+// Ergebnis unabhaengig vom Server-Timezone-Setting ist.
+export function mondayOnOrBefore(dateStr) {
+  const d = new Date(dateStr)
+  const day = d.getUTCDay()
+  const diff = (day + 6) % 7
+  d.setUTCDate(d.getUTCDate() - diff)
+  return d.toISOString().slice(0, 10)
+}

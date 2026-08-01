@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "dayTrophiesBaseline" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN "weekTrophiesBaseline" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN "monthTrophiesBaseline" INTEGER NOT NULL DEFAULT 0;

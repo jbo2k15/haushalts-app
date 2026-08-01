@@ -23,6 +23,13 @@ model User {
   dayTrophies        Int                  @default(0)
   weekTrophies       Int                  @default(0)
   monthTrophies      Int                  @default(0)
+  // Eingefrorener Anteil der Trophaeen aus taskLog-Zeitraeumen, die bereits
+  // per Retention-Prune geloescht wurden (siehe scheduler.js
+  // pruneOldTaskLogs). dayTrophies/weekTrophies/monthTrophies = Baseline +
+  // das, was aus den noch vorhandenen (retained) Logs neu berechnet wird.
+  dayTrophiesBaseline   Int               @default(0)
+  weekTrophiesBaseline  Int               @default(0)
+  monthTrophiesBaseline Int               @default(0)
   createdAt          DateTime             @default(now())
   pushSubscriptions  PushSubscription[]
   notificationSettings NotificationSettings?
