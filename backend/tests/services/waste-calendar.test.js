@@ -10,7 +10,7 @@ describe('matchWasteType', () => {
     expect(matchWasteType('Restmülltonne Abholung')?.title).toBe('Restmülltonne rausstellen')
   })
 
-  it('erkennt Restabfall als Alias für Restmüll (z.B. EDG Dortmund)', () => {
+  it('erkennt Restabfall als Alias für Restmüll (z.B. bei manchen Entsorgern)', () => {
     expect(matchWasteType('Restabfall')?.title).toBe('Restmülltonne rausstellen')
     expect(matchWasteType('Abfuhr Restabfall 240l')?.title).toBe('Restmülltonne rausstellen')
   })

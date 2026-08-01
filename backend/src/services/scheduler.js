@@ -486,7 +486,7 @@ export function startScheduler() {
   }, { timezone: 'Europe/Berlin' })
 
   // Abfallkalender zusaetzlich tagsueber (06/12/18/21 Uhr) synchronisieren,
-  // nicht nur um Mitternacht im Nacht-Batch: EDGs iCal-Feed liefert
+  // nicht nur um Mitternacht im Nacht-Batch: der iCal-Feed des Entsorgers liefert
   // gelegentlich 503/404, und ein einzelner Fehlschlag um 00:00 wuerde sonst
   // den am Vortag faelligen Tonnen-Reminder fuer den ganzen Tag verschlucken.
   // Der 21-Uhr-Slot faengt auch abendliche Ausfaelle noch am selben Tag ab. So

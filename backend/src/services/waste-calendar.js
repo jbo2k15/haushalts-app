@@ -4,8 +4,8 @@ import prisma from '../lib/prisma.js'
 const WASTE_TYPES = [
   { match: 'papier', title: 'Papiertonne rausstellen' },
   { match: 'restmüll', title: 'Restmülltonne rausstellen' },
-  // "Restabfall" ist bei manchen Entsorgern (z.B. EDG Dortmund) der offizielle
-  // Begriff für den Restmüll und taucht so im iCal-Feed auf, statt "Restmüll".
+  // "Restabfall" ist bei manchen Entsorgern der offizielle Begriff für den
+  // Restmüll und taucht so im iCal-Feed auf, statt "Restmüll".
   // Gleicher Titel wie restmüll, damit es dieselbe Tonne bleibt.
   { match: 'restabfall', title: 'Restmülltonne rausstellen' },
   { match: 'gelbe tonne', title: 'Gelbe Tonne rausstellen' },
@@ -43,7 +43,7 @@ export function addDays(dateStr, n) {
 // Wie weit im Voraus eine Aufgabe bereits angelegt ("gebankt") wird, sobald ihr
 // Termin im Feed steht — nicht erst am Faelligkeitstag. So sichert ein
 // erfolgreicher Sync irgendwann in dieser Woche den Termin, und ein Feed-
-// Ausfall am Faelligkeitstag (EDG 503/404) fuehrt nicht mehr zu einem
+// Ausfall am Faelligkeitstag (503/404 beim Anbieter) fuehrt nicht mehr zu einem
 // fehlenden Reminder. Die Anzeige bleibt gestaffelt (siehe domain/tasks.js):
 // erst ab 3 Tagen vor der Abholung sichtbar.
 const BANK_LEAD_DAYS = 7
@@ -60,7 +60,7 @@ function fetchIcalWithTimeout(url, timeoutMs) {
   ]).finally(() => clearTimeout(timer))
 }
 
-// Der EDG-Feed liefert gelegentlich transiente Fehler (503/Timeout/Netz); ein
+// Der Feed des Entsorgers liefert gelegentlich transiente Fehler (503/Timeout/Netz); ein
 // einzelner Fehlschlag soll nicht den ganzen Sync-Lauf (und damit den am
 // Vortag faelligen Tonnen-Reminder) verschlucken. Daher mehrere Versuche mit
 // ansteigendem Backoff. Exportiert, damit die Retry-Logik direkt testbar ist.
