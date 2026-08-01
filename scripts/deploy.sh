@@ -163,7 +163,12 @@ SERVICES=""
 [ "$FRONTEND_CHANGED" = true ] && SERVICES="$SERVICES frontend"
 
 echo "▸ Docker build für:$SERVICES"
-DOCKER_BUILDKIT=1 docker compose build $SERVICES
+# --pull: node:24-alpine/nginx:alpine sind unversionierte Floating-Tags - ohne
+# --pull würde Docker den lokal gecachten Base-Layer weiterverwenden, auch wenn
+# der Tag inzwischen ein neueres (sicherheitsgepatchtes) Image referenziert
+# (Security-Scan 2026-08-01: Node-Sicherheitsrelease 2026-07-29 waere sonst
+# erst nach einem manuellen Cache-Invalidieren angekommen).
+DOCKER_BUILDKIT=1 docker compose build --pull $SERVICES
 
 echo "▸ Container-Start..."
 docker compose up -d
