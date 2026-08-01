@@ -1,5 +1,6 @@
 import ical from 'node-ical'
 import prisma from '../lib/prisma.js'
+import { sendPushToUser } from './push.js'
 
 const WASTE_TYPES = [
   { match: 'papier', title: 'Papiertonne rausstellen' },
@@ -99,14 +100,23 @@ export async function syncWasteCalendar() {
     // the feed often lists many months ahead, and only the next occurrence
     // is actionable.
     const nearestByTitle = new Map() // title -> dueDate
+    // Summary-Texte, die zu keinem WASTE_TYPES-Muster passten - der Matcher
+    // kennt nur eine feste Wortliste, eine abweichende Tonnenbezeichnung im
+    // Feed erzeugt sonst still keine Aufgabe. Nur (noch) nicht vergangene
+    // Termine zaehlen, damit alte/irrelevante Feed-Eintraege keine Meldung
+    // ausloesen (siehe unten: Verwaltungs-Anzeige + Admin-Push).
+    const unmatchedSummaries = new Set()
 
     for (const event of Object.values(events)) {
       if (event.type !== 'VEVENT') continue
       const summary = typeof event.summary === 'object' ? event.summary?.val : event.summary || ''
-      const wasteType = matchWasteType(summary)
-      if (!wasteType) continue
-
       const collectionDate = toDateString(event.start)
+      const wasteType = matchWasteType(summary)
+      if (!wasteType) {
+        if (collectionDate >= today && summary.trim()) unmatchedSummaries.add(summary.trim())
+        continue
+      }
+
       if (collectionDate < today) continue // collection already happened
 
       const dueDate = subtractOneDay(collectionDate)
@@ -177,8 +187,56 @@ export async function syncWasteCalendar() {
       }
     }
 
+    await syncUnmatchedStatus(unmatchedSummaries)
+
     console.log(`Abfallkalender synchronisiert: ${upcoming.length} Termine (${created} neu, ${updated} reaktiviert)`)
   } catch (err) {
     console.error('Fehler beim Synchronisieren des Abfallkalenders:', err.message)
+  }
+}
+
+// Persistiert die aktuell unerkannten Kalendereintraege (fuer die
+// Verwaltungs-Anzeige, ueberschreibt sich bei jedem Sync) und benachrichtigt
+// Admins per Push, aber nur ueber WIRKLICH neue Eintraege (notifiedSummaries
+// waechst monoton) - sonst wuerde jeder der 5 taeglichen Sync-Laeufe erneut
+// pushen, solange der Eintrag im Feed steht.
+async function syncUnmatchedStatus(unmatchedSummaries) {
+  const unmatchedList = [...unmatchedSummaries].sort()
+  const prevStatus = await prisma.wasteSyncStatus.findUnique({ where: { id: 'singleton' } })
+  const previouslyNotified = prevStatus?.notifiedSummaries ? JSON.parse(prevStatus.notifiedSummaries) : []
+  const newlyUnmatched = unmatchedList.filter(s => !previouslyNotified.includes(s))
+  const nextNotified = newlyUnmatched.length > 0
+    ? [...new Set([...previouslyNotified, ...newlyUnmatched])]
+    : previouslyNotified
+
+  await prisma.wasteSyncStatus.upsert({
+    where: { id: 'singleton' },
+    update: { checkedAt: new Date(), unmatchedSummaries: JSON.stringify(unmatchedList), notifiedSummaries: JSON.stringify(nextNotified) },
+    create: { id: 'singleton', checkedAt: new Date(), unmatchedSummaries: JSON.stringify(unmatchedList), notifiedSummaries: JSON.stringify(nextNotified) },
+  })
+
+  if (newlyUnmatched.length === 0) return
+  try {
+    await notifyUnmatchedWasteEntries(newlyUnmatched)
+  } catch (err) {
+    console.error('Abfallkalender: Fehler beim Versenden der Unbekannt-Benachrichtigung:', err.message)
+  }
+}
+
+async function notifyUnmatchedWasteEntries(summaries) {
+  const admins = await prisma.user.findMany({ where: { approved: true, role: 'admin' } })
+  const body = summaries.length === 1
+    ? `Unbekannter Kalendereintrag im Abfallkalender: "${summaries[0]}" — es wurde keine Aufgabe angelegt.`
+    : `${summaries.length} unbekannte Kalendereinträge im Abfallkalender — es wurden keine Aufgaben angelegt: ${summaries.join(', ')}`
+  await Promise.all(admins.map(u => sendPushToUser(u.id, { title: 'Haushalt', body })))
+}
+
+// Fuer die Anzeige in der Verwaltung: aktuell unerkannte Kalendereintraege +
+// Zeitpunkt des letzten Syncs.
+export async function getWasteSyncStatus() {
+  const status = await prisma.wasteSyncStatus.findUnique({ where: { id: 'singleton' } })
+  return {
+    checkedAt: status?.checkedAt ?? null,
+    unmatchedSummaries: status?.unmatchedSummaries ? JSON.parse(status.unmatchedSummaries) : [],
   }
 }
