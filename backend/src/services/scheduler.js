@@ -3,8 +3,9 @@ import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
 import { syncWasteCalendar } from './waste-calendar.js'
 import { checkWeatherDependentTasks } from './weather.js'
-import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO, dateStringInBerlin } from '../lib/dates.js'
+import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO, dateStringInBerlin, addDaysToDateString, mondayOnOrBefore } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
+import { getUTCRangeForBerlinDay, EXCLUDE_ONCE } from '../domain/tasks.js'
 import {
   isPausedOnDay,
   isPeriodFullyPaused,
@@ -339,14 +340,16 @@ export async function sendMonthlyReminders() {
   }
 }
 
-async function updateTrophyCache() {
+// dayTrophies/weekTrophies/monthTrophies = die (eingefrorene) *Baseline* aus
+// bereits geprunten Zeitraeumen PLUS das, was aus den noch vorhandenen
+// (retained) taskLog-Zeilen frisch berechnet wird. So bleibt die Anzeige
+// taeglich aktuell (unveraendertes Verhalten), waehrend pruneOldTaskLogs()
+// weiter unten wachsende Historie regelmaessig kappen kann, ohne bereits
+// gewonnene Pokale rueckwirkend zu verlieren.
+export async function updateTrophyCache() {
   const users = await prisma.user.findMany({ where: { approved: true } })
   const allLogs = await prisma.taskLog.findMany({
-    where: {
-      status: 'completed',
-      completedBy: { not: null },
-      OR: [{ taskId: null }, { task: { type: { not: 'once' } } }],
-    },
+    where: { status: 'completed', completedBy: { not: null }, ...EXCLUDE_ONCE },
     select: { completedBy: true, loggedAt: true },
   })
 
@@ -359,11 +362,71 @@ async function updateTrophyCache() {
   await Promise.all(users.map(user => prisma.user.update({
     where: { id: user.id },
     data: {
-      dayTrophies: dayTrophies[user.id] || 0,
-      weekTrophies: weekTrophies[user.id] || 0,
-      monthTrophies: monthTrophies[user.id] || 0,
+      dayTrophies: user.dayTrophiesBaseline + (dayTrophies[user.id] || 0),
+      weekTrophies: user.weekTrophiesBaseline + (weekTrophies[user.id] || 0),
+      monthTrophies: user.monthTrophiesBaseline + (monthTrophies[user.id] || 0),
     },
   })))
+}
+
+// Wie weit taskLog-Eintraege aufbewahrt werden, bevor pruneOldTaskLogs sie
+// loescht (Nutzer-Entscheidung: 2 Jahre). Der Verlauf zeigt ohnehin nur die
+// letzten LOG_LIMIT Eintraege; Trophaeen/Statistik-Fenster brauchen nie mehr
+// als das aktuelle Jahr - 2 Jahre sind grosszuegiger Puffer.
+const TASKLOG_RETENTION_DAYS = 730
+
+// Loescht taskLog-Zeilen aelter als TASKLOG_RETENTION_DAYS, nachdem ihr
+// Trophaeen-Beitrag (falls vorhanden) in die Baseline-Spalten des jeweiligen
+// Nutzers eingerechnet wurde - genau der "einmal pro Woche voll nachrechnen"-
+// Schritt, der die Selbstkorrektur (z.B. nach nachtraeglich geloeschten
+// Aufgaben/Undo) fuer den gesamten retained-Zeitraum erhaelt, bevor die
+// aeltesten Daten den Cutoff verlassen. Laeuft woechentlich (siehe
+// startScheduler), nicht taeglich - Loeschen aelterer Daten ist unkritisch,
+// wenn es ein paar Tage spaeter passiert.
+export async function pruneOldTaskLogs() {
+  const cutoffDateStr = addDaysToDateString(todayString(), -TASKLOG_RETENTION_DAYS)
+  const cutoffInstant = getUTCRangeForBerlinDay(cutoffDateStr).gte
+
+  const users = await prisma.user.findMany({ where: { approved: true } })
+  const oldTrophyLogs = await prisma.taskLog.findMany({
+    where: { status: 'completed', completedBy: { not: null }, ...EXCLUDE_ONCE, loggedAt: { lt: cutoffInstant } },
+    select: { completedBy: true, loggedAt: true },
+  })
+
+  if (oldTrophyLogs.length > 0) {
+    const cutoffWeekStart = mondayOnOrBefore(cutoffDateStr)
+    const cutoffMonthStart = cutoffDateStr.slice(0, 7) + '-01'
+    // today=cutoffDateStr: calculateTrophies zaehlt nur Zeitraeume, die
+    // VOLLSTAENDIG vor dem Cutoff liegen (dieselbe "< today"-Grenze wie sonst
+    // fuer "heute") - deckt sich exakt mit der oldTrophyLogs-Abfrage oben
+    // (loggedAt < cutoffInstant), ein den Cutoff ueberlappender Zeitraum wird
+    // also weder hier gezaehlt noch gleich mitgeloescht.
+    const { dayTrophies, weekTrophies, monthTrophies } = calculateTrophies(oldTrophyLogs, users, {
+      today: cutoffDateStr,
+      curWeekStart: cutoffWeekStart,
+      curMonthStart: cutoffMonthStart,
+    })
+
+    await Promise.all(users.map(user => {
+      const dInc = dayTrophies[user.id] || 0
+      const wInc = weekTrophies[user.id] || 0
+      const mInc = monthTrophies[user.id] || 0
+      if (!dInc && !wInc && !mInc) return null
+      return prisma.user.update({
+        where: { id: user.id },
+        data: {
+          dayTrophiesBaseline: { increment: dInc },
+          weekTrophiesBaseline: { increment: wInc },
+          monthTrophiesBaseline: { increment: mInc },
+        },
+      })
+    }))
+  }
+
+  const { count } = await prisma.taskLog.deleteMany({ where: { loggedAt: { lt: cutoffInstant } } })
+  if (count > 0) {
+    console.log(`[Cleanup] ${count} taskLog-Eintraege aelter als ${TASKLOG_RETENTION_DAYS} Tage geloescht (Trophaeen-Beitrag zuvor in Baseline gesichert)`)
+  }
 }
 
 export function startScheduler() {
@@ -408,6 +471,17 @@ export function startScheduler() {
       await checkWeatherDependentTasks()
     } catch (err) {
       console.error('[Scheduler] Fehler bei checkWeatherDependentTasks:', err.message)
+    }
+  }, { timezone: 'Europe/Berlin' })
+
+  // Woechentlich statt taeglich: Loeschen alter taskLog-Zeilen ist unkritisch,
+  // wenn es ein paar Tage spaeter passiert (siehe pruneOldTaskLogs). Sonntag
+  // 02:00, versetzt zum naechtlichen 00:00-Batch oben.
+  cron.schedule('0 2 * * 0', async () => {
+    try {
+      await pruneOldTaskLogs()
+    } catch (err) {
+      console.error('[Scheduler] Fehler bei pruneOldTaskLogs:', err.message)
     }
   }, { timezone: 'Europe/Berlin' })
 

@@ -6,8 +6,12 @@
 import { execSync } from 'child_process'
 import { existsSync, unlinkSync } from 'fs'
 
-if (existsSync('./e2e.db')) unlinkSync('./e2e.db')
-if (existsSync('./e2e-emails.jsonl')) unlinkSync('./e2e-emails.jsonl')
+// Auch die WAL-Sidecar-Dateien mit entfernen (entstehen durch journal_mode=WAL,
+// das der echte Server beim Start setzt) - sonst kann eine alte -wal-Datei
+// Reste in die frische DB ziehen.
+for (const f of ['./e2e.db', './e2e.db-wal', './e2e.db-shm', './e2e-emails.jsonl']) {
+  if (existsSync(f)) unlinkSync(f)
+}
 
 execSync('npx prisma db push --force-reset --url file:./e2e.db', {
   stdio: 'inherit',

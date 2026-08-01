@@ -369,7 +369,7 @@ export async function getLog() {
   })
 }
 
-function getUTCRangeForBerlinDay(dateStr) {
+export function getUTCRangeForBerlinDay(dateStr) {
   const noon = new Date(`${dateStr}T12:00:00Z`)
   const berlinHour = parseInt(noon.toLocaleString('en-US', { timeZone: 'Europe/Berlin', hour: 'numeric', hour12: false }))
   const offsetHours = berlinHour - 12
@@ -380,7 +380,7 @@ function getUTCRangeForBerlinDay(dateStr) {
   return { gte: dayStart, lt: dayEnd }
 }
 
-const EXCLUDE_ONCE = { OR: [{ taskId: null }, { task: { type: { not: 'once' } } }] }
+export const EXCLUDE_ONCE = { OR: [{ taskId: null }, { task: { type: { not: 'once' } } }] }
 
 // Erledigte Logs pro Nutzer in einem Zeitfenster zählen - ein groupBy über
 // completedBy statt je Nutzer eine eigene count-Query (früher 3×N Queries pro
