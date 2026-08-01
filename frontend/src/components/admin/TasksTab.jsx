@@ -4,6 +4,7 @@ import SortableTask from './SortableTask.jsx'
 import TaskFormFields from './TaskFormFields.jsx'
 import WeatherStatusCard from './WeatherStatusCard.jsx'
 import GlobalPauseCard from './GlobalPauseCard.jsx'
+import UnmatchedWasteCard from './UnmatchedWasteCard.jsx'
 import Card from '../ui/Card.jsx'
 import Button from '../ui/Button.jsx'
 import { TYPE_LABELS } from './constants.js'
@@ -26,6 +27,7 @@ export default function TasksTab({
           davorstehende Karten aus dem sichtbaren Bereich rutscht. */}
       {!showForm && (
         <>
+          <UnmatchedWasteCard />
           <WeatherStatusCard />
           <GlobalPauseCard />
         </>

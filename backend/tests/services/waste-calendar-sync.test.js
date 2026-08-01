@@ -4,14 +4,24 @@ import prisma from '../../src/lib/prisma.js'
 vi.mock('node-ical', () => ({
   default: { async: { fromURL: vi.fn() } },
 }))
+vi.mock('../../src/services/push.js', () => ({
+  sendPushToUser: vi.fn(),
+}))
 
 const ical = (await import('node-ical')).default
-const { syncWasteCalendar } = await import('../../src/services/waste-calendar.js')
+const { sendPushToUser } = await import('../../src/services/push.js')
+const { syncWasteCalendar, getWasteSyncStatus } = await import('../../src/services/waste-calendar.js')
 
 const ORIGINAL_URL = process.env.WASTE_ICAL_URL
 
 function vevent(summary, startISO) {
   return { type: 'VEVENT', summary, start: new Date(startISO) }
+}
+
+async function createAdmin(overrides = {}) {
+  return prisma.user.create({
+    data: { email: `${Math.random().toString(36).slice(2)}@test.com`, passwordHash: 'x', name: 'Admin', role: 'admin', approved: true, ...overrides },
+  })
 }
 
 beforeEach(() => {
@@ -22,6 +32,7 @@ afterEach(() => {
   vi.useRealTimers()
   process.env.WASTE_ICAL_URL = ORIGINAL_URL
   vi.mocked(ical.async.fromURL).mockReset()
+  vi.mocked(sendPushToUser).mockReset()
 })
 
 describe('syncWasteCalendar', () => {
@@ -109,5 +120,92 @@ describe('syncWasteCalendar', () => {
 
     const stillThere = await prisma.task.findUnique({ where: { id: task.id } })
     expect(stillThere).toBeTruthy()
+  })
+})
+
+describe('syncWasteCalendar — unerkannte Kalendereinträge', () => {
+  it('trackt einen unbekannten Eintrag und meldet ihn per Push an alle Admins', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-05T10:00:00Z'))
+    const admin = await createAdmin()
+    await prisma.user.create({ data: { email: 'user@test.com', passwordHash: 'x', name: 'User', role: 'user', approved: true } })
+
+    ical.async.fromURL.mockResolvedValue({
+      e1: vevent('Sperrmüll', '2026-07-10T00:00:00Z'), // erkennt keiner der WASTE_TYPES
+    })
+
+    await syncWasteCalendar()
+
+    const status = await getWasteSyncStatus()
+    expect(status.unmatchedSummaries).toEqual(['Sperrmüll'])
+    expect(sendPushToUser).toHaveBeenCalledTimes(1)
+    expect(sendPushToUser).toHaveBeenCalledWith(admin.id, expect.objectContaining({ body: expect.stringContaining('Sperrmüll') }))
+  })
+
+  it('meldet denselben unbekannten Eintrag nicht ein zweites Mal (kein Spam bei wiederholtem Sync)', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-05T10:00:00Z'))
+    await createAdmin()
+
+    ical.async.fromURL.mockResolvedValue({
+      e1: vevent('Sperrmüll', '2026-07-10T00:00:00Z'),
+    })
+
+    await syncWasteCalendar()
+    await syncWasteCalendar()
+
+    expect(sendPushToUser).toHaveBeenCalledTimes(1) // nur beim ersten Mal
+    const status = await getWasteSyncStatus()
+    expect(status.unmatchedSummaries).toEqual(['Sperrmüll']) // Anzeige bleibt trotzdem aktuell
+  })
+
+  it('ignoriert bereits vergangene unerkannte Einträge', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-05T10:00:00Z'))
+    await createAdmin()
+
+    ical.async.fromURL.mockResolvedValue({
+      e1: vevent('Sperrmüll', '2026-07-01T00:00:00Z'), // liegt in der Vergangenheit
+    })
+
+    await syncWasteCalendar()
+
+    expect(sendPushToUser).not.toHaveBeenCalled()
+    const status = await getWasteSyncStatus()
+    expect(status.unmatchedSummaries).toEqual([])
+  })
+
+  it('liefert eine leere Liste, wenn alle Einträge erkannt wurden', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-05T10:00:00Z'))
+
+    ical.async.fromURL.mockResolvedValue({
+      e1: vevent('Gelbe Tonne', '2026-07-06T00:00:00Z'),
+    })
+
+    await syncWasteCalendar()
+
+    const status = await getWasteSyncStatus()
+    expect(status.unmatchedSummaries).toEqual([])
+    expect(sendPushToUser).not.toHaveBeenCalled()
+  })
+
+  it('meldet einen zuvor gemeldeten, dann verschwundenen und erneut auftauchenden Eintrag nicht erneut (bleibt in notifiedSummaries)', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-05T10:00:00Z'))
+    await createAdmin()
+
+    ical.async.fromURL.mockResolvedValue({ e1: vevent('Sperrmüll', '2026-07-10T00:00:00Z') })
+    await syncWasteCalendar() // meldet einmalig
+
+    ical.async.fromURL.mockResolvedValue({}) // Eintrag verschwindet aus dem Feed
+    await syncWasteCalendar()
+    const statusGone = await getWasteSyncStatus()
+    expect(statusGone.unmatchedSummaries).toEqual([]) // Anzeige leert sich
+
+    ical.async.fromURL.mockResolvedValue({ e1: vevent('Sperrmüll', '2026-07-12T00:00:00Z') })
+    await syncWasteCalendar() // taucht wieder auf
+
+    expect(sendPushToUser).toHaveBeenCalledTimes(1) // weiterhin nur der eine Push vom ersten Mal
   })
 })

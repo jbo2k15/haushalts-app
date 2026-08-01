@@ -11,5 +11,6 @@ beforeEach(async () => {
   await prisma.passwordResetToken.deleteMany()
   await prisma.refreshToken.deleteMany()
   await prisma.weatherStatus.deleteMany()
+  await prisma.wasteSyncStatus.deleteMany()
   await prisma.user.deleteMany()
 })

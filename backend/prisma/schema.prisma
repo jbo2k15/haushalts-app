@@ -170,3 +170,19 @@ model WeatherStatus {
   checkedAt DateTime @default(now())
   rainMM    Float    @default(0)
 }
+
+// Singleton (fixe id "singleton") mit dem Stand des letzten Abfallkalender-
+// Syncs bezueglich Kalendereintraegen, die zu keinem WASTE_TYPES-Muster
+// passten (siehe waste-calendar.js). unmatchedSummaries (JSON-Array) spiegelt
+// den aktuellen Sync-Lauf fuer die Verwaltungs-Anzeige - aktualisiert sich bei
+// jedem Sync neu (verschwindet von selbst, sobald der Matcher erweitert wurde
+// oder der Eintrag aus dem Feed faellt). notifiedSummaries (JSON-Array,
+// waechst nur) haelt fest, worueber Admins per Push bereits informiert
+// wurden, damit derselbe unbekannte Eintrag nicht bei jedem der 5 taeglichen
+// Sync-Laeufe erneut meldet.
+model WasteSyncStatus {
+  id                 String   @id @default("singleton")
+  checkedAt          DateTime @default(now())
+  unmatchedSummaries String   @default("[]")
+  notifiedSummaries  String   @default("[]")
+}
