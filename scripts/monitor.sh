@@ -44,7 +44,7 @@ fi
 HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" \
   --max-time 10 "$BASE_URL/api/health" 2>/dev/null || echo "000")
 
-NOW="$(date '+%Y-%m-%d %H:%M:%S')"
+NOW="$(TZ='Europe/Berlin' date '+%Y-%m-%d %H:%M:%S')"
 
 # ── State ────────────────────────────────────────────────────────────────────
 STATE="$(cat "$STATE_FILE" 2>/dev/null || echo "ok")"
