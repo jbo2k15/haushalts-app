@@ -25,7 +25,7 @@ warn() { echo "  ! $1"; ((WARN++)); }
 
 echo ""
 echo "═══════════════════════════════════════"
-echo "  Smoke Test — $(date '+%Y-%m-%d %H:%M')"
+echo "  Smoke Test — $(TZ='Europe/Berlin' date '+%Y-%m-%d %H:%M')"
 echo "  $BASE_URL"
 echo "═══════════════════════════════════════"
 
