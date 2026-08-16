@@ -1,6 +1,7 @@
 import ical from 'node-ical'
 import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
+import { addDaysToDateString } from '../lib/dates.js'
 
 const WASTE_TYPES = [
   { match: 'papier', title: 'Papiertonne rausstellen' },
@@ -34,11 +35,6 @@ export function subtractOneDay(dateStr) {
   const [y, m, day] = dateStr.split('-').map(Number)
   const d = new Date(Date.UTC(y, m - 1, day - 1))
   return toDateString(d)
-}
-
-export function addDays(dateStr, n) {
-  const [y, m, day] = dateStr.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, day + n)).toISOString().slice(0, 10)
 }
 
 // Wie weit im Voraus eine Aufgabe bereits angelegt ("gebankt") wird, sobald ihr
@@ -128,7 +124,7 @@ export async function syncWasteCalendar() {
     // der Termin bekannt ist — nicht erst am Faelligkeitstag. Damit ueberlebt
     // der Termin einen Feed-Ausfall am Faelligkeitstag. Die Staffelung der
     // Sichtbarkeit passiert in der Anzeige (domain/tasks.js), nicht hier.
-    const horizon = addDays(today, BANK_LEAD_DAYS)
+    const horizon = addDaysToDateString(today, BANK_LEAD_DAYS)
     const upcoming = [...nearestByTitle.entries()]
       .filter(([, dueDate]) => dueDate <= horizon)
       .map(([title, dueDate]) => ({ title, dueDate }))

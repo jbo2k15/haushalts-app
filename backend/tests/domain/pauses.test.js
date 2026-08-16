@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
   validatePauseRange,
-  addDaysToDateString,
   weekEndFromStart,
   monthEndFromStart,
   isPausedOnDay,
@@ -34,20 +33,6 @@ describe('validatePauseRange', () => {
 
   it('akzeptiert Von gleich Bis', () => {
     expect(validatePauseRange('2026-08-01', '2026-08-01')).toBeNull()
-  })
-})
-
-describe('addDaysToDateString', () => {
-  it('addiert Tage innerhalb eines Monats', () => {
-    expect(addDaysToDateString('2026-08-01', 5)).toBe('2026-08-06')
-  })
-
-  it('addiert Tage über einen Monatswechsel hinweg', () => {
-    expect(addDaysToDateString('2026-08-30', 3)).toBe('2026-09-02')
-  })
-
-  it('addiert Tage über einen Jahreswechsel hinweg', () => {
-    expect(addDaysToDateString('2026-12-30', 3)).toBe('2027-01-02')
   })
 })
 

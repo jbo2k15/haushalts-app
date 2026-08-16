@@ -3,6 +3,7 @@
 // sind unabhängig voneinander und werden per ODER verknüpft (siehe TODO.md).
 import prisma from '../lib/prisma.js'
 import { httpError } from '../lib/httpError.js'
+import { addDaysToDateString } from '../lib/dates.js'
 
 export function validatePauseRange(pauseFrom, pauseTo) {
   if (!pauseFrom && !pauseTo) return null
@@ -12,12 +13,6 @@ export function validatePauseRange(pauseFrom, pauseTo) {
   }
   if (pauseFrom > pauseTo) return 'Von darf nicht nach Bis liegen'
   return null
-}
-
-export function addDaysToDateString(dateStr, days) {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const dt = new Date(Date.UTC(y, m - 1, d + days))
-  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`
 }
 
 export function weekEndFromStart(weekStart) {
