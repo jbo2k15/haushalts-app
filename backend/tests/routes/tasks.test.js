@@ -389,6 +389,67 @@ describe('GET /api/tasks/stats', () => {
     const res = await request(app).get('/api/tasks/stats')
     expect(res.status).toBe(401)
   })
+
+  it('zählt eine heute erledigte monatliche Aufgabe in der Wochen-Statistik mit (forDate=Monatserster liegt vor dem Wochenstart)', async () => {
+    // 2026-08-20: Wochenstart (17.08.) liegt NACH dem Monatsstart (01.08.) -
+    // forDate der Monatsaufgabe (01.08.) faellt damit vor curWeekStart. Ein
+    // Filter auf forDate >= curWeekStart wuerde sie faelschlich ausschließen,
+    // obwohl sie heute (= in dieser Woche) erledigt wurde.
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-20T10:00:00Z'))
+    try {
+      const user = await createUser()
+      const task = await createTask({ type: 'monthly' })
+      await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+
+      const res = await request(app).get('/api/tasks/stats').set(authHeader(user.id))
+      expect(res.body[0].curWeek).toBe(1)
+      expect(res.body[0].curMonth).toBe(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('zählt eine heute erledigte wöchentliche Aufgabe in der Monats-Statistik mit (forDate=Wochenstart liegt vor dem Monatsstart)', async () => {
+    // 2026-09-02: Wochenstart (31.08.) liegt VOR dem Monatsstart (01.09.,
+    // da der Monat an einem Dienstag beginnt) - forDate der Wochenaufgabe
+    // (31.08.) faellt damit vor curMonthStart. Ein Filter auf
+    // forDate >= curMonthStart wuerde sie faelschlich ausschließen, obwohl
+    // sie heute (= in diesem Monat) erledigt wurde.
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-02T10:00:00Z'))
+    try {
+      const user = await createUser()
+      const task = await createTask({ type: 'weekly' })
+      await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+
+      const res = await request(app).get('/api/tasks/stats').set(authHeader(user.id))
+      expect(res.body[0].curWeek).toBe(1)
+      expect(res.body[0].curMonth).toBe(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('zählt mehrere heute erledigte Aufgaben unterschiedlichen Typs korrekt zusammen (Regressionstest: Heute=3, Woche musste zuvor faelschlich 2 zeigen)', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-20T10:00:00Z'))
+    try {
+      const user = await createUser()
+      const daily = await createTask({ type: 'daily', allowMultiple: true })
+      const monthly = await createTask({ type: 'monthly', title: 'Betten machen' })
+
+      await request(app).post(`/api/tasks/${daily.id}/complete`).set(authHeader(user.id))
+      await request(app).post(`/api/tasks/${daily.id}/complete`).set(authHeader(user.id))
+      await request(app).post(`/api/tasks/${monthly.id}/complete`).set(authHeader(user.id))
+
+      const res = await request(app).get('/api/tasks/stats').set(authHeader(user.id))
+      expect(res.body[0].curDay).toBe(3)
+      expect(res.body[0].curWeek).toBe(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('POST /api/tasks/admin', () => {
