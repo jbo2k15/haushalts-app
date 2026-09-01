@@ -112,6 +112,17 @@ describe('GET /api/tasks', () => {
       const row = res.body.daily.find(t => t.id === task.id)
       expect(row).toBeFalsy()
     })
+
+    it('klärt die Überfälligkeit einer wetterabhängigen Montags-Aufgabe, die am Montag automatisch (system-completed) erledigt wurde', async () => {
+      // Regression: system-completed hat bewusst keine TaskCompletion - ohne
+      // Fix bliebe die Aufgabe am Mittwoch faelschlich "überfällig".
+      const user = await setupWednesday()
+      const task = await createTask({ weekdays: JSON.stringify([1]), weatherDependent: true, createdAt: new Date('2026-07-01T00:00:00Z') }) // Montag
+      await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'system-completed', forDate: '2026-07-13' } })
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      const row = res.body.daily.find(t => t.id === task.id)
+      expect(row).toBeFalsy() // aufgeloest, nicht mehr ueberfaellig -> ausgeblendet, analog zur abgelehnten Aufgabe oben
+    })
   })
 
   describe('wetterabhängige Aufgaben (vom System erledigt)', () => {

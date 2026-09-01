@@ -107,12 +107,21 @@ export async function getTaskOverview() {
   // Wetterabhängige Tagesaufgaben, die der stündliche(/15-Min-)Wetter-Check
   // bereits als "vom System erledigt" markiert hat (siehe services/weather.js) -
   // bewusst kein TaskCompletion, nur ein TaskLog-Eintrag, damit sie nicht in
-  // Statistik/Trophäen/Fairness einfließen.
-  const systemCompletedToday = taskIds.length === 0 ? [] : await prisma.taskLog.findMany({
-    where: { taskId: { in: taskIds }, forDate: today, status: 'system-completed' },
-    select: { taskId: true },
+  // Statistik/Trophäen/Fairness einfließen. Bereich [twoDaysAgo, today] statt
+  // nur heute, damit eine an einem verpassten Tag automatisch erledigte
+  // wochentagsbeschränkte Aufgabe die Überfällig-Auflösung unten (compDates)
+  // genauso erreicht wie eine echte Erledigung - sonst würde sie trotz
+  // System-Erledigung nach 2 Tagen fälschlich als "verfallen" geloggt.
+  const systemCompletedLogs = taskIds.length === 0 ? [] : await prisma.taskLog.findMany({
+    where: { taskId: { in: taskIds }, forDate: { gte: twoDaysAgo, lte: today }, status: 'system-completed' },
+    select: { taskId: true, forDate: true },
   })
-  const systemCompletedIds = new Set(systemCompletedToday.map(l => l.taskId))
+  const systemCompletedIds = new Set(systemCompletedLogs.filter(l => l.forDate === today).map(l => l.taskId))
+  const systemCompletedDatesByTask = new Map()
+  for (const l of systemCompletedLogs) {
+    if (!systemCompletedDatesByTask.has(l.taskId)) systemCompletedDatesByTask.set(l.taskId, new Set())
+    systemCompletedDatesByTask.get(l.taskId).add(l.forDate)
+  }
 
   const allCompletions = taskIds.length === 0 ? [] : await prisma.taskCompletion.findMany({
     where: {
@@ -203,7 +212,10 @@ export async function getTaskOverview() {
       // Abhaken am Folgetag klärt sie also und sie taucht am nächsten Tag nicht
       // erneut auf. (Nur relevant, wenn heute kein regulärer Tag ist - an
       // regulären Tagen ist es einfach die heutige, offene Aufgabe.)
-      const compDates = new Set((byTask.get(task.id) || []).map(c => c.forDate))
+      const compDates = new Set([
+        ...(byTask.get(task.id) || []).map(c => c.forDate),
+        ...(systemCompletedDatesByTask.get(task.id) || []),
+      ])
       const skippedDates = skippedDatesByTask.get(task.id) || new Set()
       const wasDueYesterday = taskCreatedDate <= yesterday && (!weekdays || weekdays.length === 0 || weekdays.includes(yesterdayWeekday))
       const wasDueTwoDaysAgo = taskCreatedDate <= twoDaysAgo && (!weekdays || weekdays.length === 0 || weekdays.includes(twoDaysAgoWeekday))
