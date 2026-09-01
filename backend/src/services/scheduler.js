@@ -42,29 +42,41 @@ export async function cleanupExpiredPauses() {
   }
 }
 
-async function expireDailyTasks() {
+export async function expireDailyTasks() {
   const twoDaysAgo = twoDaysAgoString()
   const twoDaysAgoDate = new Date()
   twoDaysAgoDate.setDate(twoDaysAgoDate.getDate() - 2)
   const twoDaysAgoWeekday = twoDaysAgoDate.getDay()
 
   const tasks = await prisma.task.findMany({ where: { type: 'daily', isActive: true } })
+  // Nur wochentagsbeschraenkte Aufgaben kennen ein "Verfallen" - eine
+  // unbeschraenkte taegliche Aufgabe ist ohnehin jeden Tag neu faellig, ein
+  // an einem Tag verpasstes Abhaken loest sich am naechsten Tag einfach von
+  // selbst auf (kein Ueberfaellig/Verfallen-Konzept, siehe getTaskOverview:
+  // isOverdue ist fuer sie immer false). Vorher wurden solche Aufgaben trotzdem
+  // faelschlich nach 2 Tagen als "verfallen" geloggt.
   const dueTasks = tasks.filter(task => {
     if (task.createdAt > twoDaysAgoDate) return false
     const weekdays = task.weekdays ? JSON.parse(task.weekdays) : null
-    return !weekdays || weekdays.length === 0 || weekdays.includes(twoDaysAgoWeekday)
+    if (!weekdays || weekdays.length === 0) return false
+    return weekdays.includes(twoDaysAgoWeekday)
   })
   if (dueTasks.length === 0) return
 
   const taskIds = dueTasks.map(t => t.id)
-  const [completions, existingLogs, skippedLogs, globalPause, individualPauseMap] = await Promise.all([
+  const [completions, systemCompletedLogs, existingLogs, skippedLogs, globalPause, individualPauseMap] = await Promise.all([
     prisma.taskCompletion.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo }, select: { taskId: true } }),
+    // Wetterabhaengige Aufgaben, die der Wetter-Check bereits automatisch
+    // erledigt hat (status 'system-completed', bewusst kein TaskCompletion -
+    // siehe getTaskOverview) - sonst wuerden sie trotz Erledigung faelschlich
+    // als verfallen geloggt.
+    prisma.taskLog.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo, status: 'system-completed' }, select: { taskId: true } }),
     prisma.taskLog.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo, status: 'expired' }, select: { taskId: true } }),
     prisma.taskLog.findMany({ where: { taskId: { in: taskIds }, forDate: twoDaysAgo, status: 'skipped' }, select: { taskId: true } }),
     getGlobalPause(),
     getIndividualPausesForTasks(taskIds),
   ])
-  const completedIds = new Set(completions.map(c => c.taskId))
+  const completedIds = new Set([...completions.map(c => c.taskId), ...systemCompletedLogs.map(l => l.taskId)])
   const loggedIds = new Set(existingLogs.map(l => l.taskId))
   const skippedIds = new Set(skippedLogs.map(l => l.taskId))
 
