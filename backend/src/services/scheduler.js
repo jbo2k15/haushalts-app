@@ -241,12 +241,18 @@ export async function sendDailyReminders() {
   const dueTodayTasks = tasks
     .filter(t => { const w = t.weekdays ? JSON.parse(t.weekdays) : null; return !w || !w.length || w.includes(todayWeekday) })
 
-  const [completions, globalPause, individualPauseMap] = await Promise.all([
-    prisma.taskCompletion.findMany({ where: { forDate: today, taskId: { in: dueTodayTasks.map(t => t.id) } }, select: { taskId: true } }),
+  const dueTodayTaskIds = dueTodayTasks.map(t => t.id)
+  const [completions, systemCompletedLogs, globalPause, individualPauseMap] = await Promise.all([
+    prisma.taskCompletion.findMany({ where: { forDate: today, taskId: { in: dueTodayTaskIds } }, select: { taskId: true } }),
+    // Wetterabhaengige Aufgaben, die bereits automatisch erledigt wurden
+    // (status 'system-completed', bewusst keine TaskCompletion - siehe
+    // domain/tasks.js), gelten sonst faelschlich weiter als "offen" und
+    // wuerden in der Erinnerung nochmal genannt.
+    prisma.taskLog.findMany({ where: { forDate: today, taskId: { in: dueTodayTaskIds }, status: 'system-completed' }, select: { taskId: true } }),
     getGlobalPause(),
-    getIndividualPausesForTasks(dueTodayTasks.map(t => t.id)),
+    getIndividualPausesForTasks(dueTodayTaskIds),
   ])
-  const completedIds = new Set(completions.map(c => c.taskId))
+  const completedIds = new Set([...completions.map(c => c.taskId), ...systemCompletedLogs.map(l => l.taskId)])
 
   const openTasks = dueTodayTasks
     .filter(t => !completedIds.has(t.id))
