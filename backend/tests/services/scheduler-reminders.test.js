@@ -62,6 +62,19 @@ describe('sendDailyReminders', () => {
 
     expect(sendPushToUser).not.toHaveBeenCalled()
   })
+
+  it('zählt eine bereits wetterbedingt automatisch erledigte (system-completed) Aufgabe nicht als offen', async () => {
+    // Regression: system-completed hat bewusst keine TaskCompletion (siehe
+    // domain/tasks.js) - ohne Fix wuerde die Erinnerung sie trotzdem nennen.
+    mockNow('2026-07-20T19:00:00Z')
+    await createUser()
+    const task = await createTask({ title: 'Blumen gießen', weatherDependent: true })
+    await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'system-completed', forDate: '2026-07-20' } })
+
+    await sendDailyReminders()
+
+    expect(sendPushToUser).not.toHaveBeenCalled()
+  })
 })
 
 describe('sendWeeklyReminders', () => {

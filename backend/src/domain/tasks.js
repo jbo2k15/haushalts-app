@@ -222,9 +222,15 @@ export async function getTaskOverview() {
       // Ein explizites "Heute nicht nötig" (abgelehnt) am fälligen Tag klärt die
       // Überfälligkeit genauso wie eine Erledigung - sonst würde eine bewusst
       // abgelehnte wochentagsbeschränkte Aufgabe am Folgetag trotzdem als
-      // überfällig markiert.
-      const missedYesterday = wasDueYesterday && !compDates.has(yesterday) && !compDates.has(today) && !skippedDates.has(yesterday)
-      const missedTwoDaysAgo = wasDueTwoDaysAgo && !compDates.has(twoDaysAgo) && !compDates.has(yesterday) && !compDates.has(today) && !skippedDates.has(twoDaysAgo)
+      // überfällig markiert. Ebenso eine Pause AM VERPASSTEN Tag selbst (nicht
+      // nur "heute", siehe pausedToday oben) - sonst würde die UI eine Aufgabe
+      // bis zu 2 Tage lang fälschlich überfällig zeigen, obwohl der nächtliche
+      // Verfallen-Job (expireDailyTasks) denselben Tag korrekt als pausiert
+      // überspringt.
+      const pausedYesterday = isPausedOnDay(individualPauseMap.get(task.id), globalPause, yesterday)
+      const pausedTwoDaysAgo = isPausedOnDay(individualPauseMap.get(task.id), globalPause, twoDaysAgo)
+      const missedYesterday = wasDueYesterday && !compDates.has(yesterday) && !compDates.has(today) && !skippedDates.has(yesterday) && !pausedYesterday
+      const missedTwoDaysAgo = wasDueTwoDaysAgo && !compDates.has(twoDaysAgo) && !compDates.has(yesterday) && !compDates.has(today) && !skippedDates.has(twoDaysAgo) && !pausedTwoDaysAgo
       const isOverdue = !dueToday && (missedYesterday || missedTwoDaysAgo)
 
       const systemCompleted = systemCompletedIds.has(task.id)

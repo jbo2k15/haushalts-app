@@ -123,6 +123,19 @@ describe('GET /api/tasks', () => {
       const row = res.body.daily.find(t => t.id === task.id)
       expect(row).toBeFalsy() // aufgeloest, nicht mehr ueberfaellig -> ausgeblendet, analog zur abgelehnten Aufgabe oben
     })
+
+    it('zeigt eine Montags-Aufgabe am Mittwoch nicht überfällig, wenn sie am Montag pausiert war', async () => {
+      // Regression: die Ueberfaellig-Pruefung kannte bisher nur "heute
+      // pausiert" (siehe pausedToday), nicht "am verpassten Tag pausiert" -
+      // deckt sich mit expireDailyTasks, das den Verfallen-Tag korrekt gegen
+      // Pausen prueft.
+      const user = await setupWednesday()
+      const task = await createTask({ weekdays: JSON.stringify([1]), createdAt: new Date('2026-07-01T00:00:00Z') }) // Montag
+      await prisma.taskPause.create({ data: { taskId: task.id, pauseFrom: '2026-07-12', pauseTo: '2026-07-13' } }) // deckt den Montag ab
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      const row = res.body.daily.find(t => t.id === task.id)
+      expect(row).toBeFalsy() // aufgeloest durch die Pause, nicht ueberfaellig -> ausgeblendet
+    })
   })
 
   describe('wetterabhängige Aufgaben (vom System erledigt)', () => {

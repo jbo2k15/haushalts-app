@@ -2,6 +2,7 @@ import prisma from '../lib/prisma.js'
 import { broadcastTasksUpdated } from '../lib/sse.js'
 import { sendPushToUser } from './push.js'
 import { todayString, dateStringInBerlin } from '../lib/dates.js'
+import { isPausedOnDay, getGlobalPause, getIndividualPausesForTasks } from '../domain/pauses.js'
 
 const DEFAULT_RAIN_THRESHOLD_MM = 5
 
@@ -117,12 +118,24 @@ export async function checkWeatherDependentTasks() {
   if (dueToday.length === 0) return
 
   const taskIds = dueToday.map(t => t.id)
-  const [completions, systemLogs] = await Promise.all([
+  const [completions, systemLogs, skippedLogs, globalPause, individualPauseMap] = await Promise.all([
     prisma.taskCompletion.findMany({ where: { taskId: { in: taskIds }, forDate: today }, select: { taskId: true } }),
     prisma.taskLog.findMany({ where: { taskId: { in: taskIds }, forDate: today, status: 'system-completed' }, select: { taskId: true } }),
+    // Ein bereits manuell uebersprungenes ("Heute nicht noetig") Aufgabe soll
+    // nicht zusaetzlich noch automatisch "erledigt" werden - sonst entstehen
+    // zwei widersprueckliche Log-Eintraege fuer denselben Tag + eine unnoetige
+    // Push-Meldung.
+    prisma.taskLog.findMany({ where: { taskId: { in: taskIds }, forDate: today, status: 'skipped' }, select: { taskId: true } }),
+    getGlobalPause(),
+    getIndividualPausesForTasks(taskIds),
   ])
-  const resolvedIds = new Set([...completions.map(c => c.taskId), ...systemLogs.map(l => l.taskId)])
-  const toMark = dueToday.filter(t => !resolvedIds.has(t.id))
+  const resolvedIds = new Set([...completions.map(c => c.taskId), ...systemLogs.map(l => l.taskId), ...skippedLogs.map(l => l.taskId)])
+  // Eine pausierte Aufgabe soll waehrend der Pause unsichtbar/inaktiv bleiben
+  // (siehe getTaskOverview) - der Wetter-Check darf sie nicht trotzdem als
+  // erledigt markieren und eine Push-Meldung dafuer versenden.
+  const toMark = dueToday
+    .filter(t => !resolvedIds.has(t.id))
+    .filter(t => !isPausedOnDay(individualPauseMap.get(t.id), globalPause, today))
   if (toMark.length === 0) return
 
   await prisma.taskLog.createMany({

@@ -122,6 +122,34 @@ describe('checkWeatherDependentTasks', () => {
     expect(log).toBeNull()
   })
 
+  it('markiert eine pausierte wetterabhängige Aufgabe nicht (bleibt während der Pause unsichtbar/inaktiv)', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00Z'))
+    mockOpenMeteo({ '2026-07-19T06:00': 10 })
+    const task = await createTask()
+    await prisma.taskPause.create({ data: { taskId: task.id, pauseFrom: '2026-07-18', pauseTo: '2026-07-20' } })
+
+    await checkWeatherDependentTasks()
+
+    const log = await prisma.taskLog.findFirst({ where: { taskId: task.id, status: 'system-completed' } })
+    expect(log).toBeNull()
+    expect(sendPushToUser).not.toHaveBeenCalled()
+  })
+
+  it('markiert eine bereits manuell übersprungene wetterabhängige Aufgabe nicht zusätzlich automatisch', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-19T10:00:00Z'))
+    mockOpenMeteo({ '2026-07-19T06:00': 10 })
+    const task = await createTask()
+    await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'skipped', forDate: '2026-07-19' } })
+
+    await checkWeatherDependentTasks()
+
+    const log = await prisma.taskLog.findFirst({ where: { taskId: task.id, status: 'system-completed' } })
+    expect(log).toBeNull()
+    expect(sendPushToUser).not.toHaveBeenCalled()
+  })
+
   it('markiert nicht-wetterabhängige Aufgaben nie', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-19T10:00:00Z'))
