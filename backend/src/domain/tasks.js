@@ -400,11 +400,21 @@ export async function getStats() {
   const curMonthStart = currentMonthStart()
   const today = todayString()
 
+  // loggedAt (echter Erledigungszeitpunkt), NICHT forDate: forDate ist bei
+  // wöchentlichen/monatlichen Aufgaben nur der Perioden-Anker (Wochenstart
+  // bzw. Monatsstart, siehe completeTask), nicht das tatsächliche Datum der
+  // Erledigung. Ein am 16. abgeschlossener Monatstask hat z.B. forDate=Monats-
+  // Erster - das liegt VOR dem aktuellen Wochenstart, ein Filter auf
+  // forDate >= curWeekStart hätte ihn faelschlich aus der Wochen-Statistik
+  // ausgeschlossen, obwohl er heute (also in dieser Woche) erledigt wurde.
+  // Symmetrisch faellt eine wochenübergreifende Woche denselben Fehler fuer
+  // die Monats-Statistik. loggedAt umgeht das, da es fuer jeden Aufgabentyp
+  // immer der tatsaechliche Erledigungszeitpunkt ist (DB-Default now()).
   const [users, dayCounts, weekCounts, monthCounts] = await Promise.all([
     prisma.user.findMany({ where: { approved: true } }),
     completedCountsByUser({ loggedAt: getUTCRangeForBerlinDay(today) }),
-    completedCountsByUser({ forDate: { gte: curWeekStart } }),
-    completedCountsByUser({ forDate: { gte: curMonthStart } }),
+    completedCountsByUser({ loggedAt: { gte: getUTCRangeForBerlinDay(curWeekStart).gte } }),
+    completedCountsByUser({ loggedAt: { gte: getUTCRangeForBerlinDay(curMonthStart).gte } }),
   ])
 
   return users.map(u => ({
