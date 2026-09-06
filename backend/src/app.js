@@ -9,6 +9,7 @@ import userRoutes from './routes/users.js'
 import releaseNotesRoutes from './routes/release-notes.js'
 import weatherRoutes from './routes/weather.js'
 import wasteRoutes from './routes/waste.js'
+import storageRoutes from './routes/storage.js'
 import pausesRoutes from './routes/pauses.js'
 import { requireAuth } from './middleware/auth.js'
 import { addSSEClient, removeSSEClient } from './lib/sse.js'
@@ -61,6 +62,7 @@ export function createApp() {
   app.use('/api/release-notes', releaseNotesRoutes)
   app.use('/api/weather', weatherRoutes)
   app.use('/api/waste', wasteRoutes)
+  app.use('/api/storage', storageRoutes)
   app.use('/api/pauses', pausesRoutes)
 
   // Kurzlebiges Einmal-Ticket für die SSE-Verbindung ausgeben. requireAuth
