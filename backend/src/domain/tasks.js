@@ -12,6 +12,8 @@ import {
   currentWeekStart,
   currentMonthStart,
   addDaysToDateString,
+  addMonthsToMonthString,
+  compareMonthStrings,
 } from '../lib/dates.js'
 import {
   validatePauseRange,
@@ -39,7 +41,7 @@ export const VALID_PRIORITIES = ['high', 'normal', 'low']
 // completion isn't offered for those.
 export const MULTI_ELIGIBLE_TYPES = ['daily', 'weekly']
 
-export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo }) {
+export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo }) {
   if (!title || typeof title !== 'string' || title.trim().length === 0) return 'Titel ist erforderlich'
   if (title.length > 200) return 'Titel darf maximal 200 Zeichen haben'
   if (!VALID_TYPES.includes(type)) return 'Ungültiger Typ'
@@ -47,17 +49,16 @@ export function validateTaskInput({ title, type, priority, weekdays, fixedWeekda
   if (Array.isArray(weekdays) && !weekdays.every(d => Number.isInteger(d) && d >= 0 && d <= 6)) return 'Ungültige Wochentage'
   if (fixedWeekday != null && !(Number.isInteger(fixedWeekday) && fixedWeekday >= 0 && fixedWeekday <= 6)) return 'Ungültiger Wochentag'
   if (fixedDayOfMonth != null && !(Number.isInteger(fixedDayOfMonth) && fixedDayOfMonth >= 1 && fixedDayOfMonth <= 31)) return 'Ungültiger Tag im Monat'
+  if (monthlyInterval != null && !(Number.isInteger(monthlyInterval) && monthlyInterval >= 1 && monthlyInterval <= 12)) return 'Interval muss zwischen 1 und 12 liegen'
   if (type === 'once') {
     if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return 'Fälligkeitsdatum ist erforderlich (YYYY-MM-DD)'
-    // Das Regex allein lässt unmögliche Daten wie 2026-99-99 oder 2026-02-30
-    // durch - gegen einen echten Kalender prüfen (Round-Trip: wenn Date die
-    // Werte normalisiert/verschiebt, war das Datum ungültig).
     const [y, m, d] = dueDate.split('-').map(Number)
     const dt = new Date(Date.UTC(y, m - 1, d))
     if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return 'Ungültiges Fälligkeitsdatum'
   }
   if (allowMultiple && !MULTI_ELIGIBLE_TYPES.includes(type)) return '"Mehrfach erledigbar" ist nur für tägliche oder wöchentliche Aufgaben verfügbar'
   if (weatherDependent && type !== 'daily') return '"Wetterabhängig" ist nur für tägliche Aufgaben verfügbar'
+  if (monthlyInterval != null && type !== 'monthly') return 'Interval ist nur für Monataufgaben verfügbar'
   const pauseErr = validatePauseRange(pauseFrom, pauseTo)
   if (pauseErr) return pauseErr
   if ((pauseFrom || pauseTo) && type === 'once') return 'Pausenzeitraum ist für einmalige Aufgaben nicht verfügbar'
@@ -268,11 +269,38 @@ export async function getTaskOverview() {
     }
 
     if (task.type === 'monthly') {
-      const completion = byTask.get(task.id)?.find(c => c.forDate >= monthStart) || null
+      const currentMonth = monthStart.slice(0, 7) // YYYY-MM
+      const nextDueMonth = task.nextDueMonth || currentMonth
+      const monthCompare = compareMonthStrings(nextDueMonth, currentMonth)
+      const previousMonth = addMonthsToMonthString(currentMonth, -1)
+
+      // Status bestimmen:
+      // - fällig: nextDueMonth === currentMonth
+      // - überfällig: nextDueMonth === previousMonth (nur 1 Monat alt)
+      // - verfallen: alles andere (nicht anzeigen)
+      const isDueThisMonth = monthCompare === 0
+      const isOverdueLastMonth = nextDueMonth === previousMonth
+
+      // Completion im fälligen Monat finden
+      const dueMonthStart = `${nextDueMonth}-01`
+      const completion = byTask.get(task.id)?.find(c => c.forDate >= dueMonthStart && c.forDate < addMonthsToMonthString(nextDueMonth, 1) + '-01') || null
+
+      // Nach fixedDayOfMonth: wird die Aufgabe heute schon als fällig angezeigt?
+      let isActive = isDueThisMonth || isOverdueLastMonth
+      if (isActive && task.fixedDayOfMonth && isDueThisMonth) {
+        const today = todayString()
+        const dueDay = `${currentMonth}-${String(task.fixedDayOfMonth).padStart(2, '0')}`
+        // Wenn fixedDayOfMonth in der Zukunft liegt, Aufgabe noch nicht anzeigen
+        if (today < dueDay && !completion) isActive = false
+      }
+
+      if (!isActive) continue
+
       result.monthly.push({
         ...task,
         completed: !!completion,
         completedBy: completion?.user?.name || null,
+        isOverdue: isOverdueLastMonth && !completion,
       })
     }
   }
@@ -331,6 +359,18 @@ export async function completeTask(id, { userId, userName }) {
   }
 
   await createCompletion({ taskId: id, taskTitle: task.title, forDate, userId, userName })
+
+  // Bei monthly-Tasks mit Interval: nextDueMonth weiterzählen
+  if (task.type === 'monthly' && task.monthlyInterval && task.nextDueMonth) {
+    const currentMonth = monthStart.slice(0, 7)
+    const nextDueMonth = task.nextDueMonth
+    // Nur weiterzählen, wenn wir im fälligen oder überfälligen Monat sind
+    const monthCompare = compareMonthStrings(nextDueMonth, currentMonth)
+    if (monthCompare <= 0) {
+      const nextMonth = addMonthsToMonthString(nextDueMonth, task.monthlyInterval)
+      await prisma.task.update({ where: { id }, data: { nextDueMonth: nextMonth } })
+    }
+  }
 
   broadcastTasksUpdated()
   return { completed: true }
@@ -453,6 +493,8 @@ export async function listAdminTasks() {
   return tasks.map(t => ({
     ...t,
     weekdays: t.weekdays ? JSON.parse(t.weekdays) : null,
+    monthlyInterval: t.monthlyInterval || null,
+    nextDueMonth: t.nextDueMonth || null,
     pauseFrom: pauseMap.get(t.id)?.pauseFrom || null,
     pauseTo: pauseMap.get(t.id)?.pauseTo || null,
   }))
@@ -462,12 +504,13 @@ export async function exportTasks() {
   const tasks = await prisma.task.findMany({
     where: { isAutoGenerated: false },
     orderBy: [{ sortOrder: 'asc' }],
-    select: { id: true, title: true, type: true, priority: true, weekdays: true, fixedWeekday: true, fixedDayOfMonth: true, dueDate: true, isActive: true, allowMultiple: true, weatherDependent: true },
+    select: { id: true, title: true, type: true, priority: true, weekdays: true, fixedWeekday: true, fixedDayOfMonth: true, monthlyInterval: true, dueDate: true, isActive: true, allowMultiple: true, weatherDependent: true },
   })
   const pauseMap = await getIndividualPausesForTasks(tasks.map(t => t.id))
   return tasks.map(({ id, ...t }) => ({
     ...t,
     weekdays: t.weekdays ? JSON.parse(t.weekdays) : null,
+    monthlyInterval: t.monthlyInterval || null,
     pauseFrom: pauseMap.get(id)?.pauseFrom || null,
     pauseTo: pauseMap.get(id)?.pauseTo || null,
   }))
@@ -486,6 +529,7 @@ export async function importTasks(tasks, userId) {
   // createMany (SQLite) liefert keine erzeugten Zeilen zurück - für die
   // TaskPause-Zeilen brauchen wir aber die neuen Task-IDs, daher einzelne
   // create()-Aufrufe in einer Transaktion statt createMany.
+  const currentMonth = currentMonthStart().slice(0, 7)
   const created = await prisma.$transaction(valid.map((t, i) => prisma.task.create({
     data: {
       title: t.title.trim(),
@@ -494,6 +538,8 @@ export async function importTasks(tasks, userId) {
       weekdays: Array.isArray(t.weekdays) && t.weekdays.length ? JSON.stringify(t.weekdays) : null,
       fixedWeekday: Number.isInteger(t.fixedWeekday) ? t.fixedWeekday : null,
       fixedDayOfMonth: Number.isInteger(t.fixedDayOfMonth) ? t.fixedDayOfMonth : null,
+      monthlyInterval: t.type === 'monthly' && Number.isInteger(t.monthlyInterval) ? t.monthlyInterval : null,
+      nextDueMonth: t.type === 'monthly' ? currentMonth : null,
       dueDate: t.type === 'once' && t.dueDate ? t.dueDate : null,
       isActive: t.isActive !== false,
       allowMultiple: MULTI_ELIGIBLE_TYPES.includes(t.type) && t.allowMultiple === true,
@@ -512,11 +558,12 @@ export async function importTasks(tasks, userId) {
 }
 
 export async function createTask(body, userId) {
-  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo } = body
-  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo })
+  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo } = body
+  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo })
   if (err) throw httpError(400, err)
 
   const maxOrder = await prisma.task.aggregate({ _max: { sortOrder: true } })
+  const currentMonth = currentMonthStart().slice(0, 7)
   const task = await prisma.task.create({
     data: {
       title: title.trim(),
@@ -525,6 +572,8 @@ export async function createTask(body, userId) {
       weekdays: Array.isArray(weekdays) && weekdays.length ? JSON.stringify(weekdays) : null,
       fixedWeekday: fixedWeekday ?? null,
       fixedDayOfMonth: fixedDayOfMonth ?? null,
+      monthlyInterval: type === 'monthly' && Number.isInteger(monthlyInterval) ? monthlyInterval : null,
+      nextDueMonth: type === 'monthly' ? currentMonth : null,
       dueDate: type === 'once' ? dueDate : null,
       isActive: isActive !== false,
       allowMultiple: MULTI_ELIGIBLE_TYPES.includes(type) && allowMultiple === true,
@@ -541,10 +590,11 @@ export async function updateTask(id, body, userId) {
   if (!task) throw httpError(404, 'Aufgabe nicht gefunden')
   if (task.isAutoGenerated) throw httpError(403, 'Auto-generierte Aufgaben können nicht bearbeitet werden')
 
-  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo } = body
-  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo })
+  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo } = body
+  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo })
   if (err) throw httpError(400, err)
 
+  const currentMonth = currentMonthStart().slice(0, 7)
   const updated = await prisma.task.update({
     where: { id },
     data: {
@@ -556,6 +606,8 @@ export async function updateTask(id, body, userId) {
       weekdays: Array.isArray(weekdays) && weekdays.length ? JSON.stringify(weekdays) : null,
       fixedWeekday: fixedWeekday ?? null,
       fixedDayOfMonth: fixedDayOfMonth ?? null,
+      monthlyInterval: type === 'monthly' && Number.isInteger(monthlyInterval) ? monthlyInterval : null,
+      nextDueMonth: type === 'monthly' && !task.nextDueMonth ? currentMonth : undefined,
       dueDate: type === 'once' ? dueDate : null,
       isActive: isActive !== false,
       allowMultiple: MULTI_ELIGIBLE_TYPES.includes(type) && allowMultiple === true,

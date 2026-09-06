@@ -83,12 +83,20 @@ export default function TaskFormFields({ form, setForm }) {
         </div>
       )}
       {form.type === 'monthly' && (
-        <div>
-          <label htmlFor="task-fixed-day" className="block text-sm text-ink-muted mb-1">Fixer Tag im Monat (optional)</label>
-          <input id="task-fixed-day" type="number" min="1" max="31"
-            className={inputCls}
-            value={form.fixedDayOfMonth} onChange={e => setForm(f => ({ ...f, fixedDayOfMonth: e.target.value }))} />
-        </div>
+        <>
+          <div>
+            <label htmlFor="task-fixed-day" className="block text-sm text-ink-muted mb-1">Fixer Tag im Monat (optional)</label>
+            <input id="task-fixed-day" type="number" min="1" max="31"
+              className={inputCls}
+              value={form.fixedDayOfMonth} onChange={e => setForm(f => ({ ...f, fixedDayOfMonth: e.target.value }))} />
+          </div>
+          <div>
+            <label htmlFor="task-monthly-interval" className="block text-sm text-ink-muted mb-1">Alle x Monate</label>
+            <input id="task-monthly-interval" type="number" min="1" max="12"
+              className={inputCls}
+              value={form.monthlyInterval} onChange={e => setForm(f => ({ ...f, monthlyInterval: e.target.value }))} />
+          </div>
+        </>
       )}
       {form.type === 'once' && (
         <div>

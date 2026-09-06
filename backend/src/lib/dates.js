@@ -45,3 +45,21 @@ export function mondayOnOrBefore(dateStr) {
   d.setUTCDate(d.getUTCDate() - diff)
   return d.toISOString().slice(0, 10)
 }
+
+// Addiert (oder subtrahiert, bei negativem n) n Monate zu einem YYYY-MM Format
+// String, z.B. "2026-09" + 3 = "2026-12", "2026-11" + 3 = "2027-02"
+export function addMonthsToMonthString(monthStr, n) {
+  const [y, m] = monthStr.split('-').map(Number)
+  const date = new Date(y, m - 1, 1)
+  date.setMonth(date.getMonth() + n)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${year}-${month}`
+}
+
+// Vergleicht zwei YYYY-MM Strings, gibt -1 (erste früher), 0 (gleich), 1 (erste später)
+export function compareMonthStrings(monthStr1, monthStr2) {
+  if (monthStr1 < monthStr2) return -1
+  if (monthStr1 > monthStr2) return 1
+  return 0
+}
