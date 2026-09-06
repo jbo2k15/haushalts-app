@@ -188,3 +188,41 @@ model WasteSyncStatus {
   unmatchedSummaries String   @default("[]")
   notifiedSummaries  String   @default("[]")
 }
+
+// Vorratsschrank-Verwaltung (siehe TODO.md "Vorratsschrank-Verwaltung"): Orte
+// (z.B. "Kuehlschrank Garage") enthalten Kategorien (frei angelegt, pro Ort
+// eigene Reihenfolge + eigener Default-Mindestbestand), Kategorien enthalten
+// Artikel. minQuantity am Artikel ist NULLABLE - null bedeutet "nutze den
+// Kategorie-Default" (siehe effectiveMinQuantity in domain/storage.js).
+model StorageLocation {
+  id         String            @id @default(uuid())
+  name       String
+  sortOrder  Int               @default(0)
+  categories StorageCategory[]
+  items      StorageItem[]
+}
+
+model StorageCategory {
+  id                 String          @id @default(uuid())
+  locationId         String
+  name               String
+  sortOrder          Int             @default(0)
+  defaultMinQuantity Int             @default(1)
+  location           StorageLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  items              StorageItem[]
+
+  @@unique([locationId, name])
+}
+
+model StorageItem {
+  id          String          @id @default(uuid())
+  name        String
+  locationId  String
+  categoryId  String
+  quantity    Int             @default(0)
+  unit        String?
+  minQuantity Int?
+  sortOrder   Int             @default(0)
+  location    StorageLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  category    StorageCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
