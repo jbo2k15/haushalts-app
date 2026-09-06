@@ -16,6 +16,7 @@ const Register = lazy(() => import('./pages/Register.jsx'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'))
 const Admin = lazy(() => import('./pages/Admin.jsx'))
+const Storage = lazy(() => import('./pages/Storage.jsx'))
 const Settings = lazy(() => import('./pages/Settings.jsx'))
 const ChangePassword = lazy(() => import('./pages/ChangePassword.jsx'))
 
@@ -64,6 +65,7 @@ function AppRoutes() {
           <Route path="/" element={<ProtectedRoute><PageCarousel /></ProtectedRoute>} />
           <Route path="/hall-of-fame" element={<ProtectedRoute><PageCarousel /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
+          <Route path="/storage" element={<ProtectedRoute><Storage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

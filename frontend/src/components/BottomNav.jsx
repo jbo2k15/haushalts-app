@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router'
-import { ListChecks, Trophy, Wrench, Settings } from 'lucide-react'
+import { ListChecks, Package, Trophy, Wrench, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 
 // Einheitliche Bottom-Navigation (Redesign Phase 3) - ersetzt das frühere
@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 // konsistent mit dem Wischen), Verwaltung/Einstellungen eigene Routen (push).
 const ITEMS = [
   { path: '/', label: 'Aufgaben', testid: 'nav-home', Icon: ListChecks, replace: true },
+  { path: '/storage', label: 'Vorrat', testid: 'nav-storage', Icon: Package },
   { path: '/hall-of-fame', label: 'Ruhmeshalle', testid: 'nav-hall-of-fame', Icon: Trophy, replace: true },
   { path: '/admin', label: 'Verwaltung', testid: 'nav-admin', Icon: Wrench, adminOnly: true },
   { path: '/settings', label: 'Einstellungen', testid: 'nav-settings', Icon: Settings },
