@@ -3,7 +3,7 @@ import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
 import { syncWasteCalendar } from './waste-calendar.js'
 import { checkWeatherDependentTasks } from './weather.js'
-import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO, dateStringInBerlin, addDaysToDateString, mondayOnOrBefore } from '../lib/dates.js'
+import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO, dateStringInBerlin, addDaysToDateString, mondayOnOrBefore, addMonthsToMonthString, compareMonthStrings } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
 import { getUTCRangeForBerlinDay, EXCLUDE_ONCE } from '../domain/tasks.js'
 import {
@@ -126,28 +126,58 @@ async function expireMonthlyTasks() {
 
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const monthStr = dateToISO(lastMonth)
+  const currentMonth = currentMonthStart().slice(0, 7) // YYYY-MM
+  const previousMonth = addMonthsToMonthString(currentMonth, -1)
 
   const tasks = await prisma.task.findMany({ where: { type: 'monthly', isActive: true } })
   if (tasks.length === 0) return
 
   const completions = await prisma.taskCompletion.findMany({
     where: { taskId: { in: tasks.map(t => t.id) }, forDate: { gte: monthStr } },
-    select: { taskId: true },
+    select: { taskId: true, taskId: true },
   })
   const completedIds = new Set(completions.map(c => c.taskId))
-  const expiredCandidates = tasks.filter(t => !completedIds.has(t.id))
-  if (expiredCandidates.length === 0) return
 
-  const monthEnd = monthEndFromStart(monthStr)
-  const [globalPause, individualPauseMap] = await Promise.all([
-    getGlobalPause(),
-    getIndividualPausesForTasks(expiredCandidates.map(t => t.id)),
-  ])
-  const expired = expiredCandidates.filter(t => !isPeriodFullyPaused(monthStr, monthEnd, [individualPauseMap.get(t.id), globalPause]))
-  if (expired.length > 0) {
-    await prisma.taskLog.createMany({
-      data: expired.map(t => ({ taskId: t.id, taskTitle: t.title, status: 'expired', forDate: monthStr })),
-    })
+  // Alte Logik: Tasks ohne Interval
+  const legacyTasks = tasks.filter(t => !t.monthlyInterval)
+  const legacyExpiredCandidates = legacyTasks.filter(t => !completedIds.has(t.id))
+  if (legacyExpiredCandidates.length > 0) {
+    const monthEnd = monthEndFromStart(monthStr)
+    const [globalPause, individualPauseMap] = await Promise.all([
+      getGlobalPause(),
+      getIndividualPausesForTasks(legacyExpiredCandidates.map(t => t.id)),
+    ])
+    const expired = legacyExpiredCandidates.filter(t => !isPeriodFullyPaused(monthStr, monthEnd, [individualPauseMap.get(t.id), globalPause]))
+    if (expired.length > 0) {
+      await prisma.taskLog.createMany({
+        data: expired.map(t => ({ taskId: t.id, taskTitle: t.title, status: 'expired', forDate: monthStr })),
+      })
+    }
+  }
+
+  // Neue Logik: Tasks mit Interval - Verfallen nach Überfällig-Monat
+  const intervalTasks = tasks.filter(t => t.monthlyInterval && t.nextDueMonth)
+  const overdueIntervalTasks = intervalTasks.filter(t => compareMonthStrings(t.nextDueMonth, previousMonth) === 0 && !completedIds.has(t.id))
+  if (overdueIntervalTasks.length > 0) {
+    const monthEnd = monthEndFromStart(monthStr)
+    const [globalPause, individualPauseMap] = await Promise.all([
+      getGlobalPause(),
+      getIndividualPausesForTasks(overdueIntervalTasks.map(t => t.id)),
+    ])
+    const expired = overdueIntervalTasks.filter(t => !isPeriodFullyPaused(monthStr, monthEnd, [individualPauseMap.get(t.id), globalPause]))
+
+    if (expired.length > 0) {
+      // Log-Einträge + nextDueMonth weiterzählen
+      await prisma.taskLog.createMany({
+        data: expired.map(t => ({ taskId: t.id, taskTitle: t.title, status: 'expired', forDate: monthStr })),
+      })
+      await prisma.$transaction(
+        expired.map(t => prisma.task.update({
+          where: { id: t.id },
+          data: { nextDueMonth: addMonthsToMonthString(t.nextDueMonth, t.monthlyInterval) },
+        }))
+      )
+    }
   }
 }
 

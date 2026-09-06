@@ -93,6 +93,8 @@ model Task {
   weekdays         String?
   fixedWeekday     Int?
   fixedDayOfMonth  Int?
+  monthlyInterval  Int?
+  nextDueMonth     String?
   dueDate          String?
   sortOrder        Int              @default(0)
   isActive         Boolean          @default(true)
