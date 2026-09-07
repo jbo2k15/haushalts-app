@@ -7,6 +7,12 @@ RUN apk add --no-cache openssl python3 make g++ tzdata
 
 WORKDIR /app
 ENV NPM_CONFIG_UPDATE_NOTIFIER=false
+# Prisma ruft sonst bei jedem CLI-Aufruf (generate, migrate deploy) einen
+# synchronen Update-/Telemetrie-Check gegen checkpoint.prisma.io auf - bei
+# langsamem/haengendem Netzwerk kann das den Build bzw. den Container-Start
+# spuerbar verzoegern, ohne dass eine Fehlermeldung erscheint (beobachtet
+# waehrend der E2E-Entwicklung, siehe playwright.config.js).
+ENV CHECKPOINT_DISABLE=1
 # Nur für lesbare Log-Zeitstempel (siehe ts() in src/index.js, nutzt lokale
 # Date-Methoden) - die eigentliche Anwendungslogik rechnet ohnehin überall
 # explizit mit Europe/Berlin via Intl (unabhängig von der System-TZ).

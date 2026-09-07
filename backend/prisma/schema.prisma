@@ -226,3 +226,16 @@ model StorageItem {
   location    StorageLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
   category    StorageCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 }
+
+// Singleton (fixe id "singleton") mit den Artikel-IDs, ueber die Admins/
+// Haushaltsmitglieder bereits per Push benachrichtigt wurden, weil ihr Bestand
+// unter die Mindestmenge gefallen ist (siehe services/storage-alerts.js).
+// notifiedItemIds wird bei jedem Check komplett durch die AKTUELL knappen IDs
+// ersetzt (nicht nur ergaenzt wie bei WasteSyncStatus) - ein wieder
+// aufgefuellter Artikel verlaesst die Liste automatisch und kann bei
+// erneutem Absinken wieder eine frische Benachrichtigung ausloesen.
+model StorageAlertStatus {
+  id               String   @id @default("singleton")
+  checkedAt        DateTime @default(now())
+  notifiedItemIds  String   @default("[]")
+}

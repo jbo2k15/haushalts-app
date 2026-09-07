@@ -5,6 +5,7 @@ import TaskBlock from '../components/TaskBlock.jsx'
 import StatsSection from '../components/StatsSection.jsx'
 import LogSection from '../components/LogSection.jsx'
 import PushPromptBanner from '../components/PushPromptBanner.jsx'
+import StorageLowStockBanner from '../components/StorageLowStockBanner.jsx'
 import HeaderIllustration from '../components/HeaderIllustration.jsx'
 import Button from '../components/ui/Button.jsx'
 
@@ -211,6 +212,7 @@ export default function Home() {
           </div>
 
           <PushPromptBanner />
+          <StorageLowStockBanner />
 
           <div className="space-y-4">
             <TaskBlock type="once" tasks={tasks.once} onToggle={loadTasks} />

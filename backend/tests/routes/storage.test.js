@@ -120,6 +120,18 @@ describe('Kategorien + Artikel — offen für alle Haushaltsmitglieder', () => {
   })
 })
 
+describe('GET /api/storage/low-stock', () => {
+  it('zeigt einen Artikel nach dem Setzen der Menge auf 0 als knapp', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const { category } = await setupLocationWithCategory(admin)
+    const itemRes = await request(app).post(`/api/storage/categories/${category.id}/items`).set(authHeader(admin.id)).send({ name: 'Tomaten', quantity: 3, minQuantity: 1 })
+    await request(app).patch(`/api/storage/items/${itemRes.body.id}/quantity`).set(authHeader(admin.id)).send({ quantity: 0 })
+
+    const res = await request(app).get('/api/storage/low-stock').set(authHeader(admin.id))
+    expect(res.body.map(i => i.name)).toContain('Tomaten')
+  })
+})
+
 describe('GET /api/storage/autocomplete', () => {
   it('liefert distincte Artikel- und Kategorienamen über mehrere Lagerorte hinweg', async () => {
     const admin = await createUser({ role: 'admin' })

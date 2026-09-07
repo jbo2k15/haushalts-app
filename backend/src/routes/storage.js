@@ -1,12 +1,23 @@
 import { Router } from 'express'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import * as storage from '../domain/storage.js'
+import { checkLowStockAlerts } from '../services/storage-alerts.js'
 
 const router = Router()
 router.use(requireAuth)
 
+// Fire-and-forget: die HTTP-Antwort soll nicht auf den Push-Versand warten
+// (siehe storage-alerts.js-Kommentar zum event-getriebenen statt Cron-Ansatz).
+function triggerLowStockCheck() {
+  checkLowStockAlerts().catch(err => console.error('Vorrat: Fehler beim Knapp-Check:', err.message))
+}
+
 router.get('/locations', async (req, res) => {
   res.json(await storage.listLocations())
+})
+
+router.get('/low-stock', async (req, res) => {
+  res.json(await storage.listLowStockItems())
 })
 
 router.get('/autocomplete', async (req, res) => {
@@ -51,15 +62,21 @@ router.post('/locations/:id/categories/reorder', async (req, res) => {
 
 // ── Artikel: allen Haushaltsmitgliedern offen ───────────────────────────────
 router.post('/categories/:id/items', async (req, res) => {
-  res.status(201).json(await storage.createItem(req.params.id, req.body))
+  const item = await storage.createItem(req.params.id, req.body)
+  triggerLowStockCheck()
+  res.status(201).json(item)
 })
 
 router.put('/items/:id', async (req, res) => {
-  res.json(await storage.updateItem(req.params.id, req.body))
+  const item = await storage.updateItem(req.params.id, req.body)
+  triggerLowStockCheck()
+  res.json(item)
 })
 
 router.patch('/items/:id/quantity', async (req, res) => {
-  res.json(await storage.setQuantity(req.params.id, req.body.quantity))
+  const item = await storage.setQuantity(req.params.id, req.body.quantity)
+  triggerLowStockCheck()
+  res.json(item)
 })
 
 router.delete('/items/:id', async (req, res) => {

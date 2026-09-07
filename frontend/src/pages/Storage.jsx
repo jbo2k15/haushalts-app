@@ -6,6 +6,7 @@ import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useDialog } from '../context/DialogContext.jsx'
 import LocationSection from '../components/storage/LocationSection.jsx'
+import ShoppingListSection from '../components/storage/ShoppingListSection.jsx'
 import SortableLocationHeader from '../components/storage/SortableLocationHeader.jsx'
 import ItemFormModal from '../components/storage/ItemFormModal.jsx'
 import Button from '../components/ui/Button.jsx'
@@ -27,11 +28,15 @@ export default function Storage() {
   const [addingLocation, setAddingLocation] = useState(false)
   const [newLocationName, setNewLocationName] = useState('')
   const [modalTarget, setModalTarget] = useState(null) // { categoryId, item? }
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const load = useCallback(async () => {
     const [locs, ac] = await Promise.all([api.get('/storage/locations'), api.get('/storage/autocomplete')])
     setLocations(locs)
     setAutocomplete(ac)
+    // ShoppingListSection lädt unabhängig (eigener Endpunkt /storage/low-stock)
+    // und bekommt sonst nicht mit, dass sich der Bestand geändert hat.
+    setRefreshKey(k => k + 1)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -92,6 +97,8 @@ export default function Storage() {
         <header className="flex items-center justify-between py-3">
           <h1 className="text-xl font-semibold text-ink">Vorrat</h1>
         </header>
+
+        <ShoppingListSection refreshKey={refreshKey} onChanged={load} />
 
         <Card className="overflow-hidden mb-3">
           <div className="flex text-xs font-medium">

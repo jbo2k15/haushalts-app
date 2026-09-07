@@ -12,6 +12,7 @@ beforeEach(async () => {
   await prisma.refreshToken.deleteMany()
   await prisma.weatherStatus.deleteMany()
   await prisma.wasteSyncStatus.deleteMany()
+  await prisma.storageAlertStatus.deleteMany()
   await prisma.storageItem.deleteMany()
   await prisma.storageCategory.deleteMany()
   await prisma.storageLocation.deleteMany()
