@@ -213,6 +213,29 @@ export async function reorderItems(categoryId, orderedIds) {
 
 // ── Autocomplete ─────────────────────────────────────────────────────────
 
+// Einkaufsliste (TODO.md "Vorratsschrank-Verwaltung"): Artikel mit
+// quantity <= effectiveMinQuantity, ueber alle Lagerorte hinweg. Reine
+// Datenabfrage - Push-Benachrichtigung + Dedupe liegt bewusst in
+// services/storage-alerts.js, nicht hier (Domain bleibt frei von
+// Seiteneffekten wie push.js, analog zur bestehenden lib/services-Trennung).
+export async function listLowStockItems() {
+  const items = await prisma.storageItem.findMany({
+    include: { category: true, location: true },
+    orderBy: { name: 'asc' },
+  })
+  return items
+    .filter(item => item.quantity <= effectiveMinQuantity(item))
+    .map(item => ({
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      minQuantity: effectiveMinQuantity(item),
+      locationName: item.location.name,
+      categoryName: item.category.name,
+    }))
+}
+
 export async function listAutocomplete() {
   const [items, categories] = await Promise.all([
     prisma.storageItem.findMany({ distinct: ['name'], select: { name: true }, orderBy: { name: 'asc' } }),

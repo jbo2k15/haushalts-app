@@ -7,6 +7,7 @@ import {
   createItem,
   reorderCategories,
   reorderItems,
+  listLowStockItems,
 } from '../../src/domain/storage.js'
 
 async function makeLocation(name = 'Kühlschrank Garage') {
@@ -97,5 +98,27 @@ describe('createItem', () => {
     const location = await makeLocation()
     const category = await createCategory(location.id, { name: 'Konserven' })
     await expect(createItem(category.id, { name: 'Tomaten', quantity: -1 })).rejects.toMatchObject({ status: 400 })
+  })
+})
+
+describe('listLowStockItems', () => {
+  it('liefert nur Artikel bei/unter der effektiven Mindestmenge (Kategorie-Default oder Override)', async () => {
+    const location = await makeLocation()
+    const category = await createCategory(location.id, { name: 'Konserven', defaultMinQuantity: 2 })
+    await createItem(category.id, { name: 'Ausreichend', quantity: 5 }) // > Default(2)
+    await createItem(category.id, { name: 'Knapp per Default', quantity: 2 }) // == Default(2)
+    await createItem(category.id, { name: 'Knapp per Override', quantity: 3, minQuantity: 4 }) // <= Override(4)
+
+    const result = await listLowStockItems()
+    const names = result.map(i => i.name).sort()
+    expect(names).toEqual(['Knapp per Default', 'Knapp per Override'])
+  })
+
+  it('liefert leere Liste, wenn nichts knapp ist', async () => {
+    const location = await makeLocation()
+    const category = await createCategory(location.id, { name: 'Konserven' })
+    await createItem(category.id, { name: 'Tomaten', quantity: 10, minQuantity: 1 })
+
+    expect(await listLowStockItems()).toEqual([])
   })
 })

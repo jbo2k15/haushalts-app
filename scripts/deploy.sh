@@ -133,7 +133,9 @@ if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
   fi
   # schema.prisma kann sich auch ohne Lockfile-Änderung ändern (z.B. neue
   # Migration) - Client-Generierung deshalb unabhängig vom npm-ci-Skip.
-  (cd backend && npx prisma generate)
+  # CHECKPOINT_DISABLE: Prismas synchroner Update-Check kann bei langsamem
+  # Netzwerk den Deploy spuerbar verzoegern (siehe Dockerfile-Kommentar).
+  (cd backend && CHECKPOINT_DISABLE=1 npx prisma generate)
 fi
 
 if [ "$BACKEND_CHANGED" = true ]; then

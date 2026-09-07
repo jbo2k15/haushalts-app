@@ -18,14 +18,23 @@ function quantityClass(quantity, minQuantity) {
 // innerhalb eines dnd-kit SortableContext) verwendet.
 export default function StorageItemRow({ item, defaultMinQuantity, onChanged, onEdit, dragHandleProps, setNodeRef, style }) {
   const dialog = useDialog()
-  const [quantity, setQuantity] = useState(item.quantity)
+  // Nur ein optimistisches Override waehrend die Anfrage laeuft (wie
+  // TaskRow.jsx's optimistic-State) - kein dauerhafter lokaler Mengen-State.
+  // item.quantity bleibt sonst die alleinige Wahrheitsquelle, auch wenn sich
+  // derselbe Artikel anderswo aendert (z.B. Abhaken in der Einkaufsliste).
+  const [pendingQuantity, setPendingQuantity] = useState(null)
+  const quantity = pendingQuantity ?? item.quantity
   const minQuantity = item.minQuantity ?? defaultMinQuantity
 
   async function changeQuantity(delta) {
     const next = Math.max(0, quantity + delta)
-    setQuantity(next) // optimistisch, Server bestätigt gleich
-    await api.patch(`/storage/items/${item.id}/quantity`, { quantity: next })
-    await onChanged()
+    setPendingQuantity(next)
+    try {
+      await api.patch(`/storage/items/${item.id}/quantity`, { quantity: next })
+      await onChanged()
+    } finally {
+      setPendingQuantity(null)
+    }
   }
 
   async function handleDelete(e) {

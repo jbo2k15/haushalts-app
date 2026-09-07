@@ -45,3 +45,43 @@ test('Vorrat: Lagerort, Kategorie und Artikel anlegen, Menge ändern, Artikel l�
 
   expect(errors).toEqual([])
 })
+
+test('Vorrat: Einkaufsliste + Home-Hinweis bei knappem Bestand', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page)
+
+  await page.getByTestId('nav-storage').click()
+  await page.getByRole('button', { name: '+ Lagerort' }).click()
+  await page.getByPlaceholder('Name des Lagerorts').fill('E2E Vorratsschrank')
+  await page.getByRole('button', { name: 'Anlegen' }).click()
+  await page.getByRole('button', { name: '+ Kategorie' }).click()
+  await page.getByPlaceholder('Name der Kategorie').fill('E2E Backen')
+  await page.getByRole('button', { name: 'Anlegen' }).click()
+
+  // Artikel direkt mit knapper Menge (0) und expliziter Mindestmenge anlegen
+  await page.getByRole('button', { name: '+ Artikel' }).click()
+  await page.getByLabel('Name').fill('E2E Mehl')
+  await page.getByLabel('Menge', { exact: true }).fill('0')
+  await page.getByLabel('Mindestmenge').fill('2')
+  await page.getByRole('button', { name: 'Speichern' }).click()
+
+  // Erscheint in der Einkaufsliste (eigener Bereich, getrennt von der Bestandsliste)
+  const shoppingRow = page.locator('[data-testid="shopping-list-row"][data-item-name="E2E Mehl"]')
+  await expect(shoppingRow).toBeVisible()
+
+  // Home zeigt den Hinweis-Banner und führt zurück zum Vorrat-Tab
+  await page.getByTestId('nav-home').click()
+  await expect(page).toHaveURL('/')
+  const banner = page.getByRole('button', { name: /Artikel im Vorrat (ist|sind) knapp/ })
+  await expect(banner).toBeVisible()
+  await banner.click()
+  await expect(page).toHaveURL('/storage')
+
+  // Abhaken hebt die Menge auf die Mindestmenge an, statt zu löschen
+  await page.getByRole('button', { name: 'E2E Mehl als eingekauft markieren' }).click()
+  await expect(shoppingRow).toHaveCount(0)
+  const itemRow = page.locator('[data-testid="storage-item-row"][data-item-name="E2E Mehl"]')
+  await expect(itemRow.getByTestId('item-quantity')).toHaveText('3') // Mindestmenge(2) + 1
+
+  expect(errors).toEqual([])
+})

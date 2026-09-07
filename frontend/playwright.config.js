@@ -7,6 +7,14 @@ const backendDir = path.resolve(__dirname, '../backend')
 
 const backendEnv = {
   ...process.env,
+  // Prisma's CLI ruft bei jedem Aufruf (auch "db push" im Reset-Skript unten)
+  // synchron einen Update-/Telemetrie-Check gegen checkpoint.prisma.io auf -
+  // wurde bei einem langsamen/haengenden Netzwerk-Call schon beobachtet, das
+  // komplette 30s-webServer-Zeitbudget von Playwright aufzufressen, bevor der
+  // eigentliche Server ueberhaupt startet ("Timed out waiting ... webServer"
+  // ohne jede Server-Ausgabe). CHECKPOINT_DISABLE=1 deaktiviert den Call ganz,
+  // nicht nur die Anzeige (PRISMA_HIDE_UPDATE_MESSAGE allein reicht nicht).
+  CHECKPOINT_DISABLE: '1',
   DATABASE_URL: 'file:./e2e.db', // relative to cwd (backendDir)
   JWT_SECRET: 'e2e-test-secret-at-least-32-characters-long',
   NODE_ENV: 'test',
