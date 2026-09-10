@@ -12,6 +12,10 @@ test('back button on Home shows an exit-confirmation modal instead of leaving im
   const errors = attachErrorCollector(page)
   await login(page)
 
+  // Wait for the exit-guard history entry to be pushed (PageCarousel's mount
+  // effect) before going back, otherwise goBack() can race the effect and
+  // pop the real previous page instead of the guard entry.
+  await expect(page.locator('[data-testid="page-carousel"]')).toBeVisible()
   await page.goBack()
   await expect(page.locator('[data-testid="exit-confirm-modal"]')).toBeVisible()
   await expect(page).toHaveURL('/')
@@ -23,6 +27,7 @@ test('cancelling the exit-confirmation keeps the app open and asks again on the 
   const errors = attachErrorCollector(page)
   await login(page)
 
+  await expect(page.locator('[data-testid="page-carousel"]')).toBeVisible()
   await page.goBack()
   await page.locator('[data-testid="exit-confirm-cancel"]').click()
   await expect(page.locator('[data-testid="exit-confirm-modal"]')).toHaveCount(0)
@@ -38,6 +43,7 @@ test('pressing Escape closes the exit-confirmation like Abbrechen', async ({ pag
   const errors = attachErrorCollector(page)
   await login(page)
 
+  await expect(page.locator('[data-testid="page-carousel"]')).toBeVisible()
   await page.goBack()
   await expect(page.locator('[data-testid="exit-confirm-modal"]')).toBeVisible()
 
@@ -52,6 +58,7 @@ test('confirming exit stops asking again for the rest of the session', async ({ 
   const errors = attachErrorCollector(page)
   await login(page)
 
+  await expect(page.locator('[data-testid="page-carousel"]')).toBeVisible()
   await page.goBack()
   await page.locator('[data-testid="exit-confirm-confirm"]').click()
   await expect(page.locator('[data-testid="exit-confirm-modal"]')).toHaveCount(0)
@@ -68,6 +75,7 @@ test('"nicht mehr fragen" persists across a reload', async ({ page }) => {
   const errors = attachErrorCollector(page)
   await login(page)
 
+  await expect(page.locator('[data-testid="page-carousel"]')).toBeVisible()
   await page.goBack()
   await page.locator('[data-testid="exit-confirm-dont-ask-again"]').check()
   await page.locator('[data-testid="exit-confirm-confirm"]').click()
