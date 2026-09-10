@@ -73,9 +73,10 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
         <span {...attributes} {...listeners} style={{ touchAction: 'none' }} className="text-ink-faint cursor-grab active:cursor-grabbing text-sm" data-testid="category-drag-handle">⠿</span>
         {editing ? (
           <form onSubmit={handleSave} className="flex-1 flex items-center gap-2">
-            <input autoFocus value={name} onChange={e => setName(e.target.value)} className="flex-1 rounded-control border border-outline-strong px-2 py-1 text-xs bg-surface-container" />
+            <input autoFocus aria-label="Name der Kategorie" value={name} onChange={e => setName(e.target.value)} className="flex-1 rounded-control border border-outline-strong px-2 py-1 text-xs bg-surface-container" />
             <input
               type="number" min="0" value={defaultMinQuantity} onChange={e => setDefaultMinQuantity(e.target.value)}
+              aria-label="Standard-Mindestmenge für Artikel dieser Kategorie"
               title="Standard-Mindestmenge für Artikel dieser Kategorie"
               className="w-14 rounded-control border border-outline-strong px-1 py-1 text-xs bg-surface-container"
             />

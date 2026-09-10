@@ -27,7 +27,7 @@ export default function SortableLocationHeader({ location, onRename, onDelete, c
         <span {...attributes} {...listeners} style={{ touchAction: 'none' }} className="text-ink-faint cursor-grab active:cursor-grabbing" data-testid="location-drag-handle">⠿</span>
         {editing ? (
           <form onSubmit={handleRename} className="flex-1 flex gap-2">
-            <input autoFocus value={name} onChange={e => setName(e.target.value)} className="flex-1 rounded-control border border-outline-strong px-2 py-1 text-xs bg-surface-container" />
+            <input autoFocus aria-label="Name des Lagerorts" value={name} onChange={e => setName(e.target.value)} className="flex-1 rounded-control border border-outline-strong px-2 py-1 text-xs bg-surface-container" />
             <Button type="submit" size="md" className="text-xs px-2 py-1">OK</Button>
           </form>
         ) : (
