@@ -59,12 +59,12 @@ export default function StorageItemRow({ item, defaultMinQuantity, onChanged, on
         {item.name}
         {item.unit && <span className="text-ink-faint text-xs ml-1">({item.unit})</span>}
       </button>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <button onClick={() => changeQuantity(-1)} aria-label="Menge verringern" className="w-6 h-6 rounded-control border border-outline-strong text-sm leading-none">−</button>
+      <div className="flex items-center gap-1 shrink-0">
+        <button onClick={() => changeQuantity(-1)} aria-label="Menge verringern" className="w-8 h-8 rounded-control border border-outline-strong text-base leading-none touch-manipulation">−</button>
         <span className={`text-sm font-medium min-w-[1.5rem] text-center ${quantityClass(quantity, minQuantity)}`} data-testid="item-quantity">{quantity}</span>
-        <button onClick={() => changeQuantity(1)} aria-label="Menge erhöhen" className="w-6 h-6 rounded-control border border-outline-strong text-sm leading-none">+</button>
+        <button onClick={() => changeQuantity(1)} aria-label="Menge erhöhen" className="w-8 h-8 rounded-control border border-outline-strong text-base leading-none touch-manipulation">+</button>
       </div>
-      <button onClick={handleDelete} aria-label={`${item.name} löschen`} className="text-danger text-xs shrink-0">Löschen</button>
+      <button onClick={handleDelete} aria-label={`${item.name} löschen`} className="text-danger text-xs shrink-0 px-2 py-2 -my-2 touch-manipulation">Löschen</button>
     </div>
   )
 }

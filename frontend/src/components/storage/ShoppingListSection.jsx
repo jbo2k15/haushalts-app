@@ -36,15 +36,19 @@ export default function ShoppingListSection({ refreshKey, onChanged }) {
         <Badge tone="warning">{items.length} knapp</Badge>
       </div>
       {items.map(item => (
-        <div key={item.id} data-testid="shopping-list-row" data-item-name={item.name} className="flex items-center gap-3 px-4 py-2.5 border-b border-outline last:border-b-0">
-          <button
-            onClick={() => handleCheck(item)}
-            aria-label={`${item.name} als eingekauft markieren`}
-            className="w-5 h-5 rounded shrink-0 border-2 border-outline-strong hover:bg-surface-container-high"
-          />
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => handleCheck(item)}
+          aria-label={`${item.name} als eingekauft markieren`}
+          data-testid="shopping-list-row"
+          data-item-name={item.name}
+          className="w-full flex items-center gap-3 px-4 py-2.5 border-b border-outline last:border-b-0 text-left cursor-pointer touch-manipulation hover:bg-surface-container-high"
+        >
+          <span aria-hidden="true" className="w-5 h-5 rounded shrink-0 border-2 border-outline-strong" />
           <span className="flex-1 text-sm text-ink truncate">{item.name}</span>
           <span className="text-xs text-ink-faint shrink-0">{item.locationName}</span>
-        </div>
+        </button>
       ))}
     </Card>
   )
