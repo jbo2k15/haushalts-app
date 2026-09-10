@@ -68,3 +68,42 @@ test('Verwaltung ist frei von axe-Verstößen', async ({ page }) => {
   await expect(page.locator('#task-title')).toBeVisible()
   expect(await auditViolations(page)).toEqual([])
 })
+
+test('Vorrat ist frei von axe-Verstößen', async ({ page }) => {
+  // E2E-Standarduser ist Admin -> auch Lagerort-Verwaltung (Anlegen/
+  // Umbenennen/Löschen) erreichbar.
+  await login(page)
+  await page.locator('[data-testid="nav-storage"]').click()
+  await expect(page).toHaveURL('/storage')
+  await expect(page.getByRole('heading', { name: 'Vorrat' })).toBeVisible()
+  expect(await auditViolations(page)).toEqual([])
+
+  // Lagerort anlegen und wieder umbenennen, um auch das Rename-Formular
+  // (nur bei existierendem Lagerort erreichbar) und das Kategorie-Formular
+  // abzudecken.
+  await page.getByRole('button', { name: '+ Lagerort' }).click()
+  await page.getByPlaceholder('Name des Lagerorts').fill('A11y-Testort')
+  await page.getByRole('button', { name: 'Anlegen' }).click()
+  await expect(page.getByText('A11y-Testort')).toBeVisible()
+  expect(await auditViolations(page)).toEqual([])
+
+  await page.getByRole('button', { name: 'Bearb.' }).first().click()
+  await expect(page.getByLabel('Name des Lagerorts')).toBeVisible()
+  expect(await auditViolations(page)).toEqual([])
+
+  // Umbenennen-Formular wieder schließen (kein Cancel-Button, nur Submit),
+  // sonst bleibt "Löschen" für den folgenden Aufräumschritt unerreichbar.
+  await page.getByRole('button', { name: 'OK' }).click()
+
+  await page.getByRole('button', { name: '+ Kategorie' }).click()
+  await page.getByPlaceholder('Name der Kategorie').fill('A11y-Testkategorie')
+  await page.getByRole('button', { name: 'Anlegen' }).click()
+  await expect(page.getByText('A11y-Testkategorie')).toBeVisible()
+  expect(await auditViolations(page)).toEqual([])
+
+  // Aufräumen: sonst bleibt der Testort für nachfolgende Storage-Tests im
+  // selben Testlauf bestehen und macht z. B. "+ Kategorie" mehrdeutig.
+  await page.getByRole('button', { name: 'Löschen' }).first().click()
+  await page.getByTestId('confirm-dialog-confirm').click()
+  await expect(page.getByText('A11y-Testort')).toHaveCount(0)
+})
