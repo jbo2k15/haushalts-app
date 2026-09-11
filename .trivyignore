@@ -1,0 +1,16 @@
+# .trivyignore — triagierte, akzeptierte Container-Findings des Host-Trivy-Scans.
+# Wird von scripts/deploy.sh bzw. /usr/local/bin/trivy-scan.sh automatisch gelesen
+# (Trivy nimmt .trivyignore aus dem Arbeitsverzeichnis = Repo-Root im DEPLOY_DIR).
+# Nur pro CVE-/GHSA-ID gelistet → NEUE CVEs zu denselben Paketen tauchen weiterhin auf.
+# Halbjährlich prüfen, ob ein Fix verfügbar ist und der Eintrag entfernt werden kann.
+# Angelegt 2026-09-11 (Security-Routine-Erweiterung, siehe TODO.md + Security-Memo).
+
+# --- Prisma-Kette: devDependency (CLI/Migrationen), zur Laufzeit nicht erreichbar ---
+CVE-2026-40345          # deepmerge-ts <8.0.0, Stack-Exhaustion — kein Fix ohne Prisma-Major-Downgrade; nicht ausnutzbar
+GHSA-3f6p-5ww8-9rcr     # mysql2 Auth-Plugin-Downgrade — transitiv via Prisma, App nutzt SQLite, nie MySQL-Client
+
+# --- Gebündeltes npm im node:24-alpine: läuft nicht zur Container-Laufzeit ---
+CVE-2026-14257          # brace-expansion DoS (npm-Bundle) — npm-Upstream noch nicht gepatcht
+CVE-2026-69152          # brace-expansion DoS (npm-Bundle) — s.o.
+CVE-2026-69192          # ip-address SSRF (npm-Bundle)
+CVE-2026-73566          # tar (node-tar) DoS (npm-Bundle)
