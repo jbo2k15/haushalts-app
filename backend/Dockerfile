@@ -3,7 +3,14 @@
 # 2026-07-21) - @prisma/streams-local only requires >=22, which 24 satisfies.
 FROM node:24-alpine
 
-RUN apk add --no-cache openssl python3 make g++ tzdata
+# OS-Pakete auf den aktuellen Alpine-Stand heben — schließt Base-Image-CVEs, die
+# unter dem Floating-Tag node:24-alpine noch nicht gepatcht sind (Trivy-Scan auf
+# dem Host, 2026-09-11), ergänzt den --pull-Ansatz aus scripts/deploy.sh.
+# Zusätzlich das gebündelte npm aktualisieren, das patcht dessen mitgelieferte
+# Deps (brace-expansion / ip-address / tar).
+RUN apk upgrade --no-cache \
+ && apk add --no-cache openssl python3 make g++ tzdata \
+ && npm install -g npm@latest
 
 WORKDIR /app
 ENV NPM_CONFIG_UPDATE_NOTIFIER=false

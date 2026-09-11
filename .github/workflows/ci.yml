@@ -7,6 +7,29 @@ on:
     branches: [main]
 
 jobs:
+  audit:
+    name: npm audit (Critical-Gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # npm audit liest die package-lock.json — kein `npm ci`/node_modules nötig.
+      # Gate absichtlich auf `critical`: 0 Criticals heute → grün, blockt aber jeden
+      # neu eingeschleppten Critical beim Merge. HIGH-CVEs werden bewusst NICHT hart
+      # geblockt, weil die bekannte Prisma-devDep-Kette (deepmerge-ts/mysql2/@prisma
+      # /config, GHSA-ggr8-5vv4-36mx / GHSA-3f6p-5ww8-9rcr / GHSA-rgwj-5xj2-c3m3)
+      # ohne Breaking-Downgrade nicht fixbar ist und über Routine + Dependabot
+      # kontinuierlich beobachtet wird. Upgrade-Pfad auf ein HIGH-Gate: `audit-ci`
+      # mit Allowlist dieser drei GHSA-IDs statt `npm audit --audit-level`.
+      - name: Backend audit
+        working-directory: backend
+        run: npm audit --audit-level=critical
+      - name: Frontend audit
+        working-directory: frontend
+        run: npm audit --audit-level=critical
+
   backend-tests:
     name: Backend (Vitest)
     runs-on: ubuntu-latest

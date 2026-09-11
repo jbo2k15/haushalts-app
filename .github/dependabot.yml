@@ -1,0 +1,36 @@
+# Dependabot — kontinuierliche, serverseitige Dependency-Überwachung.
+# Ergänzt den wöchentlichen lokalen Security-Scan (npm audit) um Echtzeit-CVE-PRs
+# und deckt zusätzlich die GitHub-Actions-Versionen ab (die npm audit nie sieht).
+#
+# Hinweis: Damit Dependabot auch SICHERHEITS-Updates (CVE-getrieben) automatisch
+# als PR öffnet, müssen in GitHub unter Settings → Code security zusätzlich
+# "Dependabot alerts" und "Dependabot security updates" aktiviert sein — das ist
+# ein Repo-Setting, keine Datei. Diese Datei steuert die Versions-Update-PRs.
+#
+# Falls die Versions-Update-PRs sich zu sehr mit dem wöchentlichen Auto-Patch der
+# Routine überschneiden: interval auf "monthly" stellen oder die beiden npm-Blöcke
+# entfernen und nur den github-actions-Block behalten (den deckt sonst nichts ab).
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      backend-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
