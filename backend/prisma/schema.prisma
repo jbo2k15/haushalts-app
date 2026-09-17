@@ -20,6 +20,14 @@ model User {
   lastSeenVersion    String?
   hasSeenSwipeTip    Boolean              @default(false)
   lastActiveAt       DateTime?
+  // Per-Account-Lockout (TODO.md "L1"): zaehlt fehlgeschlagene Login-Versuche
+  // fuer GENAU dieses Konto, unabhaengig vom IP-basierten Rate-Limit in
+  // app.js. Ergaenzt (ersetzt nicht) den IP-Limiter - relevant bei geteiltem
+  // NAT (ein Haushalt, eine oeffentliche IP), damit ein vertippter Nutzer
+  // nicht die ganze Wohnung aussperrt: die IP-Sperre traf bisher alle
+  // Konten gemeinsam, dieser Zaehler sperrt gezielt nur das betroffene Konto.
+  failedLoginAttempts Int                 @default(0)
+  lockedUntil        DateTime?
   dayTrophies        Int                  @default(0)
   weekTrophies       Int                  @default(0)
   monthTrophies      Int                  @default(0)

@@ -78,6 +78,63 @@ describe('POST /api/auth/login', () => {
   })
 })
 
+describe('POST /api/auth/login — Per-Account-Lockout (L1)', () => {
+  it('sperrt das Konto nach 5 Fehlversuchen mit 429, unabhängig vom IP-Limiter', async () => {
+    await createUser({ email: 'lockout@test.com' })
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'lockout@test.com', password: 'FalschesPasswort1!' })
+      expect(res.status).toBe(401)
+    }
+    const locked = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'lockout@test.com', password: 'FalschesPasswort1!' })
+    expect(locked.status).toBe(429)
+    expect(locked.body.error).toMatch(/Zu viele fehlgeschlagene Anmeldeversuche/)
+
+    // Auch mit dem RICHTIGEN Passwort bleibt das Konto gesperrt, solange der Lockout läuft
+    const lockedEvenWithCorrectPw = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'lockout@test.com', password: 'Test1234!x' })
+    expect(lockedEvenWithCorrectPw.status).toBe(429)
+  })
+
+  it('setzt den Fehlversuchs-Zähler nach erfolgreichem Login zurück', async () => {
+    await createUser({ email: 'reset@test.com' })
+    for (let i = 0; i < 3; i++) {
+      await request(app).post('/api/auth/login').send({ email: 'reset@test.com', password: 'Falsch1!' })
+    }
+    const ok = await request(app).post('/api/auth/login').send({ email: 'reset@test.com', password: 'Test1234!x' })
+    expect(ok.status).toBe(200)
+
+    const user = await prisma.user.findUnique({ where: { email: 'reset@test.com' } })
+    expect(user.failedLoginAttempts).toBe(0)
+    expect(user.lockedUntil).toBeNull()
+  })
+
+  it('sperrt nur das betroffene Konto, andere Konten bleiben unbeeinträchtigt', async () => {
+    await createUser({ email: 'victim@test.com' })
+    await createUser({ email: 'other@test.com' })
+    for (let i = 0; i < 5; i++) {
+      await request(app).post('/api/auth/login').send({ email: 'victim@test.com', password: 'Falsch1!' })
+    }
+    const otherStillWorks = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'other@test.com', password: 'Test1234!x' })
+    expect(otherStillWorks.status).toBe(200)
+  })
+
+  it('lässt unbekannte E-Mails weiterhin unbegrenzt (kein Lockout ohne existierendes Konto) mit generischem 401 scheitern', async () => {
+    for (let i = 0; i < 6; i++) {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'nichtregistriert@test.com', password: 'Falsch1!' })
+      expect(res.status).toBe(401)
+    }
+  })
+})
+
 describe('POST /api/auth/register', () => {
   it('registriert einen neuen Nutzer', async () => {
     const res = await request(app)
