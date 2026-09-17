@@ -8,6 +8,11 @@ FROM node:24-alpine
 # dem Host, 2026-09-11), ergänzt den --pull-Ansatz aus scripts/deploy.sh.
 # Zusätzlich das gebündelte npm aktualisieren, das patcht dessen mitgelieferte
 # Deps (brace-expansion / ip-address / tar).
+# hadolint DL3018 (Paketversionen pinnen) bewusst ignoriert: ein Pin würde
+# genau der Absicht dieser Zeile widersprechen (immer die neuesten Patches),
+# und koennte bei einem spaeteren Rebuild sogar fehlschlagen, wenn Alpines
+# Paket-Repo die gepinnte, mittlerweile alte Version bereits entfernt hat.
+# hadolint ignore=DL3018
 RUN apk upgrade --no-cache \
  && apk add --no-cache openssl python3 make g++ tzdata \
  && npm install -g npm@latest
@@ -34,8 +39,12 @@ RUN npx prisma generate
 
 COPY src ./src
 
-USER node
+# Numerische UID/GID statt "node" (hadolint DL3066) - der offizielle Node-
+# Alpine-User "node" hat stabil UID/GID 1000, eine Zahl ist aber auch dort
+# auflösbar, wo der Name selbst es nicht wäre (z.B. minimale Host-Kontexte
+# ohne /etc/passwd-Eintrag für "node").
+USER 1000:1000
 
 EXPOSE 3001
 
-CMD sh -c "npx prisma migrate deploy && node prisma/seed.js && node src/index.js"
+CMD ["sh", "-c", "npx prisma migrate deploy && node prisma/seed.js && node src/index.js"]
