@@ -86,6 +86,15 @@ router.post('/register', async (req, res) => {
 // Dummy hash for timing-safe login (prevents user enumeration via response time)
 const DUMMY_HASH = await bcrypt.hash('dummy-timing-protection', BCRYPT_ROUNDS)
 
+// Per-Account-Lockout (TODO.md "L1"), ergaenzt den IP-basierten Rate-Limiter
+// in app.js: der IP-Limiter sperrt bei geteiltem NAT (ein Haushalt, eine
+// oeffentliche IP) versehentlich alle Mitbewohner gemeinsam aus, wenn sich
+// nur einer vertippt. Dieser Zaehler sperrt stattdessen gezielt nur das
+// betroffene Konto. Schwelle niedriger als das IP-Limit (5 statt 10), da er
+// auf ein einzelnes Konto zielt statt auf die gesamte Anfrage-Last einer IP.
+const MAX_FAILED_ATTEMPTS = 5
+const LOCKOUT_MS = 15 * 60 * 1000
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body
   // Muss typgeprüft werden, bevor email.toLowerCase() aufgerufen wird - ein
@@ -96,17 +105,36 @@ router.post('/login', async (req, res) => {
   }
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
 
+  if (user?.lockedUntil && user.lockedUntil > new Date()) {
+    const minutes = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000)
+    return res.status(429).json({ error: `Zu viele fehlgeschlagene Anmeldeversuche für dieses Konto. Bitte warte ${minutes} Minute${minutes === 1 ? '' : 'n'}.` })
+  }
+
   // Always run bcrypt compare to prevent timing-based user enumeration
   const hash = user?.passwordHash ?? DUMMY_HASH
   const valid = await bcrypt.compare(password ?? '', hash)
 
   if (!user || !valid) {
     recordFailedLogin()
+    if (user) {
+      // failedLoginAttempts wird beim Sperren auf 0 zurückgesetzt (siehe
+      // shouldLock unten), daher zählt der erste Fehlversuch nach Ablauf
+      // eines Lockouts wieder bei 1 an - kein separater Reset-Job nötig.
+      const attempts = user.failedLoginAttempts + 1
+      const shouldLock = attempts >= MAX_FAILED_ATTEMPTS
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: shouldLock ? 0 : attempts,
+          lockedUntil: shouldLock ? new Date(Date.now() + LOCKOUT_MS) : null,
+        },
+      })
+    }
     return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
   }
   if (!user.approved) return res.status(403).json({ error: 'Dein Account wurde noch nicht freigeschaltet' })
 
-  await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } })
+  await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date(), failedLoginAttempts: 0, lockedUntil: null } })
   await issueRefreshToken(user.id, res)
   const accessToken = signAccessToken(user.id)
 
