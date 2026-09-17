@@ -10,16 +10,27 @@ services:
     networks:
       - internal
     restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp
 
   frontend:
     build: ./frontend
     ports:
-      - "80:80"
+      - "80:8080"
     depends_on:
       - backend
     networks:
       - internal
     restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
 
 volumes:
   db-data:
