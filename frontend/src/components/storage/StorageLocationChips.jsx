@@ -20,9 +20,9 @@ export default function StorageLocationChips({ locations, activeLocationId, onSe
             <button
               onClick={onManageLocations}
               aria-label="Orte verwalten"
-              className="text-ink-faint hover:text-ink -m-1 p-1"
+              className="w-11 h-11 -my-3 -mr-1 flex items-center justify-center text-ink-faint hover:text-ink"
             >
-              <Settings size={16} />
+              <Settings size={16} aria-hidden="true" />
             </button>
           )}
         </div>
