@@ -41,7 +41,7 @@ export default function ManageLocationsModal({ locations, onClose, onChanged, on
       >
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-ink">Orte verwalten</h2>
-          <button onClick={onClose} aria-label="Schließen" className="text-ink-faint hover:text-ink -m-1 p-1">✕</button>
+          <button onClick={onClose} aria-label="Schließen" className="shrink-0 w-11 h-11 -my-2 -mr-2 flex items-center justify-center text-ink-faint hover:text-ink text-lg leading-none">✕</button>
         </div>
 
         {locations.length === 0 && (
