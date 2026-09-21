@@ -9,11 +9,14 @@ test('Vorrat: Lagerort, Kategorie und Artikel anlegen, Menge ändern, Artikel l�
   await expect(page).toHaveURL('/storage')
   await expect(page.getByRole('heading', { name: 'Vorrat' })).toBeVisible()
 
-  // Lagerort anlegen (Admin-only)
-  await page.getByRole('button', { name: '+ Lagerort' }).click()
+  // Lagerort anlegen (Admin-only, über "Orte verwalten") - noch kein Ort
+  // vorhanden -> Modal startet über den Leerzustand-Link.
+  await page.getByRole('button', { name: '+ Lagerort anlegen' }).click()
+  await page.getByRole('button', { name: '+ Lagerort', exact: true }).click()
   await page.getByPlaceholder('Name des Lagerorts').fill('E2E Kühlschrank Garage')
-  await page.getByRole('button', { name: 'Anlegen' }).click()
-  await expect(page.getByText('E2E Kühlschrank Garage')).toBeVisible()
+  await page.getByRole('button', { name: 'Anlegen', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Orte verwalten' }).getByText('E2E Kühlschrank Garage')).toBeVisible()
+  await page.getByRole('button', { name: 'Schließen' }).click()
 
   // Kategorie anlegen (offen für alle)
   await page.getByRole('button', { name: '+ Kategorie' }).click()
@@ -51,9 +54,14 @@ test('Vorrat: Einkaufsliste + Home-Hinweis bei knappem Bestand', async ({ page }
   await login(page)
 
   await page.getByTestId('nav-storage').click()
-  await page.getByRole('button', { name: '+ Lagerort' }).click()
+  // Aus dem ersten Test existiert bereits "E2E Kühlschrank Garage" -> Modal
+  // diesmal über das Zahnrad an der Orts-Chip-Karte öffnen, nicht über den
+  // Leerzustand-Link.
+  await page.getByRole('button', { name: 'Orte verwalten' }).click()
+  await page.getByRole('button', { name: '+ Lagerort', exact: true }).click()
   await page.getByPlaceholder('Name des Lagerorts').fill('E2E Vorratsschrank')
   await page.getByRole('button', { name: 'Anlegen' }).click()
+  await page.getByRole('button', { name: 'Schließen' }).click()
   await page.getByRole('button', { name: '+ Kategorie' }).click()
   await page.getByPlaceholder('Name der Kategorie').fill('E2E Backen')
   await page.getByRole('button', { name: 'Anlegen' }).click()

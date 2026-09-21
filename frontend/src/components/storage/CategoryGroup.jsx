@@ -69,7 +69,7 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className="px-3 py-2 bg-surface-container-high border-t border-b border-outline flex items-center gap-2">
+      <div className="sticky top-0 z-10 px-3 py-2 bg-surface-container-high border-t border-b border-outline flex items-center gap-2">
         <span {...attributes} {...listeners} style={{ touchAction: 'none' }} className="text-ink-faint cursor-grab active:cursor-grabbing text-sm" data-testid="category-drag-handle">⠿</span>
         {editing ? (
           <form onSubmit={handleSave} className="flex-1 flex items-center gap-2">
