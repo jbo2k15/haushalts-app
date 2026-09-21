@@ -78,22 +78,31 @@ test('Vorrat ist frei von axe-Verstößen', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Vorrat' })).toBeVisible()
   expect(await auditViolations(page)).toEqual([])
 
-  // Lagerort anlegen und wieder umbenennen, um auch das Rename-Formular
-  // (nur bei existierendem Lagerort erreichbar) und das Kategorie-Formular
-  // abzudecken.
-  await page.getByRole('button', { name: '+ Lagerort' }).click()
+  // Lagerort anlegen und wieder umbenennen (im "Orte verwalten"-Modal), um
+  // auch das Rename-Formular (nur bei existierendem Lagerort erreichbar)
+  // und das Kategorie-Formular abzudecken. Noch kein Ort vorhanden -> Modal
+  // startet über den Leerzustand-Link.
+  await page.getByRole('button', { name: '+ Lagerort anlegen' }).click()
+  await expect(page.getByRole('dialog', { name: 'Orte verwalten' })).toBeVisible()
+  expect(await auditViolations(page)).toEqual([])
+
+  await page.getByRole('button', { name: '+ Lagerort', exact: true }).click()
   await page.getByPlaceholder('Name des Lagerorts').fill('A11y-Testort')
-  await page.getByRole('button', { name: 'Anlegen' }).click()
-  await expect(page.getByText('A11y-Testort')).toBeVisible()
+  await page.getByRole('button', { name: 'Anlegen', exact: true }).click()
+  const manageDialog = page.getByRole('dialog', { name: 'Orte verwalten' })
+  await expect(manageDialog.getByText('A11y-Testort')).toBeVisible()
   expect(await auditViolations(page)).toEqual([])
 
   await page.getByRole('button', { name: 'Bearb.' }).first().click()
   await expect(page.getByLabel('Name des Lagerorts')).toBeVisible()
   expect(await auditViolations(page)).toEqual([])
 
-  // Umbenennen-Formular wieder schließen (kein Cancel-Button, nur Submit),
-  // sonst bleibt "Löschen" für den folgenden Aufräumschritt unerreichbar.
+  // Umbenennen-Formular wieder schließen (kein Cancel-Button, nur Submit).
   await page.getByRole('button', { name: 'OK' }).click()
+
+  // Modal schließen - der neu angelegte Ort ist automatisch aktiv, die
+  // Kategorie-Verwaltung passiert auf der Hauptseite, nicht im Modal.
+  await page.getByRole('button', { name: 'Schließen' }).click()
 
   await page.getByRole('button', { name: '+ Kategorie' }).click()
   await page.getByPlaceholder('Name der Kategorie').fill('A11y-Testkategorie')
@@ -103,7 +112,8 @@ test('Vorrat ist frei von axe-Verstößen', async ({ page }) => {
 
   // Aufräumen: sonst bleibt der Testort für nachfolgende Storage-Tests im
   // selben Testlauf bestehen und macht z. B. "+ Kategorie" mehrdeutig.
-  await page.getByRole('button', { name: 'Löschen' }).first().click()
+  await page.getByRole('button', { name: 'Orte verwalten' }).click()
+  await manageDialog.getByRole('button', { name: 'Löschen' }).click()
   await page.getByTestId('confirm-dialog-confirm').click()
   await expect(page.getByText('A11y-Testort')).toHaveCount(0)
 })
