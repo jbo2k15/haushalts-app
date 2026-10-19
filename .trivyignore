@@ -5,10 +5,6 @@
 # Halbjährlich prüfen, ob ein Fix verfügbar ist und der Eintrag entfernt werden kann.
 # Angelegt 2026-09-11 (Security-Routine-Erweiterung, siehe TODO.md + Security-Memo).
 
-# --- Prisma-Kette: devDependency (CLI/Migrationen), zur Laufzeit nicht erreichbar ---
-CVE-2026-40345          # deepmerge-ts <8.0.0, Stack-Exhaustion — kein Fix ohne Prisma-Major-Downgrade; nicht ausnutzbar
-GHSA-3f6p-5ww8-9rcr     # mysql2 Auth-Plugin-Downgrade — transitiv via Prisma, App nutzt SQLite, nie MySQL-Client
-
 # --- Gebündeltes npm im node:24-alpine: läuft nicht zur Container-Laufzeit ---
 CVE-2026-14257          # brace-expansion DoS (npm-Bundle) — npm-Upstream noch nicht gepatcht
 CVE-2026-69152          # brace-expansion DoS (npm-Bundle) — s.o.
