@@ -10,3 +10,7 @@ CVE-2026-14257          # brace-expansion DoS (npm-Bundle) — npm-Upstream noch
 CVE-2026-69152          # brace-expansion DoS (npm-Bundle) — s.o.
 CVE-2026-69192          # ip-address SSRF (npm-Bundle)
 CVE-2026-73566          # tar (node-tar) DoS (npm-Bundle)
+CVE-2026-102276         # brace-expansion DoS (npm-Bundle) — Fix 5.0.10, npm-Upstream bündelt noch 5.0.9 (2026-10-19)
+CVE-2026-102278         # brace-expansion DoS (npm-Bundle) — Fix 5.0.11, s.o.
+CVE-2026-93748          # http-cache-semantics Info-Disclosure (npm-Bundle) — noch kein Fix verfügbar (2026-10-19)
+CVE-2026-19534          # undici DoS via WebSocket (npm-Bundle) — Fix 6.28.1, npm-Upstream bündelt noch 6.28.0 (2026-10-19)
