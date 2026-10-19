@@ -14,8 +14,8 @@
     "postinstall": "prisma generate || exit 0"
   },
   "dependencies": {
-    "@prisma/adapter-better-sqlite3": "^7.8.0",
-    "@prisma/client": "^7.8.0",
+    "@prisma/adapter-better-sqlite3": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.11.1",
     "cookie-parser": "^1.4.7",
@@ -31,15 +31,15 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^5.0.4",
+    "@vitest/coverage-v8": "^5.0.5",
     "prisma": "^7.8.0",
     "supertest": "^7.2.2",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   },
   "allowScripts": {
     "better-sqlite3@12.11.1": true,
-    "prisma@7.10.0": true,
-    "@prisma/engines@7.10.0": true
+    "prisma@7.10.1": true,
+    "@prisma/engines@7.10.1": true
   },
   "overrides": {
     "@prisma/dev": "^0.24.14"
