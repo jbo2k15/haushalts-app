@@ -31,11 +31,14 @@ db.close();
   cat /tmp/haushalts-backup-checkpoint.log >&2 || true
 fi
 
-# Backup vor Deploy einspielen falls als Pre-Deploy-Hook genutzt
-cp "$DB_PATH" "$BACKUP_DIR/haushalt-${DATE}.db"
-gzip -f "$BACKUP_DIR/haushalt-${DATE}.db"
+# BACKUP_TAG (z.B. "predeploy-0930", gesetzt von scripts/deploy.sh) erzeugt eine
+# eigene Datei, damit ein Pre-Deploy-Backup das nächtliche Backup desselben Tages
+# nicht überschreibt. Ohne BACKUP_TAG: Dateiname wie bisher (Cron).
+NAME="haushalt-${DATE}${BACKUP_TAG:+-$BACKUP_TAG}"
+cp "$DB_PATH" "$BACKUP_DIR/${NAME}.db"
+gzip -f "$BACKUP_DIR/${NAME}.db"
 
-echo "[Backup] haushalt-${DATE}.db.gz gespeichert in $BACKUP_DIR"
+echo "[Backup] ${NAME}.db.gz gespeichert in $BACKUP_DIR"
 
 # Alte Backups löschen
 find "$BACKUP_DIR" -name "haushalt-*.db.gz" -mtime +${KEEP_DAYS} -delete

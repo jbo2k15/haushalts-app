@@ -8,6 +8,25 @@ cd "$REPO_ROOT"
 
 LAST_DEPLOY_FILE="$REPO_ROOT/.last-deploy"
 
+# ── Auto-Deploy-Schalter (vom GitHub-Actions-Runner gesetzt, siehe ci.yml) ───
+# SKIP_TESTS=1: Backend-/E2E-Tests nicht erneut laufen lassen - CI hat dieselben
+#   Tests fuer genau diesen Commit bereits gruen gemeldet (needs im Workflow).
+# NOTIFY_ON_FAILURE=1: bei Abbruch Push an alle Admins (best-effort, ueber das
+#   Backend-Container-Skript; GitHubs Fehlermail bleibt als Rueckfall). Bei
+#   manuellem deploy aus: du siehst den Fehler im Terminal.
+RUN_TESTS=true
+[ "${SKIP_TESTS:-0}" = "1" ] && RUN_TESTS=false
+
+on_exit() {
+  local rc=$?
+  if [ "$rc" -ne 0 ] && [ "${NOTIFY_ON_FAILURE:-0}" = "1" ]; then
+    echo "✗ Deploy fehlgeschlagen (Exit $rc) — sende Push an Admins..." >&2
+    docker compose exec -T backend node src/scripts/notify-admins.js \
+      "Deploy fehlgeschlagen (${CURRENT_HEAD:-?}), bitte pruefen" >/dev/null 2>&1 || true
+  fi
+}
+trap on_exit EXIT
+
 echo "▸ Git pull..."
 git pull
 
@@ -124,7 +143,7 @@ fi
 
 # The e2e tests spin up a real backend server, so backend deps are needed
 # whenever the frontend is tested too — not just when backend/ itself changed.
-if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
+if [ "$RUN_TESTS" = true ] && { [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; }; then
   if [ "$BACKEND_LOCKFILE_CHANGED" = true ]; then
     echo "▸ Backend-Abhängigkeiten installieren..."
     (cd backend && npm ci --silent)
@@ -138,12 +157,16 @@ if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
   (cd backend && CHECKPOINT_DISABLE=1 npx prisma generate)
 fi
 
-if [ "$BACKEND_CHANGED" = true ]; then
+if [ "$RUN_TESTS" = false ]; then
+  echo "▸ Tests übersprungen (SKIP_TESTS=1) — CI hat diesen Commit bereits geprüft."
+fi
+
+if [ "$RUN_TESTS" = true ] && [ "$BACKEND_CHANGED" = true ]; then
   echo "▸ Backend-Tests..."
   (cd backend && npm test)
 fi
 
-if [ "$FRONTEND_CHANGED" = true ]; then
+if [ "$RUN_TESTS" = true ] && [ "$FRONTEND_CHANGED" = true ]; then
   if [ "$FRONTEND_LOCKFILE_CHANGED" = true ]; then
     echo "▸ Frontend-Abhängigkeiten installieren..."
     (cd frontend && npm ci --silent)
@@ -163,6 +186,14 @@ rm -rf frontend/dist frontend/test-results
 SERVICES=""
 [ "$BACKEND_CHANGED" = true ] && SERVICES="$SERVICES backend"
 [ "$FRONTEND_CHANGED" = true ] && SERVICES="$SERVICES frontend"
+
+# Frischer DB-Snapshot direkt VOR Build/Migration (nicht nur der naechtliche Cron):
+# ein Container-Start fuehrt `prisma migrate deploy` aus - bei unbeaufsichtigtem
+# Auto-Deploy koennte eine fehlerhafte Migration sonst bis zu ~24h Daten kosten.
+# Best-effort: ein fehlgeschlagenes Backup blockt den Deploy nicht (Warnung).
+echo "▸ Pre-Deploy-Backup..."
+BACKUP_TAG="predeploy-$(date +%H%M)" bash "$SCRIPT_DIR/backup.sh" \
+  || echo "! Pre-Deploy-Backup fehlgeschlagen — Deploy läuft trotzdem weiter." >&2
 
 echo "▸ Docker build für:$SERVICES"
 # --pull: node:24-alpine/nginx:alpine sind unversionierte Floating-Tags - ohne
