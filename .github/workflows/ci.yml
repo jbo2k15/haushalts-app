@@ -81,3 +81,27 @@ jobs:
             frontend/playwright-report
             frontend/test-results
           retention-days: 7
+
+  # Auto-Deploy auf den Proxmox-Server (self-hosted Runner in LXC 103).
+  # Nur nach gruenen Jobs, nur Push auf main (nie pull_request - oeffentliches
+  # Repo!), nicht fuer den Montags-Scan-Bot. Kein checkout: laeuft im bestehenden
+  # Repo unter /opt/haushalts-app. SKIP_CI_CHECK, weil dieser Lauf selbst noch
+  # "in progress" waere (needs garantiert Gruen).
+  deploy:
+    name: Deploy (self-hosted)
+    needs: [audit, backend-tests, e2e]
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      !startsWith(github.event.head_commit.message, 'chore: auto security patch')
+    runs-on: [self-hosted, proxmox-prod]
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    timeout-minutes: 20
+    env:
+      SKIP_CI_CHECK: '1'
+      SKIP_TESTS: '1'
+      NOTIFY_ON_FAILURE: '1'
+    steps:
+      - name: Deploy
+        run: bash /opt/haushalts-app/scripts/deploy.sh
