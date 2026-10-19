@@ -107,6 +107,15 @@ deploy
 
 Das Script führt automatisch `git pull`, Backend-Tests, Playwright-E2E-Tests (nur bei Frontend-Änderungen), Docker Build & Start und den Smoke-Test aus. Gebaut werden nur die Images, deren Verzeichnis (`backend/` bzw. `frontend/`) sich seit dem letzten erfolgreichen Deploy tatsächlich geändert hat (Merker in `.last-deploy`, nicht versioniert).
 
+### Automatischer Deploy (self-hosted Runner)
+
+Optional: Ein Push nach `main` kann nach grüner CI automatisch deployen. Dafür läuft in LXC 103 ein GitHub-Actions-Runner (Label `proxmox-prod`, als root, weil `deploy.sh` apt/Docker-Volumes braucht). Der Job `deploy` in `.github/workflows/ci.yml` ruft `scripts/deploy.sh` mit `SKIP_CI_CHECK=1` (CI-Lauf ist der Aufrufer selbst), `SKIP_TESTS=1` (CI hat getestet) und `NOTIFY_ON_FAILURE=1` (Push an Admins bei Fehler) auf. Commits `chore: auto security patch` (Montags-Scan) deployen nicht automatisch.
+
+- Vor jedem Deploy legt `deploy.sh` ein Backup `haushalt-<Datum>-predeploy-<HHMM>.db.gz` an.
+- Runner-Status: `systemctl status 'actions.runner.*'` (Logs: `journalctl -u 'actions.runner.*' -n 50`).
+- Runner offline → Deploy-Job wartet in der Queue; der manuelle `deploy` hängt dann am CI-Gate: `SKIP_CI_CHECK=1 deploy`.
+- Voraussetzung (öffentliches Repo!): GitHub → Settings → Actions → General → „Require approval for all outside collaborators“.
+
 Beim allerersten Lauf lädt Playwright einmalig Chromium herunter (~115 MB) — das kann etwas dauern, wird danach aber gecached (`~/.cache/ms-playwright`). Host-seitige `node_modules` bleiben zwischen Deploys erhalten (`npm ci` läuft nur erneut, wenn sich die jeweilige `package-lock.json` seit dem letzten Deploy geändert hat oder `node_modules` noch fehlt) — kostet dauerhaft ca. 500 MB Platz, spart aber die volle Neuinstallation bei jedem Deploy ohne Dependency-Änderung.
 
 ---
