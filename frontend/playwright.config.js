@@ -10,7 +10,7 @@ const backendEnv = {
   // Prisma's CLI ruft bei jedem Aufruf (auch "db push" im Reset-Skript unten)
   // synchron einen Update-/Telemetrie-Check gegen checkpoint.prisma.io auf -
   // wurde bei einem langsamen/haengenden Netzwerk-Call schon beobachtet, das
-  // komplette 30s-webServer-Zeitbudget von Playwright aufzufressen, bevor der
+  // komplette webServer-Zeitbudget von Playwright aufzufressen, bevor der
   // eigentliche Server ueberhaupt startet ("Timed out waiting ... webServer"
   // ohne jede Server-Ausgabe). CHECKPOINT_DISABLE=1 deaktiviert den Call ganz,
   // nicht nur die Anzeige (PRISMA_HIDE_UPDATE_MESSAGE allein reicht nicht).
@@ -60,7 +60,7 @@ export default defineConfig({
       port: 3101,
       env: backendEnv,
       reuseExistingServer: false,
-      timeout: 30_000,
+      timeout: 45_000,
     },
     {
       command: 'npm run build && npm run preview -- --port 4173',
@@ -68,7 +68,7 @@ export default defineConfig({
       port: 4173,
       env: { VITE_API_PROXY_TARGET: 'http://localhost:3101' },
       reuseExistingServer: false,
-      timeout: 30_000,
+      timeout: 45_000,
     },
   ],
 })
