@@ -180,6 +180,18 @@ else
   warn "X-Content-Type-Options Header fehlt"
 fi
 
+# Frontend (index.html, ausgeliefert von nginx): CSP/HSTS/nosniff muessen auch
+# hier ankommen - nginx vererbt add_header nicht in location-Bloecke mit
+# eigenem add_header (Befund Security-Scan 2026-10-30).
+FE_HEADERS=$(curl -sI "$BASE_URL/" 2>/dev/null)
+for H in content-security-policy strict-transport-security x-content-type-options referrer-policy; do
+  if echo "$FE_HEADERS" | grep -qi "^$H:"; then
+    ok "Frontend: $H vorhanden"
+  else
+    warn "Frontend: $H fehlt"
+  fi
+done
+
 # ── 404 Handling ─────────────────────────────
 echo ""
 echo "▸ 404 Handling"
