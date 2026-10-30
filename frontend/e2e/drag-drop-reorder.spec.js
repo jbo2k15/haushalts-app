@@ -39,9 +39,9 @@ test('drag-and-drop reorder persists across reload', async ({ page }) => {
   // Small initial move to clear @dnd-kit's activation distance threshold.
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2 - 10, { steps: 5 })
   await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + 2, { steps: 10 })
-  await page.mouse.up()
-
+  // Vor dem Loslassen registrieren, sonst kann die Antwort schon vorbei sein (Race).
   const reorderResponse = page.waitForResponse(r => r.url().includes('/tasks/admin/reorder') && r.request().method() === 'POST')
+  await page.mouse.up()
   await reorderResponse
 
   const afterDrag = await dailyTaskTitles(page)
@@ -88,9 +88,9 @@ test('drag-and-drop reorder still works at 130% zoom', async ({ page }) => {
   // Small initial move to clear @dnd-kit's activation distance threshold.
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2 + 10, { steps: 5 })
   await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height - 2, { steps: 10 })
-  await page.mouse.up()
-
+  // Vor dem Loslassen registrieren, sonst kann die Antwort schon vorbei sein (Race).
   const reorderResponse = page.waitForResponse(r => r.url().includes('/tasks/admin/reorder') && r.request().method() === 'POST')
+  await page.mouse.up()
   await reorderResponse
 
   const titlesAfter = await dailyTaskTitles(page)
