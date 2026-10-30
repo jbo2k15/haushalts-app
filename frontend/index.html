@@ -2,18 +2,7 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <script>
-      (function () {
-        var t = localStorage.getItem('theme');
-        if (t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark');
-        }
-        var z = localStorage.getItem('zoom');
-        if (z && ['85', '100', '110', '120', '130'].indexOf(z) !== -1) {
-          document.documentElement.style.fontSize = z + '%';
-        }
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#a8492a" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#17140f" />

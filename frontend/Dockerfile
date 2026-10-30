@@ -23,4 +23,7 @@ RUN apk upgrade --no-cache
 USER 101
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Bewusst .inc ausserhalb von conf.d/ (dort wuerde nginx *.conf automatisch
+# auf http-Ebene laden). Eingebunden per include in nginx.conf.
+COPY security-headers.inc /etc/nginx/security-headers.inc
 EXPOSE 8080
