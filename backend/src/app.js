@@ -113,7 +113,8 @@ export function createApp() {
 
   app.use((err, req, res, next) => {
     const status = err.status || err.statusCode || 500
-    if (status >= 500) console.error(`${req.method} ${req.path} →`, err.message)
+    // Konstanter Format-String: req.path darf keine %-Platzhalter einschleusen.
+    if (status >= 500) console.error('%s %s →', req.method, req.path, err.message)
     // Body-Parser-/Framework-Fehler (kaputtes JSON, zu großer Body, …) tragen
     // ein err.type und würden sonst interne Meldungen wie "Unexpected token o
     // in JSON at position 1" nach außen geben. Für die geben wir eine generische
