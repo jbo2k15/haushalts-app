@@ -115,7 +115,8 @@ router.post('/login', async (req, res) => {
   const valid = await bcrypt.compare(password ?? '', hash)
 
   if (!user || !valid) {
-    recordFailedLogin()
+    // req.ip: Client-IP laut 'trust proxy' (app.js) bzw. X-Forwarded-For von nginx.
+    recordFailedLogin({ ip: req.ip, email, knownUser: !!user })
     if (user) {
       // failedLoginAttempts wird beim Sperren auf 0 zurückgesetzt (siehe
       // shouldLock unten), daher zählt der erste Fehlversuch nach Ablauf
