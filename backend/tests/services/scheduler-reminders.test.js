@@ -43,6 +43,29 @@ describe('sendDailyReminders', () => {
     expect(body).toBe('Noch offen heute: Blumen gießen, Geschirrspüler ausräumen.')
   })
 
+  it('lässt heute übersprungene Aufgaben in der Erinnerung weg', async () => {
+    mockNow('2026-07-20T19:00:00Z')
+    await createUser()
+    await createTask({ title: 'Blumen gießen' })
+    const skipped = await createTask({ title: 'Geschirrspüler ausräumen' })
+    await prisma.taskLog.create({ data: { taskId: skipped.id, taskTitle: skipped.title, status: 'skipped', forDate: '2026-07-20' } })
+
+    await sendDailyReminders()
+
+    expect(sendPushToUser.mock.calls[0][1].body).toBe('Noch offen heute: Blumen gießen.')
+  })
+
+  it('schickt keine Erinnerung, wenn alle offenen Aufgaben übersprungen wurden', async () => {
+    mockNow('2026-07-20T19:00:00Z')
+    await createUser()
+    const skipped = await createTask({ title: 'Blumen gießen' })
+    await prisma.taskLog.create({ data: { taskId: skipped.id, taskTitle: skipped.title, status: 'skipped', forDate: '2026-07-20' } })
+
+    await sendDailyReminders()
+
+    expect(sendPushToUser).not.toHaveBeenCalled()
+  })
+
   it('nennt nur den Zähler, wenn mehr als 3 Aufgaben offen sind', async () => {
     mockNow('2026-07-20T19:00:00Z')
     await createUser()
@@ -126,6 +149,37 @@ describe('sendMonthlyReminders', () => {
     await sendMonthlyReminders()
 
     expect(sendPushToUser).toHaveBeenCalled()
+  })
+
+  it('meldet "alle 2 Monate"-Aufgaben nicht im Zwischenmonat (gleiche Regel wie die Liste)', async () => {
+    mockNow('2026-11-01T08:00:00Z') // 1. November, 09:00 Uhr Berlin
+    await createUser()
+    await createTask({ title: 'Filter tauschen', type: 'monthly', monthlyInterval: 2, nextDueMonth: '2026-12' })
+
+    await sendMonthlyReminders()
+
+    expect(sendPushToUser).not.toHaveBeenCalled()
+  })
+
+  it('meldet eine Aufgabe mit festem Tag (15.) nicht schon am 1., solange die Liste sie noch nicht zeigt', async () => {
+    mockNow('2026-11-01T08:00:00Z')
+    await createUser()
+    await createTask({ title: 'Filter tauschen', type: 'monthly', monthlyInterval: 2, nextDueMonth: '2026-11', fixedDayOfMonth: 15 })
+
+    await sendMonthlyReminders()
+
+    expect(sendPushToUser).not.toHaveBeenCalled()
+  })
+
+  it('meldet eine "alle 2 Monate"-Aufgabe mit festem Tag, wenn die Erinnerung an/nach dem Tag läuft', async () => {
+    await prisma.notificationSettings.create({ data: { monthlyDay: 15, monthlyTime: '09:00' } })
+    mockNow('2026-11-15T08:00:00Z')
+    await createUser()
+    await createTask({ title: 'Filter tauschen', type: 'monthly', monthlyInterval: 2, nextDueMonth: '2026-11', fixedDayOfMonth: 15 })
+
+    await sendMonthlyReminders()
+
+    expect(sendPushToUser.mock.calls[0][1].body).toBe('Noch offen in diesem Monat: Filter tauschen.')
   })
 
   it('berücksichtigt pausierte monatliche Aufgaben nicht in der Zählung', async () => {

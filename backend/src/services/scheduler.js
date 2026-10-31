@@ -5,7 +5,7 @@ import { syncWasteCalendar } from './waste-calendar.js'
 import { checkWeatherDependentTasks } from './weather.js'
 import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO, dateStringInBerlin, addDaysToDateString, mondayOnOrBefore, addMonthsToMonthString, compareMonthStrings } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
-import { getUTCRangeForBerlinDay, EXCLUDE_ONCE } from '../domain/tasks.js'
+import { getUTCRangeForBerlinDay, EXCLUDE_ONCE, monthlyTaskStatus } from '../domain/tasks.js'
 import {
   isPausedOnDay,
   isPeriodFullyPaused,
@@ -278,7 +278,8 @@ export async function sendDailyReminders() {
     // (status 'system-completed', bewusst keine TaskCompletion - siehe
     // domain/tasks.js), gelten sonst faelschlich weiter als "offen" und
     // wuerden in der Erinnerung nochmal genannt.
-    prisma.taskLog.findMany({ where: { forDate: today, taskId: { in: dueTodayTaskIds }, status: 'system-completed' }, select: { taskId: true } }),
+    // ... ebenso heute per "X" uebersprungene Aufgaben (status 'skipped').
+    prisma.taskLog.findMany({ where: { forDate: today, taskId: { in: dueTodayTaskIds }, status: { in: ['system-completed', 'skipped'] } }, select: { taskId: true } }),
     getGlobalPause(),
     getIndividualPausesForTasks(dueTodayTaskIds),
   ])
@@ -371,8 +372,14 @@ export async function sendMonthlyReminders() {
   ])
   const completedIds = new Set(completions.map(c => c.taskId))
   const today = todayString()
+  const currentMonth = monthStart.slice(0, 7)
+  // Gleiche Regel wie die Aufgabenliste: nur Aufgaben melden, die dort gerade
+  // auch offen angezeigt werden (Turnus "alle x Monate", fester Tag im Monat).
   const openTasks = tasks
-    .filter(t => !completedIds.has(t.id))
+    .filter(t => {
+      const status = monthlyTaskStatus(t, { currentMonth, today, completedThisMonth: completedIds.has(t.id) })
+      return status.visible && !status.completed
+    })
     .filter(t => !isPausedOnDay(individualPauseMap.get(t.id), globalPause, today))
   const openCount = openTasks.length
 

@@ -64,7 +64,9 @@ function describeTaskChanges(prevMap, data) {
   return messages.length > 0 ? messages.join('; ') : null
 }
 
-function getGreetingMessage(firstName, dailyTasks) {
+function getGreetingMessage(firstName, allDailyTasks) {
+  // Heute uebersprungene Aufgaben sind weder offen noch erledigt.
+  const dailyTasks = allDailyTasks.filter(t => !t.skipped)
   const completed = dailyTasks.filter(t => t.completed).length
   const open = dailyTasks.filter(t => !t.completed).length
   if (dailyTasks.length === 0) return `${getGreeting()}, ${firstName}!`

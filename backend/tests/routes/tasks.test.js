@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import prisma from '../../src/lib/prisma.js'
 import { createApp } from '../../src/app.js'
-import { todayString, addDaysToDateString } from '../../src/lib/dates.js'
+import { todayString, addDaysToDateString, currentMonthStart, addMonthsToMonthString } from '../../src/lib/dates.js'
 
 const app = createApp()
 const JWT_SECRET = process.env.JWT_SECRET
@@ -373,6 +373,34 @@ describe('POST /api/tasks/:id/skip', () => {
     const user = await createUser()
     const res = await request(app).post('/api/tasks/does-not-exist/skip').set(authHeader(user.id))
     expect(res.status).toBe(400)
+  })
+})
+
+describe('Übersprungene tägliche Aufgaben in der Liste', () => {
+  it('bleibt nach dem Überspringen sichtbar und ist als übersprungen markiert', async () => {
+    const user = await createUser()
+    const task = await createTask({ title: 'Blumen gießen' })
+    await request(app).post(`/api/tasks/${task.id}/skip`).set(authHeader(user.id))
+
+    const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+    const shown = res.body.daily.find(t => t.id === task.id)
+    expect(shown).toBeDefined()
+    expect(shown.skipped).toBe(true)
+    expect(shown.completed).toBe(false)
+    expect(shown.isOverdue).toBe(false)
+  })
+
+  it('ist nach dem Zurückholen wieder normal offen', async () => {
+    const user = await createUser()
+    const task = await createTask({ title: 'Blumen gießen' })
+    await request(app).post(`/api/tasks/${task.id}/skip`).set(authHeader(user.id))
+    await request(app).post(`/api/tasks/${task.id}/skip`).set(authHeader(user.id))
+
+    const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+    const shown = res.body.daily.find(t => t.id === task.id)
+    expect(shown).toBeDefined()
+    expect(shown.skipped).toBeFalsy()
+    expect(shown.completed).toBe(false)
   })
 })
 
@@ -890,5 +918,56 @@ describe('Abfall-Termine: Vorab-Banking + gestaffelte Anzeige', () => {
     expect(res.status).toBe(400)
     const count = await prisma.taskCompletion.count({ where: { taskId: task.id } })
     expect(count).toBe(0)
+  })
+})
+
+describe('Monatsaufgaben mit Intervall (alle x Monate)', () => {
+  const currentMonth = () => currentMonthStart().slice(0, 7)
+
+  it('blendet die Aufgabe im Zwischenmonat aus', async () => {
+    const user = await createUser()
+    await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 2, nextDueMonth: addMonthsToMonthString(currentMonth(), 1) })
+    const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+    expect(res.body.monthly.map(t => t.title)).not.toContain('Filter tauschen')
+  })
+
+  it('bleibt nach dem Erledigen als erledigt sichtbar und zählt den Turnus weiter', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 2, nextDueMonth: currentMonth() })
+
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+
+    const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+    const shown = res.body.monthly.find(t => t.id === task.id)
+    expect(shown).toBeDefined()
+    expect(shown.completed).toBe(true)
+    const stored = await prisma.task.findUnique({ where: { id: task.id } })
+    expect(stored.nextDueMonth).toBe(addMonthsToMonthString(currentMonth(), 2))
+  })
+
+  it('setzt den Turnus zurück, wenn die Erledigung zurückgenommen wird', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 2, nextDueMonth: currentMonth() })
+
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id)) // Toggle zurück
+
+    const stored = await prisma.task.findUnique({ where: { id: task.id } })
+    expect(stored.nextDueMonth).toBe(currentMonth())
+    const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+    const shown = res.body.monthly.find(t => t.id === task.id)
+    expect(shown?.completed).toBe(false)
+  })
+
+  it('zeigt eine überfällige Aufgabe nach dem Erledigen im Folgemonat als erledigt', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 2, nextDueMonth: addMonthsToMonthString(currentMonth(), -1) })
+
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+
+    const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+    const shown = res.body.monthly.find(t => t.id === task.id)
+    expect(shown?.completed).toBe(true)
+    expect(shown?.isOverdue).toBe(false)
   })
 })

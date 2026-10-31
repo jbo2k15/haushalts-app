@@ -41,6 +41,37 @@ export const VALID_PRIORITIES = ['high', 'normal', 'low']
 // completion isn't offered for those.
 export const MULTI_ELIGIBLE_TYPES = ['daily', 'weekly']
 
+// Einzige Quelle der Wahrheit dafuer, ob eine Monatsaufgabe gerade "dran" ist.
+// Wird von der Aufgabenliste (getTaskOverview) UND der Monats-Erinnerung
+// (scheduler.sendMonthlyReminders) benutzt - vorher hatte die Erinnerung eine
+// eigene, vereinfachte Logik und meldete z.B. "alle 2 Monate"-Aufgaben auch in
+// den Zwischenmonaten bzw. Aufgaben mit festem Tag (15.) schon am 1., obwohl
+// die Liste sie noch nicht zeigte.
+//
+//   currentMonth:      YYYY-MM
+//   today:             YYYY-MM-DD
+//   completedThisMonth: Erledigung mit forDate = Monatsanfang vorhanden
+//
+// Rueckgabe: { visible, isOverdue, completed }
+export function monthlyTaskStatus(task, { currentMonth, today, completedThisMonth }) {
+  const nextDueMonth = task.nextDueMonth || currentMonth
+  const previousMonth = addMonthsToMonthString(currentMonth, -1)
+  const isDueThisMonth = compareMonthStrings(nextDueMonth, currentMonth) === 0
+  const isOverdueLastMonth = nextDueMonth === previousMonth
+
+  // In diesem Monat erledigt: bleibt als erledigt sichtbar, auch wenn
+  // completeTask nextDueMonth schon auf den naechsten Turnus weitergezaehlt hat.
+  if (completedThisMonth) return { visible: true, isOverdue: false, completed: true }
+
+  let visible = isDueThisMonth || isOverdueLastMonth
+  // Fester Tag im Monat liegt noch in der Zukunft -> noch nicht anzeigen.
+  if (visible && isDueThisMonth && task.fixedDayOfMonth) {
+    const dueDay = `${currentMonth}-${String(task.fixedDayOfMonth).padStart(2, '0')}`
+    if (today < dueDay) visible = false
+  }
+  return { visible, isOverdue: visible && isOverdueLastMonth, completed: false }
+}
+
 export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo }) {
   if (!title || typeof title !== 'string' || title.trim().length === 0) return 'Titel ist erforderlich'
   if (title.length > 200) return 'Titel darf maximal 200 Zeichen haben'
@@ -196,7 +227,21 @@ export async function getTaskOverview() {
     }
 
     if (task.type === 'daily') {
-      if (skippedIds.has(task.id)) continue
+      // Heute per "X" uebersprungen: sichtbar lassen (ausgegraut, mit
+      // Zurueckholen-Knopf), statt die Aufgabe kommentarlos auszublenden.
+      if (skippedIds.has(task.id)) {
+        result.daily.push({
+          ...task,
+          weekdays,
+          completed: false,
+          count: 0,
+          completedBy: null,
+          isOverdue: false,
+          systemCompleted: false,
+          skipped: true,
+        })
+        continue
+      }
 
       const dueToday = !weekdays || weekdays.length === 0 || weekdays.includes(todayWeekday)
 
@@ -269,38 +314,20 @@ export async function getTaskOverview() {
     }
 
     if (task.type === 'monthly') {
-      const currentMonth = monthStart.slice(0, 7) // YYYY-MM
-      const nextDueMonth = task.nextDueMonth || currentMonth
-      const monthCompare = compareMonthStrings(nextDueMonth, currentMonth)
-      const previousMonth = addMonthsToMonthString(currentMonth, -1)
-
-      // Status bestimmen:
-      // - fällig: nextDueMonth === currentMonth
-      // - überfällig: nextDueMonth === previousMonth (nur 1 Monat alt)
-      // - verfallen: alles andere (nicht anzeigen)
-      const isDueThisMonth = monthCompare === 0
-      const isOverdueLastMonth = nextDueMonth === previousMonth
-
-      // Completion im fälligen Monat finden
-      const dueMonthStart = `${nextDueMonth}-01`
-      const completion = byTask.get(task.id)?.find(c => c.forDate >= dueMonthStart && c.forDate < addMonthsToMonthString(nextDueMonth, 1) + '-01') || null
-
-      // Nach fixedDayOfMonth: wird die Aufgabe heute schon als fällig angezeigt?
-      let isActive = isDueThisMonth || isOverdueLastMonth
-      if (isActive && task.fixedDayOfMonth && isDueThisMonth) {
-        const today = todayString()
-        const dueDay = `${currentMonth}-${String(task.fixedDayOfMonth).padStart(2, '0')}`
-        // Wenn fixedDayOfMonth in der Zukunft liegt, Aufgabe noch nicht anzeigen
-        if (today < dueDay && !completion) isActive = false
-      }
-
-      if (!isActive) continue
+      // Monatsaufgaben werden immer mit forDate = Monatsanfang erledigt.
+      const completion = (byTask.get(task.id) || []).find(c => c.forDate === monthStart) || null
+      const status = monthlyTaskStatus(task, {
+        currentMonth: monthStart.slice(0, 7),
+        today: todayString(),
+        completedThisMonth: !!completion,
+      })
+      if (!status.visible) continue
 
       result.monthly.push({
         ...task,
-        completed: !!completion,
+        completed: status.completed,
         completedBy: completion?.user?.name || null,
-        isOverdue: isOverdueLastMonth && !completion,
+        isOverdue: status.isOverdue,
       })
     }
   }
@@ -354,6 +381,15 @@ export async function completeTask(id, { userId, userName }) {
   if (existing) {
     await prisma.taskCompletion.delete({ where: { id: existing.id } })
     await prisma.taskLog.deleteMany({ where: { taskId: id, forDate, status: 'completed' } })
+    // Gegenstueck zum Weiterzaehlen unten: Erledigung zurueckgenommen ->
+    // nextDueMonth wieder auf den Turnus setzen, zu dem sie gehoerte.
+    if (task.type === 'monthly' && task.monthlyInterval && task.nextDueMonth) {
+      const currentMonth = monthStart.slice(0, 7)
+      const previousDue = addMonthsToMonthString(task.nextDueMonth, -task.monthlyInterval)
+      if (compareMonthStrings(previousDue, currentMonth) <= 0) {
+        await prisma.task.update({ where: { id }, data: { nextDueMonth: previousDue } })
+      }
+    }
     broadcastTasksUpdated()
     return { completed: false }
   }
@@ -411,6 +447,7 @@ export async function skipTask(id) {
   const existing = await prisma.taskLog.findFirst({ where: { taskId: id, forDate: today, status: 'skipped' } })
   if (existing) {
     await prisma.taskLog.delete({ where: { id: existing.id } })
+    broadcastTasksUpdated()
     return { skipped: false }
   }
 
