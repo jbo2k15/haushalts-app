@@ -18,8 +18,12 @@ FROM nginxinc/nginx-unprivileged:alpine
 # util-linux/libuuid-CVEs). Kein npm im finalen Image, daher nur apk upgrade.
 # Numerische UID statt Name (hadolint DL3066, analog backend/Dockerfile):
 # root=0, "nginx" im nginxinc/nginx-unprivileged-Image stabil UID/GID 101.
+# CACHE_BUST (von scripts/deploy.sh mit dem Tagesdatum gesetzt) invalidiert
+# diesen Layer taeglich - sonst kaeme er bei unveraendertem Base-Image aus dem
+# Build-Cache (Trivy 2026-10-31: brotli/curl-CVEs trotz apk upgrade).
+ARG CACHE_BUST=unset
 USER 0
-RUN apk upgrade --no-cache
+RUN echo "cache-bust: ${CACHE_BUST}" && apk upgrade --no-cache
 USER 101
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf

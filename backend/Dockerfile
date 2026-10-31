@@ -12,8 +12,13 @@ FROM node:24-alpine
 # genau der Absicht dieser Zeile widersprechen (immer die neuesten Patches),
 # und koennte bei einem spaeteren Rebuild sogar fehlschlagen, wenn Alpines
 # Paket-Repo die gepinnte, mittlerweile alte Version bereits entfernt hat.
+# CACHE_BUST (von scripts/deploy.sh mit dem Tagesdatum gesetzt) invalidiert
+# diesen Layer taeglich - sonst kaeme er bei unveraendertem Base-Image aus dem
+# Build-Cache und die Patches wuerden nie eingespielt.
+ARG CACHE_BUST=unset
 # hadolint ignore=DL3018
-RUN apk upgrade --no-cache \
+RUN echo "cache-bust: ${CACHE_BUST}" \
+ && apk upgrade --no-cache \
  && apk add --no-cache openssl python3 make g++ tzdata \
  && npm install -g npm@latest
 

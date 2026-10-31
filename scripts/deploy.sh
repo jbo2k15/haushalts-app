@@ -201,7 +201,12 @@ echo "▸ Docker build für:$SERVICES"
 # der Tag inzwischen ein neueres (sicherheitsgepatchtes) Image referenziert
 # (Security-Scan 2026-08-01: Node-Sicherheitsrelease 2026-07-29 waere sonst
 # erst nach einem manuellen Cache-Invalidieren angekommen).
-DOCKER_BUILDKIT=1 docker compose build --pull $SERVICES
+# CACHE_BUST: --pull allein reicht nicht - ist das Base-Image unveraendert,
+# nimmt Docker auch den `RUN apk upgrade`-Layer aus dem Cache und Alpine-/npm-
+# Patches kommen nie an (Trivy 2026-10-31: brotli/curl im Frontend). Das Datum
+# invalidiert genau diesen Schritt hoechstens einmal pro Tag (siehe Dockerfiles).
+DOCKER_BUILDKIT=1 docker compose build --pull \
+  --build-arg CACHE_BUST="$(date +%Y-%m-%d)" $SERVICES
 
 echo "▸ Container-Start..."
 docker compose up -d
