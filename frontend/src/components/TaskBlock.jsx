@@ -30,8 +30,10 @@ const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle, pauseInfo }) 
     if (!tasks || tasks.length === 0) return []
     const overdue = tasks.filter(t => t.isOverdue && !t.completed)
     const overdueSet = new Set(overdue.map(t => t.id))
-    const rest = tasks.filter(t => !overdueSet.has(t.id))
-    const sorted = [...sortTasks(overdue), ...sortTasks(rest)]
+    // Heute uebersprungene ans Ende, damit sie die offenen nicht verdraengen.
+    const rest = tasks.filter(t => !overdueSet.has(t.id) && !t.skipped)
+    const skipped = tasks.filter(t => t.skipped)
+    const sorted = [...sortTasks(overdue), ...sortTasks(rest), ...sortTasks(skipped)]
     return sorted.map(t => ({
       ...t,
       pinned:
@@ -44,7 +46,8 @@ const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle, pauseInfo }) 
 
   // Vorab-Info-Aufgaben (gebankte, noch nicht faellige Abfall-Termine) zaehlen
   // nicht zum "erledigt/gesamt" — sie sind reine Vorschau, nicht abhakbar.
-  const actionableTasks = tasks.filter(t => !t.infoOnly)
+  // Ebenso zaehlen heute uebersprungene Aufgaben nicht mit.
+  const actionableTasks = tasks.filter(t => !t.infoOnly && !t.skipped)
   const completedCount = actionableTasks.filter(t => t.completed).length
 
   return (

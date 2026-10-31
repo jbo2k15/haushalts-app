@@ -31,7 +31,11 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
     : optimistic === 'completed' ? true
     : optimistic === 'uncompleted' ? false
     : task.completed
-  const skipped = optimistic === 'skipped'
+  // Server-Zustand "heute uebersprungen", optimistisch ueberschreibbar
+  // (Ueberspringen bzw. Zurueckholen, bis die Liste neu geladen ist).
+  const skipped = optimistic === 'skipped' ? true
+    : optimistic === 'unskipped' ? false
+    : !!task.skipped
 
   const isOverdueVisible = task.isOverdue && !completed
   const borderColor = isOverdueVisible ? '#EF4444' : (PRIORITY_COLORS[task.priority] || 'transparent')
@@ -49,6 +53,9 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
   }
 
   async function handleClick() {
+    // Uebersprungene Aufgaben nur ueber den Zurueckholen-Knopf reaktivieren,
+    // nicht versehentlich per Tipp auf die Zeile abhaken.
+    if (skipped) return
     if (pendingRef.current) return
     pendingRef.current = true
 
@@ -92,7 +99,8 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
     e.stopPropagation()
     if (pendingRef.current) return
     pendingRef.current = true
-    setOptimistic('skipped')
+    // /skip ist ein Toggle: einmal = ueberspringen, nochmal = zurueckholen.
+    setOptimistic(skipped ? 'unskipped' : 'skipped')
     try {
       await api.post(`/tasks/${task.id}/skip`, {})
       await onToggle()
@@ -131,17 +139,19 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
   }
 
   let rowBg = 'bg-surface-container'
-  if (task.isOverdue && !completed) rowBg = 'bg-danger-container'
+  if (skipped) rowBg = 'bg-surface-container opacity-60'
+  else if (task.isOverdue && !completed) rowBg = 'bg-danger-container'
   else if (task.pinned) rowBg = 'bg-primary-container'
 
   return (
     <div
-      className={`flex items-center gap-3 px-3 py-3 border-b border-outline last:border-b-0 ${rowBg} cursor-pointer select-none touch-manipulation`}
+      className={`flex items-center gap-3 px-3 py-3 border-b border-outline last:border-b-0 ${rowBg} ${skipped ? 'cursor-default' : 'cursor-pointer'} select-none touch-manipulation`}
       style={{ borderLeft: hasBorder ? `3px solid ${borderColor}` : '3px solid transparent' }}
       onClick={handleClick}
       data-testid="task-row"
       data-task-title={task.title}
       data-completed={completed}
+      data-skipped={skipped}
       data-count={isMulti ? count : undefined}
     >
       <div className={`w-5 h-5 rounded shrink-0 border-2 flex items-center justify-center transition-colors ${
@@ -153,7 +163,7 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
           </svg>
         )}
       </div>
-      <span className={`flex-1 text-sm ${completed ? 'line-through text-ink-faint' : 'text-ink'}`}>
+      <span className={`flex-1 text-sm ${completed || skipped ? 'line-through text-ink-faint' : 'text-ink'}`}>
         {task.title}
         {isMulti && count > 1 && (
           <Badge tone="success" className="ml-1.5">×{count}</Badge>
@@ -175,7 +185,10 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
         {task.systemCompleted && (
           <Badge tone="info">☔ Wegen Regen entfallen</Badge>
         )}
-        {task.isOverdue && !completed && (
+        {skipped && (
+          <span className="text-xs text-ink-muted">Heute nicht nötig</span>
+        )}
+        {task.isOverdue && !completed && !skipped && (
           <span className="text-xs text-danger">überfällig</span>
         )}
       </div>
@@ -188,6 +201,17 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
           className="shrink-0 w-11 h-11 flex items-center justify-center rounded-full border border-outline-strong bg-surface-container-high text-ink-muted hover:bg-surface-container transition-colors text-lg font-semibold leading-none touch-manipulation"
         >
           −
+        </button>
+      )}
+      {isDaily && skipped && (
+        <button
+          onClick={handleSkip}
+          title="Zurückholen"
+          aria-label="Zurückholen"
+          data-testid="unskip-task"
+          className="shrink-0 w-11 h-11 flex items-center justify-center rounded-full border border-outline-strong bg-surface-container-high text-ink-muted hover:bg-surface-container transition-colors text-lg leading-none touch-manipulation"
+        >
+          ↺
         </button>
       )}
       {isDaily && !completed && !skipped && (
