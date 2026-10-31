@@ -959,15 +959,72 @@ describe('Monatsaufgaben mit Intervall (alle x Monate)', () => {
     expect(shown?.completed).toBe(false)
   })
 
-  it('zeigt eine überfällige Aufgabe nach dem Erledigen im Folgemonat als erledigt', async () => {
+  it('zeigt eine im Vormonat fällige, nicht erledigte Aufgabe nicht als überfällig (verfällt stattdessen)', async () => {
     const user = await createUser()
-    const task = await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 2, nextDueMonth: addMonthsToMonthString(currentMonth(), -1) })
-
-    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
-
+    await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 2, nextDueMonth: addMonthsToMonthString(currentMonth(), -1) })
     const res = await request(app).get('/api/tasks').set(authHeader(user.id))
-    const shown = res.body.monthly.find(t => t.id === task.id)
-    expect(shown?.completed).toBe(true)
-    expect(shown?.isOverdue).toBe(false)
+    expect(res.body.monthly.map(t => t.title)).not.toContain('Filter tauschen')
+  })
+
+  it('zeigt eine Aufgabe mit lange veraltetem Termin wieder an, wenn sie laut Turnus jetzt dran ist', async () => {
+    // Regression: z.B. monatelang deaktiviert und wieder aktiviert - vorher
+    // blieb sie fuer immer unsichtbar.
+    const user = await createUser()
+    await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 2, nextDueMonth: addMonthsToMonthString(currentMonth(), -6) })
+    const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+    expect(res.body.monthly.map(t => t.title)).toContain('Filter tauschen')
+  })
+
+  it('zählt beim Erledigen ab dem aktuellen Monat weiter, auch wenn der gespeicherte Termin veraltet war', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 2, nextDueMonth: addMonthsToMonthString(currentMonth(), -6) })
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+    const stored = await prisma.task.findUnique({ where: { id: task.id } })
+    expect(stored.nextDueMonth).toBe(addMonthsToMonthString(currentMonth(), 2))
+  })
+})
+
+describe('Monatsaufgaben bearbeiten: Turnus und Typwechsel', () => {
+  const currentMonth = () => currentMonthStart().slice(0, 7)
+  const body = (overrides = {}) => ({ title: 'Filter tauschen', type: 'monthly', priority: 'normal', monthlyInterval: 1, ...overrides })
+
+  it('berechnet bei geändertem Turnus den nächsten Termin ab der letzten Erledigung', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const task = await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 3, nextDueMonth: addMonthsToMonthString(currentMonth(), 3) })
+    await prisma.taskCompletion.create({ data: { taskId: task.id, completedBy: admin.id, forDate: currentMonthStart() } })
+
+    const res = await request(app).put(`/api/tasks/admin/${task.id}`).set(authHeader(admin.id)).send(body({ monthlyInterval: 1 }))
+    expect(res.status).toBe(200)
+    const stored = await prisma.task.findUnique({ where: { id: task.id } })
+    expect(stored.nextDueMonth).toBe(addMonthsToMonthString(currentMonth(), 1))
+  })
+
+  it('macht die Aufgabe sofort fällig, wenn letzte Erledigung + neuer Turnus schon vorbei ist', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const task = await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 6, nextDueMonth: addMonthsToMonthString(currentMonth(), 2) })
+    await prisma.taskCompletion.create({ data: { taskId: task.id, completedBy: admin.id, forDate: addMonthsToMonthString(currentMonth(), -4) + '-01' } })
+
+    await request(app).put(`/api/tasks/admin/${task.id}`).set(authHeader(admin.id)).send(body({ monthlyInterval: 2 }))
+    const stored = await prisma.task.findUnique({ where: { id: task.id } })
+    expect(stored.nextDueMonth).toBe(currentMonth())
+  })
+
+  it('lässt den Termin unverändert, wenn sich der Turnus nicht ändert', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const next = addMonthsToMonthString(currentMonth(), 2)
+    const task = await createTask({ type: 'monthly', title: 'Filter tauschen', monthlyInterval: 2, nextDueMonth: next })
+
+    await request(app).put(`/api/tasks/admin/${task.id}`).set(authHeader(admin.id)).send(body({ monthlyInterval: 2, title: 'Filter wechseln' }))
+    const stored = await prisma.task.findUnique({ where: { id: task.id } })
+    expect(stored.nextDueMonth).toBe(next)
+  })
+
+  it('verwirft beim Wechsel zurück zu monatlich einen alten Termin', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const task = await createTask({ type: 'weekly', title: 'Filter tauschen', nextDueMonth: addMonthsToMonthString(currentMonth(), -8) })
+
+    await request(app).put(`/api/tasks/admin/${task.id}`).set(authHeader(admin.id)).send(body({ monthlyInterval: 2 }))
+    const stored = await prisma.task.findUnique({ where: { id: task.id } })
+    expect(stored.nextDueMonth).toBe(currentMonth())
   })
 })
