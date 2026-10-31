@@ -13,4 +13,6 @@ CVE-2026-73566          # tar (node-tar) DoS (npm-Bundle)
 CVE-2026-102276         # brace-expansion DoS (npm-Bundle) — Fix 5.0.10, npm-Upstream bündelt noch 5.0.9 (2026-10-19)
 CVE-2026-102278         # brace-expansion DoS (npm-Bundle) — Fix 5.0.11, s.o.
 CVE-2026-93748          # http-cache-semantics Info-Disclosure (npm-Bundle) — noch kein Fix verfügbar (2026-10-19)
-CVE-2026-19534          # undici DoS via WebSocket (npm-Bundle) — Fix 6.28.1, npm-Upstream bündelt noch 6.28.0 (2026-10-19)
+CVE-2026-109383         # undici Zertifikatsprüfung-Bypass (npm-Bundle) — npm 12.2.1 bündelt node-gyp 13.0.0 mit undici 6.29.0; Fix 6.29.1, node-gyp 13.1.0 nutzt undici ^8 → wartet auf npm-Release (2026-10-31)
+CVE-2026-109869         # undici DoS, unbehandelter Stream-Fehler (npm-Bundle) — s.o.
+CVE-2026-87018          # undici DoS via TLS-Renegotiation (npm-Bundle) — s.o.
