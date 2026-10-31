@@ -5,7 +5,7 @@ import { syncWasteCalendar } from './waste-calendar.js'
 import { checkWeatherDependentTasks } from './weather.js'
 import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO, dateStringInBerlin, addDaysToDateString, mondayOnOrBefore, addMonthsToMonthString, compareMonthStrings } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
-import { getUTCRangeForBerlinDay, EXCLUDE_ONCE, monthlyTaskStatus } from '../domain/tasks.js'
+import { getUTCRangeForBerlinDay, EXCLUDE_ONCE, monthlyTaskStatus, effectiveDueMonth } from '../domain/tasks.js'
 import {
   isPausedOnDay,
   isPeriodFullyPaused,
@@ -120,7 +120,7 @@ async function expireWeeklyTasks() {
   }
 }
 
-async function expireMonthlyTasks() {
+export async function expireMonthlyTasks() {
   const now = new Date()
   if (now.getDate() !== 1) return
 
@@ -134,7 +134,7 @@ async function expireMonthlyTasks() {
 
   const completions = await prisma.taskCompletion.findMany({
     where: { taskId: { in: tasks.map(t => t.id) }, forDate: { gte: monthStr } },
-    select: { taskId: true, taskId: true },
+    select: { taskId: true },
   })
   const completedIds = new Set(completions.map(c => c.taskId))
 
@@ -155,29 +155,32 @@ async function expireMonthlyTasks() {
     }
   }
 
-  // Neue Logik: Tasks mit Interval - Verfallen nach Überfällig-Monat
+  // Tasks mit Turnus (Variante B, kein Ueberfaellig-Monat): War die Aufgabe im
+  // abgelaufenen Monat faellig und wurde nicht erledigt, wird sie als verfallen
+  // geloggt - ausser sie war den ganzen Monat pausiert. In jedem Fall wird
+  // nextDueMonth auf den naechsten Turnus-Termin >= aktueller Monat gezogen
+  // (effectiveDueMonth), auch wenn der Wert schon laenger veraltet war.
   const intervalTasks = tasks.filter(t => t.monthlyInterval && t.nextDueMonth)
-  const overdueIntervalTasks = intervalTasks.filter(t => compareMonthStrings(t.nextDueMonth, previousMonth) === 0 && !completedIds.has(t.id))
-  if (overdueIntervalTasks.length > 0) {
+  const staleTasks = intervalTasks.filter(t => compareMonthStrings(t.nextDueMonth, currentMonth) < 0)
+  if (staleTasks.length > 0) {
     const monthEnd = monthEndFromStart(monthStr)
+    const dueLastMonth = staleTasks.filter(t => effectiveDueMonth(t, previousMonth) === previousMonth && !completedIds.has(t.id))
     const [globalPause, individualPauseMap] = await Promise.all([
       getGlobalPause(),
-      getIndividualPausesForTasks(overdueIntervalTasks.map(t => t.id)),
+      getIndividualPausesForTasks(dueLastMonth.map(t => t.id)),
     ])
-    const expired = overdueIntervalTasks.filter(t => !isPeriodFullyPaused(monthStr, monthEnd, [individualPauseMap.get(t.id), globalPause]))
-
+    const expired = dueLastMonth.filter(t => !isPeriodFullyPaused(monthStr, monthEnd, [individualPauseMap.get(t.id), globalPause]))
     if (expired.length > 0) {
-      // Log-Einträge + nextDueMonth weiterzählen
       await prisma.taskLog.createMany({
         data: expired.map(t => ({ taskId: t.id, taskTitle: t.title, status: 'expired', forDate: monthStr })),
       })
-      await prisma.$transaction(
-        expired.map(t => prisma.task.update({
-          where: { id: t.id },
-          data: { nextDueMonth: addMonthsToMonthString(t.nextDueMonth, t.monthlyInterval) },
-        }))
-      )
     }
+    await prisma.$transaction(
+      staleTasks.map(t => prisma.task.update({
+        where: { id: t.id },
+        data: { nextDueMonth: effectiveDueMonth(t, currentMonth) },
+      }))
+    )
   }
 }
 

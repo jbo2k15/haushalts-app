@@ -41,35 +41,44 @@ export const VALID_PRIORITIES = ['high', 'normal', 'low']
 // completion isn't offered for those.
 export const MULTI_ELIGIBLE_TYPES = ['daily', 'weekly']
 
+// Effektiver Faelligkeitsmonat einer Monatsaufgabe: Liegt nextDueMonth in der
+// Vergangenheit (Aufgabe war inaktiv, ueber den Faelligkeitsmonat pausiert,
+// der Verfallen-Job lief nachts am 1. nicht, ...), wird im Turnus vorgerueckt,
+// bis der Monat >= currentMonth ist. So bleibt der Rhythmus erhalten, und eine
+// Aufgabe kann nicht mehr dauerhaft aus Liste und Erinnerung verschwinden.
+export function effectiveDueMonth(task, currentMonth) {
+  let due = task.nextDueMonth || currentMonth
+  const step = task.monthlyInterval || 1
+  while (compareMonthStrings(due, currentMonth) < 0) due = addMonthsToMonthString(due, step)
+  return due
+}
+
 // Einzige Quelle der Wahrheit dafuer, ob eine Monatsaufgabe gerade "dran" ist.
 // Wird von der Aufgabenliste (getTaskOverview) UND der Monats-Erinnerung
-// (scheduler.sendMonthlyReminders) benutzt - vorher hatte die Erinnerung eine
-// eigene, vereinfachte Logik und meldete z.B. "alle 2 Monate"-Aufgaben auch in
-// den Zwischenmonaten bzw. Aufgaben mit festem Tag (15.) schon am 1., obwohl
-// die Liste sie noch nicht zeigte.
+// (scheduler.sendMonthlyReminders) benutzt.
 //
-//   currentMonth:      YYYY-MM
-//   today:             YYYY-MM-DD
+// Eine Monatsaufgabe ist nur in ihrem Faelligkeitsmonat sichtbar (ab dem festen
+// Tag, falls gesetzt). Einen Ueberfaellig-Monat gibt es bewusst nicht: Nicht
+// Erledigtes verfaellt zum Monatswechsel (scheduler.expireMonthlyTasks) und der
+// naechste regulaere Termin gilt.
+//
+//   currentMonth:       YYYY-MM
+//   today:              YYYY-MM-DD
 //   completedThisMonth: Erledigung mit forDate = Monatsanfang vorhanden
 //
-// Rueckgabe: { visible, isOverdue, completed }
+// Rueckgabe: { visible, isOverdue (immer false), completed }
 export function monthlyTaskStatus(task, { currentMonth, today, completedThisMonth }) {
-  const nextDueMonth = task.nextDueMonth || currentMonth
-  const previousMonth = addMonthsToMonthString(currentMonth, -1)
-  const isDueThisMonth = compareMonthStrings(nextDueMonth, currentMonth) === 0
-  const isOverdueLastMonth = nextDueMonth === previousMonth
-
   // In diesem Monat erledigt: bleibt als erledigt sichtbar, auch wenn
   // completeTask nextDueMonth schon auf den naechsten Turnus weitergezaehlt hat.
   if (completedThisMonth) return { visible: true, isOverdue: false, completed: true }
 
-  let visible = isDueThisMonth || isOverdueLastMonth
+  let visible = effectiveDueMonth(task, currentMonth) === currentMonth
   // Fester Tag im Monat liegt noch in der Zukunft -> noch nicht anzeigen.
-  if (visible && isDueThisMonth && task.fixedDayOfMonth) {
+  if (visible && task.fixedDayOfMonth) {
     const dueDay = `${currentMonth}-${String(task.fixedDayOfMonth).padStart(2, '0')}`
     if (today < dueDay) visible = false
   }
-  return { visible, isOverdue: visible && isOverdueLastMonth, completed: false }
+  return { visible, isOverdue: false, completed: false }
 }
 
 export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo }) {
@@ -399,11 +408,10 @@ export async function completeTask(id, { userId, userName }) {
   // Bei monthly-Tasks mit Interval: nextDueMonth weiterzählen
   if (task.type === 'monthly' && task.monthlyInterval && task.nextDueMonth) {
     const currentMonth = monthStart.slice(0, 7)
-    const nextDueMonth = task.nextDueMonth
-    // Nur weiterzählen, wenn wir im fälligen oder überfälligen Monat sind
-    const monthCompare = compareMonthStrings(nextDueMonth, currentMonth)
-    if (monthCompare <= 0) {
-      const nextMonth = addMonthsToMonthString(nextDueMonth, task.monthlyInterval)
+    // Nur weiterzählen, wenn die Aufgabe in diesem Monat fällig ist (auch bei
+    // veraltetem nextDueMonth, siehe effectiveDueMonth).
+    if (effectiveDueMonth(task, currentMonth) === currentMonth) {
+      const nextMonth = addMonthsToMonthString(currentMonth, task.monthlyInterval)
       await prisma.task.update({ where: { id }, data: { nextDueMonth: nextMonth } })
     }
   }
@@ -653,7 +661,22 @@ export async function updateTask(id, body, userId) {
   }
   if (type === 'monthly') {
     data.monthlyInterval = Number.isInteger(monthlyInterval) ? monthlyInterval : null
-    if (!task.nextDueMonth) data.nextDueMonth = currentMonth
+    if (task.type !== 'monthly' || !task.nextDueMonth) {
+      // Neu zur Monatsaufgabe geworden (oder nie initialisiert): ab sofort fällig.
+      // Ein alter nextDueMonth aus einer früheren Monats-Phase wird verworfen.
+      data.nextDueMonth = currentMonth
+    } else if (data.monthlyInterval !== task.monthlyInterval) {
+      // Turnus geändert: nächster Termin = letzter Erledigungsmonat + neuer
+      // Turnus (liegt der in der Vergangenheit, ist die Aufgabe jetzt fällig).
+      // Ohne bisherige Erledigung: ab sofort fällig.
+      const last = await prisma.taskCompletion.findFirst({
+        where: { taskId: id },
+        orderBy: { forDate: 'desc' },
+        select: { forDate: true },
+      })
+      const next = last ? addMonthsToMonthString(last.forDate.slice(0, 7), data.monthlyInterval || 1) : currentMonth
+      data.nextDueMonth = compareMonthStrings(next, currentMonth) < 0 ? currentMonth : next
+    }
   }
   const updated = await prisma.task.update({ where: { id }, data })
   await setIndividualPause(updated.id, { pauseFrom: type !== 'once' ? pauseFrom : null, pauseTo: type !== 'once' ? pauseTo : null }, userId)
