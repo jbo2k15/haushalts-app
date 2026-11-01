@@ -13,3 +13,6 @@ backend/e2e-emails.jsonl
 .last-deploy
 # Lokale Claude-Code-Einstellungen (pro Rechner, nicht versionieren)
 .claude/settings.local.json
+
+# Interne Notizen/Übergaben (nicht versionieren)
+docs/
