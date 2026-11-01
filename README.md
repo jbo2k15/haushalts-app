@@ -209,3 +209,11 @@ docker compose up --build -d
 Die aktuelle App-Version ist in `frontend/package.json` unter `version` hinterlegt und wird in den Einstellungen angezeigt. Bei größeren Änderungen bitte manuell hochzählen (Semantic Versioning: `MAJOR.MINOR.PATCH`).
 
 Release Notes werden als [GitHub Releases](https://github.com/jbo2k15/haushalts-app/releases) veröffentlicht.
+
+---
+
+## Lizenz
+
+© 2026 jbo2k15. Alle Rechte vorbehalten.
+
+Der Quellcode ist öffentlich einsehbar, steht aber unter keiner Open-Source-Lizenz. Kopieren, Weiterverwenden oder Weiterverbreiten — ganz oder in Teilen — ist ohne ausdrückliche Erlaubnis nicht gestattet.
