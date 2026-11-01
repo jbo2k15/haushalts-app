@@ -4,7 +4,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 
 ## Funktionen
 
-- **Aufgaben** — Tägliche, wöchentliche, monatliche (konfigurierbar alle 1–12 Monate) und einmalige Aufgaben (mit Fälligkeitsdatum); Drag & Drop zum Sortieren; tägliche Aufgaben können für den Tag übersprungen werden; an bestimmte Wochentage gebundene Aufgaben bleiben nach einem verpassten Tag noch als überfällig sichtbar
+- **Aufgaben** — Tägliche, wöchentliche, monatliche (konfigurierbar alle 1–12 Monate, optional an einem festen Tag im Monat) und einmalige Aufgaben (mit Fälligkeitsdatum); Drag & Drop zum Sortieren; tägliche Aufgaben können für den Tag übersprungen werden — sie bleiben dann ausgegraut sichtbar und lassen sich zurückholen; an bestimmte Wochentage gebundene Aufgaben bleiben nach einem verpassten Tag noch als überfällig sichtbar; nicht erledigte Monatsaufgaben verfallen zum Monatswechsel, danach gilt der nächste reguläre Termin (eine Änderung des Turnus berechnet den nächsten Termin neu)
 - **Mehrfach erledigbare Aufgaben** — Tägliche und wöchentliche Aufgaben können bei Bedarf per Verwaltung so konfiguriert werden, dass sie mehrmals pro Tag/Woche erledigt werden können, mit Zähler und der Möglichkeit, die letzte Erledigung zurückzunehmen
 - **Aufgabenlog** — Protokoll aller erledigten, abgelaufenen, übersprungenen und gelöschten Aufgaben (bis 100 Einträge)
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, diese Woche, letzte Woche, diesen und letzten Monat
@@ -12,7 +12,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 - **Navigation** — Bottom-Navigation (unten) mit direktem Zugriff auf Aufgaben, Vorrat, Ruhmeshalle, Einstellungen und (für Admins) Verwaltung; zwischen Aufgaben und Ruhmeshalle zusätzlich per Wisch-Geste (links/rechts, Touch oder Maus). Der Browser-/System-Zurück-Pfeil verlässt Einstellungen/Verwaltung/Vorrat zuverlässig, auf der Startseite fragt er erst nach, ob die App wirklich geschlossen werden soll (abschaltbar)
 - **Vorratsschrank** — Lagerorte (z.B. Kühlschrank, Vorratsschrank; für Admins über ein eigenes Verwalten-Menü anlegbar/umbenennbar/sortierbar) als horizontal wechselbare Auswahl, damit immer nur ein Ort auf einmal angezeigt wird; darin frei anlegbare Kategorien (mit klebenbleibendem Header beim Scrollen) und Artikel (Menge, Einheit, optionale eigene Mindestmenge je Artikel oder Kategorie-Standardwert), jeweils per Drag & Drop sortierbar, wahlweise umschaltbar auf eine Sortierung nach dringlichstem Nachkaufbedarf. Artikel bei/unter der Mindestmenge erscheinen automatisch in einer Einkaufsliste, lösen einen Hinweis auf der Startseite aus und eine einmalige Push-Benachrichtigung, sobald sie neu knapp werden
 - **Erscheinungsbild** — Hell/Dunkel/System-Design sowie eine stufenweise anpassbare Textgröße (Zoom), beides unter Einstellungen konfigurierbar und geräteweise gespeichert
-- **Push-Benachrichtigungen** — Tägliche, wöchentliche und monatliche Erinnerungen an offene Aufgaben (konfigurierbarer Tag/Uhrzeit); bei bis zu drei offenen Aufgaben werden deren Namen genannt, sonst nur die Anzahl
+- **Push-Benachrichtigungen** — Tägliche, wöchentliche und monatliche Erinnerungen an offene Aufgaben (konfigurierbarer Tag/Uhrzeit); bei bis zu drei offenen Aufgaben werden deren Namen genannt, sonst nur die Anzahl. Genannt werden nur Aufgaben, die auch in der Liste gerade offen stehen (keine übersprungenen, pausierten oder laut Turnus noch nicht fälligen)
 - **Abfallkalender** — Einmalige Aufgaben aus iCal-Feed für jeden konkreten Abholtermin; werden mehrmals täglich synchronisiert und bis zu eine Woche im Voraus vorgemerkt (robust gegen kurzzeitige Ausfälle des Feed-Dienstes). Ab 3 Tagen vor der Abholung erscheinen sie als Vorschau in der Aufgabenliste, ab dem Tag vor der Abholung sind sie abhakbar; laufen am Folgetag automatisch ab und erscheinen im Log als „verfallen". Eine im Feed nicht erkannte Tonnenbezeichnung wird per Push an Admins gemeldet und in der Verwaltung angezeigt, statt stillschweigend keine Aufgabe zu erzeugen
 - **Wetterabhängige Aufgaben** — Tägliche Aufgaben (z.B. „Blumen gießen") können als wetterabhängig markiert werden und entfallen automatisch, sobald seit Mitternacht eine konfigurierbare Regenmenge überschritten wurde (alle 15 Minuten geprüft, Open-Meteo, kein API-Key nötig); Verwaltung zeigt den aktuellen Wetter-Status, Benachrichtigung dazu ist pro Nutzer ein-/ausschaltbar
 - **Pausenzeitraum für Aufgaben** — Tägliche, wöchentliche und monatliche Aufgaben können für einen Zeitraum pausiert werden, einzeln pro Aufgabe oder haushaltsweit über eine „Alle Aufgaben pausieren"-Karte in der Verwaltung; pausierte Aufgaben verschwinden für den Zeitraum aus der Übersicht (Sammelzeile zeigt die Anzahl), einmalige Aufgaben und Abfallkalender-Termine sind davon ausgenommen
@@ -22,14 +22,15 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 - **Passwort-Reset** — Per E-Mail-Link; invalidiert automatisch alle aktiven Sessions
 - **PWA** — Installierbar auf Android und iOS; funktioniert nach Erstladen auch offline (statische Assets)
 - **Echtzeit-Sync** — Änderungen anderer Nutzer erscheinen sofort per Server-Sent Events, mit Fallback-Polling
-- **Sicherheit** — Rate-Limiting (pro Endpunkt), Honeypot gegen Bot-Registrierungen, timing-safe Login/Passwort-Reset, serverseitige Eingabevalidierung, Warnprotokoll bei gehäuften Login-Fehlversuchen
+- **Barrierefreiheit** — Per Tastatur bedienbar (inkl. Abhaken von Aufgaben und Sortieren per Drag & Drop), Screenreader-Ansagen bei Änderungen durch andere Nutzer, WCAG-AA-Kontraste in Hell und Dunkel; automatisierte axe-Prüfung der zentralen Seiten in der CI
+- **Sicherheit** — Rate-Limiting (pro Endpunkt und echter Client-IP, auch hinter dem Cloudflare Tunnel), Kontosperre für 15 Minuten nach 5 Fehlversuchen, Honeypot gegen Bot-Registrierungen, timing-safe Login/Passwort-Reset, serverseitige Eingabevalidierung, Protokoll jedes Login-Fehlversuchs (IP + maskierte E-Mail) und Warnung bei gehäuften Fehlversuchen inkl. häufigster IPs/Konten
 
 ---
 
 ## Voraussetzungen
 
 - Docker + Docker Compose
-- Node.js 22+ und npm (für Backend-Tests und Playwright-E2E-Tests, die `deploy.sh` vor jedem Build ausführt)
+- Node.js 24 und npm (wie in CI und Docker-Images; für Backend-Tests und Playwright-E2E-Tests, die `deploy.sh` beim manuellen Deploy vor dem Build ausführt)
 - Git
 - Cloudflare-Account (für externen Zugriff mit TLS)
 - Gmail-Account mit App-Passwort (für E-Mail-Versand)
@@ -114,7 +115,7 @@ Optional: Ein Push nach `main` kann nach grüner CI automatisch deployen. Dafür
 - Vor jedem Deploy legt `deploy.sh` ein Backup `haushalt-<Datum>-predeploy-<HHMM>.db.gz` an.
 - Runner-Status: `systemctl status 'actions.runner.*'` (Logs: `journalctl -u 'actions.runner.*' -n 50`).
 - Runner offline → Deploy-Job wartet in der Queue; der manuelle `deploy` hängt dann am CI-Gate: `SKIP_CI_CHECK=1 deploy`.
-- Voraussetzung (öffentliches Repo!): GitHub → Settings → Actions → General → „Require approval for all outside collaborators“.
+- Voraussetzung (öffentliches Repo!): GitHub → Settings → Actions → General → „Require approval for all outside collaborators“. Zusätzlich sind Pull Requests auf „Collaborators only“ beschränkt (Settings → General → Features); Dependabot kann trotzdem PRs anlegen.
 
 Beim allerersten Lauf lädt Playwright einmalig Chromium herunter (~115 MB) — das kann etwas dauern, wird danach aber gecached (`~/.cache/ms-playwright`). Host-seitige `node_modules` bleiben zwischen Deploys erhalten (`npm ci` läuft nur erneut, wenn sich die jeweilige `package-lock.json` seit dem letzten Deploy geändert hat oder `node_modules` noch fehlt) — kostet dauerhaft ca. 500 MB Platz, spart aber die volle Neuinstallation bei jedem Deploy ohne Dependency-Änderung.
 
@@ -122,7 +123,7 @@ Beim allerersten Lauf lädt Playwright einmalig Chromium herunter (~115 MB) — 
 
 ## Tests
 
-**Backend** (Vitest, 340 Tests):
+**Backend** (Vitest):
 
 ```bash
 cd backend
@@ -178,6 +179,8 @@ ls -lh /opt/backups/haushalts-app/
    - Domain: `haushalt.meinedomain.de`
    - Service: `http://localhost:80`
 5. `FRONTEND_URL` in `.env` entsprechend setzen und Container neu starten
+
+Echte Client-IP: Läuft `cloudflared` auf dem Docker-Host (oder in einem Docker-Netz), übernimmt nginx die Besucher-IP aus dem Header `CF-Connecting-IP` (`set_real_ip_from 172.16.0.0/12` in `frontend/nginx.conf`). Rate-Limiting und Login-Protokoll arbeiten dadurch pro echter IP. Läuft der Tunnel auf einer anderen Maschine im LAN, muss deren Adresse dort zusätzlich eingetragen werden — sonst greift das Rate-Limit für alle Besucher gemeinsam.
 
 ---
 
