@@ -2,7 +2,6 @@
 
 ## Sicherheit / Wartung
 
-- [ ] **HSTS aktivieren, zurückgestellt (2026-09-15)** — Cloudflares Mindest-Max-Age von 1 Monat ist dem Nutzer aktuell zu risikoreich (schwer rückgängig zu machen, sobald Browser sich die Regel gemerkt haben). Bei Gelegenheit erneut ansprechen, ggf. mit kürzerer Test-Phase falls Cloudflare das mal anbietet. Reiner Dashboard-Schalter (SSL/TLS → Edge Certificates → Enable HSTS), keine Server-Änderung nötig.
 
 
 - [ ] **Cloudflare-WAF-Regeln für den Login, zurückgestellt (2026-11-01)** — Anlass: `[SECURITY]`-Alert (≥ 20 Login-Fehlversuche/h, Scanner-Traffic, kein Konto gesperrt). App-seitig bereits umgesetzt: echte Client-IP hinter dem Tunnel (`frontend/nginx.conf`, `real_ip_header CF-Connecting-IP`), Rate-Limit dadurch wieder pro IP, Fehlversuche mit IP + maskierter E-Mail im Log. Offen, reiner Dashboard-Schritt (Domain → Security → WAF):
@@ -94,6 +93,7 @@ Die drei ursprünglichen Punkte wurden umgesetzt — siehe Archiv weiter unten (
 
 ## Erledigt (Archiv)
 
+- ✅ **HSTS aktiv, bewusst beibehalten** (2026-11-01) — `Strict-Transport-Security: max-age=31536000` wird seit Commit `3d729ad` (2026-10-30, Header-Fix in `frontend/security-headers.inc`) vom Frontend-nginx gesetzt, nicht über den Cloudflare-Schalter. Damit war der am 2026-09-15 zurückgestellte Punkt faktisch umgesetzt, ohne vorher abgestimmt zu sein. Nach Rückfrage bewusst beibehalten: App läuft komplett hinter Cloudflare Tunnel mit von Cloudflare verwaltetem Zertifikat, Seite funktioniert, keine Probleme beobachtet. Rückweg falls nötig: `max-age=0` in `security-headers.inc` setzen, Browser löschen die Regel beim nächsten Besuch. Kein `includeSubDomains`/`preload`.
 - ✅ **Automatischer Deploy via self-hosted Runner** (2026-10-19) — Runner als root in LXC 103 (Label `proxmox-prod`, systemd-Dienst), Job `deploy` in `ci.yml` nach grünen Jobs bei Push auf `main` (ohne `chore: auto security patch`), `SKIP_CI_CHECK`/`SKIP_TESTS`/`NOTIFY_ON_FAILURE`, Pre-Deploy-Backup. Beim ersten Lauf entdeckt und behoben: `((PASS++))` in `smoke-test.sh` brach unter `set -e` ab. Fehlerfall verifiziert (Trap in `deploy.sh` → Push an Admins, per simuliertem `git`-Fehler getestet). Runbook im README.
 - ✅ **Prisma-Dev-Kette (deepmerge-ts / mysql2 / @prisma/config) behoben** (2026-10-19) — die seit 2026-09-01 zurückgestellten 4× high im Backend sind weg: Prisma 7.10.1 zieht deepmerge-ts 8.0.2 und mysql2 3.24.4, per normalem `npm audit fix` ohne --force und ohne Downgrade (Auto-Patch-Commit 60800de). Danach @prisma/client + Adapter auf 7.10.1 angeglichen und `allowScripts` in backend/package.json auf 7.10.1 angepasst (sonst blockiert npm die Install-Skripte von prisma/@prisma/engines, relevant auch für den Docker-Build mit npm ci). `npm audit` Backend und Frontend: 0. Die beiden zugehörigen .trivyignore-Einträge (CVE-2026-40345, GHSA-3f6p-5ww8-9rcr) entfernt. 415 Backend + 58 E2E grün, deployed und verifiziert.
 
