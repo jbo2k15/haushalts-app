@@ -34,8 +34,9 @@ test('multi-completion weekly task can be completed several times and undone one
   await expect(row).toHaveAttribute('data-count', '0')
   await expect(row.locator('[data-testid="undo-completion"]')).toHaveCount(0)
 
-  // Weekly tasks never get the daily-only skip button, multi or not.
-  await expect(row.locator('button')).toHaveCount(0)
+  // Weekly tasks never get the daily-only skip button, multi or not. (Der
+  // Abhaken-Knopf task-toggle ist seit der Tastatur-Bedienbarkeit immer da.)
+  await expect(row.getByRole('button', { name: 'Heute nicht nötig' })).toHaveCount(0)
 
   expect(errors).toEqual([])
 })

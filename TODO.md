@@ -27,9 +27,14 @@
 
 ## Performance (für später, niedrige Priorität bei aktueller Haushaltsgröße)
 
-Die drei folgenden Punkte wurden umgesetzt — siehe Archiv weiter unten ("SQLite WAL + Trophäen-Baseline + taskLog-Retention").
+Die drei ursprünglichen Punkte wurden umgesetzt — siehe Archiv weiter unten ("SQLite WAL + Trophäen-Baseline + taskLog-Retention").
 
-## Barrierefreiheit (Accessibility-Review 2026-07-22, PWA-Fokus, noch nichts umgesetzt)
+- [x] **Doppeltes Laden der Aufgabenliste (Review 2026-11-01)** — `Home.jsx` pollte `/api/tasks` (und damit auch `/api/tasks/log`) alle 30 s, obwohl der Kommentar "nur wenn SSE nicht verbunden" sagte — also pro offenem Tab doppelt zu SSE. Jetzt: 30-s-Polling nur ohne SSE-Verbindung, sonst Sicherheits-Abgleich alle 5 min, plus sofortiger Abgleich beim Zurückkehren in Tab/PWA (`visibilitychange`). Sonst keine Auffälligkeiten: Indizes für die Hot-Paths vorhanden, Seiten außer Home lazy geladen, Haupt-Bundle ~320 KB unkomprimiert.
+
+## Barrierefreiheit (Accessibility-Review 2026-07-22, PWA-Fokus — alle Punkte umgesetzt; Nach-Review 2026-11-01)
+
+- [x] **Aufgaben per Tastatur abhaken (Nach-Review 2026-11-01)** — die Aufgabenzeile war ein klickbares `<div>` ohne Rolle/Fokus: per Tastatur ließ sich keine Aufgabe erledigen, Screenreader kannten den Erledigt-Zustand nicht (axe erkennt klickbare divs nicht). Jetzt ist die Checkbox ein eigener `<button role="checkbox" aria-checked>` (bei Mehrfach-Aufgaben ein Knopf „… erledigen, bisher n-mal“), die Zeile bleibt für Maus/Touch klickbar. Absichtlich nicht die ganze Zeile als Checkbox, da die Knöpfe rechts sonst verschachtelte Bedienelemente wären. E2E: `task-keyboard-skip.spec.js`.
+- [x] **Kontrast übersprungener Aufgaben (Nach-Review 2026-11-01)** — die am selben Tag eingeführte Darstellung „Heute nicht nötig“ nutzte `opacity-60` → Textkontrast ~2,4:1 (hell) bzw. ~2,5:1 (dunkel), unter WCAG AA 4,5:1. Ersetzt durch `text-ink-muted` + Durchstreichen + gestrichelte Checkbox. axe-Scan des übersprungenen Zustands in `task-keyboard-skip.spec.js` (vorher deckte `a11y.spec.js` diesen Zustand nicht ab). Überspringen/Zurückholen durch andere Nutzer wird jetzt auch in der `aria-live`-Region angesagt.
 
 - [x] **Icon-only Buttons ohne `aria-label`** — erledigt: `aria-label` ergänzt bei den „✕"-Schließen-Buttons (`PageCarousel.jsx` Swipe-Tipp, `ReleaseNotesModal.jsx`, `Admin.jsx` Aufgabe-bearbeiten-Modal) sowie bei „Zurücknehmen"/„Heute nicht nötig" in `TaskRow.jsx` (dort zusätzlich zum bestehenden `title`). Volle E2E-Suite (53/53) grün.
 - [x] **Drag & Drop tastaturbedienbar** — erledigt (Redesign Phase 3d): `Admin.jsx` registriert zusätzlich `KeyboardSensor` mit `sortableKeyboardCoordinates` (Leertaste aufnehmen, Pfeile bewegen, Leertaste ablegen).

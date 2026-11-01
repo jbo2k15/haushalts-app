@@ -27,7 +27,7 @@ function buildTaskMap(data) {
   const map = new Map()
   for (const cat of TASK_CATEGORIES) {
     for (const task of data[cat] || []) {
-      map.set(task.id, { title: task.title, completed: task.completed, count: task.count ?? null, completedBy: task.completedBy || null })
+      map.set(task.id, { title: task.title, completed: task.completed, skipped: !!task.skipped, count: task.count ?? null, completedBy: task.completedBy || null })
     }
   }
   return map
@@ -38,7 +38,7 @@ function buildTaskMap(data) {
 // remote (SSE-triggered) changes via an aria-live region, since those
 // otherwise only update the list visually with no signal for screen reader
 // users. Only handles completed/uncompleted/count changes and newly added
-// tasks - a task disappearing (skipped, no longer due today, or deleted) is
+// tasks plus skip/unskip - a task disappearing (no longer due today, or deleted) is
 // ambiguous from this data alone, so that case is deliberately not announced
 // rather than risk announcing something incorrect.
 function describeTaskChanges(prevMap, data) {
@@ -51,6 +51,12 @@ function describeTaskChanges(prevMap, data) {
         continue
       }
       const by = task.completedBy ? ` von ${task.completedBy}` : ''
+      // Uebersprungene Aufgaben bleiben seit 2026-11 sichtbar, der Wechsel ist
+      // damit eindeutig erkennbar und wird ebenfalls angesagt.
+      if (!!task.skipped !== prev.skipped) {
+        messages.push(task.skipped ? `"${task.title}" ist heute nicht nötig` : `"${task.title}" wurde zurückgeholt`)
+        continue
+      }
       if (task.count != null && prev.count != null) {
         if (task.count > prev.count) messages.push(`"${task.title}" wurde${by} erledigt`)
         else if (task.count < prev.count) messages.push(`"${task.title}" wurde zurückgenommen`)
@@ -90,6 +96,9 @@ export default function Home() {
   }, [])
 
   const loadTasksPromise = useRef(null)
+  // true, solange die SSE-Verbindung steht - dann reicht ein seltener
+  // Sicherheits-Abgleich statt Polling alle 30 s (siehe Fallback-Polling unten).
+  const sseConnectedRef = useRef(false)
 
   const loadTasks = useCallback(async ({ announce = false } = {}) => {
     if (loadTasksPromise.current) return loadTasksPromise.current
@@ -148,8 +157,10 @@ export default function Home() {
       }
       if (cancelled || !ticket) return
       es = new EventSource(`/api/events?ticket=${encodeURIComponent(ticket)}`)
+      es.onopen = () => { sseConnectedRef.current = true }
       es.addEventListener('tasks-updated', () => loadTasks({ announce: true }))
       es.onerror = () => {
+        sseConnectedRef.current = false
         es?.close()
         es = null
         if (!cancelled) retryTimeout = setTimeout(connect, 5000)
@@ -159,17 +170,31 @@ export default function Home() {
     connect()
     return () => {
       cancelled = true
+      sseConnectedRef.current = false
       es?.close()
       clearTimeout(retryTimeout)
     }
   }, [loadTasks])
 
-  // Fallback-Polling (greift wenn SSE nicht verbunden ist)
+  // Fallback-Polling: alle 30 s nur, wenn SSE NICHT verbunden ist. Steht die
+  // Verbindung, genuegt ein Sicherheits-Abgleich alle 5 Minuten (falls ein
+  // Event unterwegs verloren ging). Vorher lief das 30-s-Polling immer
+  // zusaetzlich zu SSE - pro offenem Tab doppelte Last fuer Server und Akku.
+  // Beim Zurueckkehren in die App (Tab/PWA wieder sichtbar) sofort abgleichen,
+  // da Mobilgeraete SSE im Hintergrund oft still einfrieren.
   useEffect(() => {
+    let ticks = 0
     const interval = setInterval(() => {
-      if (!document.hidden) loadTasks({ announce: true })
+      ticks++
+      if (document.hidden) return
+      if (!sseConnectedRef.current || ticks % 10 === 0) loadTasks({ announce: true })
     }, 30000)
-    return () => clearInterval(interval)
+    const onVisible = () => { if (!document.hidden) loadTasks({ announce: true }) }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [loadTasks])
 
   return (

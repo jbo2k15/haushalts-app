@@ -139,8 +139,10 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
   }
 
   let rowBg = 'bg-surface-container'
-  if (skipped) rowBg = 'bg-surface-container opacity-60'
-  else if (task.isOverdue && !completed) rowBg = 'bg-danger-container'
+  // Kein opacity fuer "uebersprungen": haette den Text auf ~2,4:1 Kontrast
+  // gedrueckt (WCAG AA verlangt 4,5:1). Die Kennzeichnung laeuft stattdessen
+  // ueber Durchstreichen, gestrichelte Checkbox und den Hinweistext.
+  if (task.isOverdue && !completed && !skipped) rowBg = 'bg-danger-container'
   else if (task.pinned) rowBg = 'bg-primary-container'
 
   return (
@@ -154,16 +156,31 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
       data-skipped={skipped}
       data-count={isMulti ? count : undefined}
     >
-      <div className={`w-5 h-5 rounded shrink-0 border-2 flex items-center justify-center transition-colors ${
-        completed ? 'bg-green-500 border-green-500' : task.isOverdue ? 'border-danger' : 'border-outline-strong'
-      }`}>
+      {/* Eigenes Bedienelement fuer Tastatur und Screenreader: Die Zeile selbst
+          bleibt fuer Maus/Touch klickbar, ist aber ein <div> ohne Rolle (sonst
+          waeren die Knoepfe rechts verschachtelte interaktive Elemente). Ohne
+          diesen Knopf liess sich eine Aufgabe per Tastatur gar nicht abhaken. */}
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); handleClick() }}
+        disabled={skipped}
+        {...(isMulti
+          ? { 'aria-label': `„${task.title}“ erledigen${count > 0 ? `, bisher ${count}-mal` : ''}` }
+          : { role: 'checkbox', 'aria-checked': completed, 'aria-label': task.title })}
+        data-testid="task-toggle"
+        className={`w-5 h-5 rounded shrink-0 border-2 flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+          completed ? 'bg-green-500 border-green-500'
+            : skipped ? 'border-dashed border-outline-strong'
+            : task.isOverdue ? 'border-danger' : 'border-outline-strong'
+        }`}
+      >
         {completed && (
-          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         )}
-      </div>
-      <span className={`flex-1 text-sm ${completed || skipped ? 'line-through text-ink-faint' : 'text-ink'}`}>
+      </button>
+      <span className={`flex-1 text-sm ${completed ? 'line-through text-ink-faint' : skipped ? 'line-through text-ink-muted' : 'text-ink'}`}>
         {task.title}
         {isMulti && count > 1 && (
           <Badge tone="success" className="ml-1.5">×{count}</Badge>
