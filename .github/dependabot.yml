@@ -17,6 +17,12 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      # better-sqlite3 v13 wird von @prisma/adapter-better-sqlite3 noch nicht
+      # unterstuetzt (verlangt hart ^12.x) - siehe TODO.md. Entfernen, sobald
+      # Prisma v13 freigibt. Minor/Patch-Updates innerhalb v12 kommen weiter.
+      - dependency-name: "better-sqlite3"
+        update-types: ["version-update:semver-major"]
     groups:
       backend-minor-patch:
         update-types: ["minor", "patch"]
