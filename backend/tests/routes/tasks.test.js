@@ -113,6 +113,26 @@ describe('GET /api/tasks', () => {
       expect(row).toBeFalsy()
     })
 
+    it('zeigt eine Wochenaufgabe mit festem Wochentag erst ab diesem Tag', async () => {
+      const user = await setupWednesday()
+      const friday = await createTask({ type: 'weekly', title: 'Freitags-Aufgabe', fixedWeekday: 5 })
+      const monday = await createTask({ type: 'weekly', title: 'Montags-Aufgabe', fixedWeekday: 1 })
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      const ids = res.body.weekly.map(t => t.id)
+      expect(ids).not.toContain(friday.id)
+      expect(ids).toContain(monday.id)
+    })
+
+    it('zeigt eine am Montag verpasste und am Dienstag übersprungene Montags-Aufgabe am Mittwoch nicht erneut als überfällig', async () => {
+      // Regression: "Heute nicht nötig" an einem Folgetag klaerte die
+      // Ueberfaelligkeit nur fuer diesen einen Tag.
+      const user = await setupWednesday()
+      const task = await createTask({ weekdays: JSON.stringify([1]), createdAt: new Date('2026-07-01T00:00:00Z') }) // Montag
+      await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'skipped', forDate: '2026-07-14' } }) // Dienstag
+      const res = await request(app).get('/api/tasks').set(authHeader(user.id))
+      expect(res.body.daily.find(t => t.id === task.id)).toBeFalsy()
+    })
+
     it('klärt die Überfälligkeit einer wetterabhängigen Montags-Aufgabe, die am Montag automatisch (system-completed) erledigt wurde', async () => {
       // Regression: system-completed hat bewusst keine TaskCompletion - ohne
       // Fix bliebe die Aufgabe am Mittwoch faelschlich "überfällig".

@@ -113,9 +113,11 @@ export async function syncWasteCalendar() {
         continue
       }
 
-      if (collectionDate < today) continue // collection already happened
-
       const dueDate = subtractOneDay(collectionDate)
+      // Faelligkeitstag (Vortag der Abholung) schon vorbei - auch am Abholtag
+      // selbst: sonst wuerde der Sync einen gerade per expireOnce abgelaufenen
+      // Termin am Abholtag wieder aktivieren (und am Folgetag erneut verfallen).
+      if (dueDate < today) continue
       const current = nearestByTitle.get(wasteType.title)
       if (!current || dueDate < current) nearestByTitle.set(wasteType.title, dueDate)
     }

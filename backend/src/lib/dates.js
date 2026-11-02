@@ -57,6 +57,12 @@ export function addMonthsToMonthString(monthStr, n) {
   return `${year}-${month}`
 }
 
+// Anzahl Tage eines Monats im Format YYYY-MM (Schaltjahre beruecksichtigt).
+export function daysInMonth(monthStr) {
+  const [y, m] = monthStr.split('-').map(Number)
+  return new Date(Date.UTC(y, m, 0)).getUTCDate()
+}
+
 // Vergleicht zwei YYYY-MM Strings, gibt -1 (erste früher), 0 (gleich), 1 (erste später)
 export function compareMonthStrings(monthStr1, monthStr2) {
   if (monthStr1 < monthStr2) return -1

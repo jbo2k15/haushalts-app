@@ -14,6 +14,7 @@ import {
   addDaysToDateString,
   addMonthsToMonthString,
   compareMonthStrings,
+  daysInMonth,
 } from '../lib/dates.js'
 import {
   validatePauseRange,
@@ -75,10 +76,27 @@ export function monthlyTaskStatus(task, { currentMonth, today, completedThisMont
   let visible = effectiveDueMonth(task, currentMonth) === currentMonth
   // Fester Tag im Monat liegt noch in der Zukunft -> noch nicht anzeigen.
   if (visible && task.fixedDayOfMonth) {
-    const dueDay = `${currentMonth}-${String(task.fixedDayOfMonth).padStart(2, '0')}`
-    if (today < dueDay) visible = false
+    if (today < fixedDayInMonth(currentMonth, task.fixedDayOfMonth)) visible = false
   }
   return { visible, isOverdue: false, completed: false }
+}
+
+// Fester Tag im Monat als YYYY-MM-DD. Tage, die es im Monat nicht gibt (29.-31.
+// im Februar, 31. in 30-Tage-Monaten), werden auf den letzten Tag des Monats
+// vorgezogen - sonst laege der Termin hinter jedem echten Datum des Monats,
+// die Aufgabe bliebe den ganzen Monat unsichtbar und verfiele am Monatsende.
+export function fixedDayInMonth(month, fixedDayOfMonth) {
+  const day = Math.min(fixedDayOfMonth, daysInMonth(month))
+  return `${month}-${String(day).padStart(2, '0')}`
+}
+
+// Wochenaufgabe mit festem Wochentag: erst ab diesem Tag der laufenden Woche
+// sichtbar (analog zum festen Tag bei Monatsaufgaben). Wochen beginnen am
+// Montag; fixedWeekday folgt Date.getDay() (0 = Sonntag = letzter Wochentag).
+export function weeklyTaskVisible(task, todayWeekday) {
+  if (task.fixedWeekday == null) return true
+  const pos = d => (d + 6) % 7
+  return pos(todayWeekday) >= pos(task.fixedWeekday)
 }
 
 export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo }) {
@@ -284,8 +302,13 @@ export async function getTaskOverview() {
       // überspringt.
       const pausedYesterday = isPausedOnDay(individualPauseMap.get(task.id), globalPause, yesterday)
       const pausedTwoDaysAgo = isPausedOnDay(individualPauseMap.get(task.id), globalPause, twoDaysAgo)
-      const missedYesterday = wasDueYesterday && !compDates.has(yesterday) && !compDates.has(today) && !skippedDates.has(yesterday) && !pausedYesterday
-      const missedTwoDaysAgo = wasDueTwoDaysAgo && !compDates.has(twoDaysAgo) && !compDates.has(yesterday) && !compDates.has(today) && !skippedDates.has(twoDaysAgo) && !pausedTwoDaysAgo
+      // "Heute nicht noetig" klaert die Ueberfaelligkeit genauso wie eine
+      // Erledigung - auch wenn es erst an einem Folgetag geklickt wird (sonst
+      // taucht eine am Mittwoch fuer den verpassten Dienstag uebersprungene
+      // Aufgabe am Donnerstag erneut als ueberfaellig auf).
+      const resolvedSince = (...days) => days.some(d => compDates.has(d) || skippedDates.has(d))
+      const missedYesterday = wasDueYesterday && !resolvedSince(yesterday, today) && !pausedYesterday
+      const missedTwoDaysAgo = wasDueTwoDaysAgo && !resolvedSince(twoDaysAgo, yesterday, today) && !pausedTwoDaysAgo
       const isOverdue = !dueToday && (missedYesterday || missedTwoDaysAgo)
 
       const systemCompleted = systemCompletedIds.has(task.id)
@@ -313,6 +336,8 @@ export async function getTaskOverview() {
     if (task.type === 'weekly') {
       const weekCompletions = (byTask.get(task.id) || []).filter(c => c.forDate === weekStart)
       const count = weekCompletions.length
+      // Fester Wochentag: erst ab diesem Tag zeigen - ausser schon erledigt.
+      if (count === 0 && !weeklyTaskVisible(task, todayWeekday)) continue
       const lastCompletion = weekCompletions[weekCompletions.length - 1] || null
       result.weekly.push({
         ...task,

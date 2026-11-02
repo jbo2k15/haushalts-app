@@ -228,6 +228,14 @@ describe('POST /api/users/:id/approve', () => {
     expect(res.body.approved).toBe(true)
   })
 
+  it('verhindert das Sperren des eigenen Accounts (auch für den letzten Admin)', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).post(`/api/users/${admin.id}/approve`).set(authHeader(admin.id))
+    expect(res.status).toBe(400)
+    const stored = await prisma.user.findUnique({ where: { id: admin.id } })
+    expect(stored.approved).toBe(true)
+  })
+
   it('gibt 404 für unbekannten Nutzer zurück', async () => {
     const admin = await createUser({ role: 'admin' })
     const res = await request(app).post('/api/users/does-not-exist/approve').set(authHeader(admin.id))
