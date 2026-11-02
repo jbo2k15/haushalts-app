@@ -95,7 +95,7 @@ export async function createCategory(locationId, { name, defaultMinQuantity }) {
       data: {
         locationId,
         name: name.trim(),
-        defaultMinQuantity: Number.isInteger(defaultMinQuantity) && defaultMinQuantity >= 0 ? defaultMinQuantity : 1,
+        defaultMinQuantity: validateQuantity(defaultMinQuantity) ? normalizeQuantity(defaultMinQuantity) : 1,
         sortOrder,
       },
     })
@@ -116,7 +116,7 @@ export async function updateCategory(id, { name, defaultMinQuantity }) {
       where: { id },
       data: {
         name: name.trim(),
-        defaultMinQuantity: Number.isInteger(defaultMinQuantity) && defaultMinQuantity >= 0 ? defaultMinQuantity : category.defaultMinQuantity,
+        defaultMinQuantity: validateQuantity(defaultMinQuantity) ? normalizeQuantity(defaultMinQuantity) : category.defaultMinQuantity,
       },
     })
   } catch (err) {
@@ -140,15 +140,27 @@ export async function reorderCategories(locationId, orderedIds) {
 
 // ── Artikel (offen für alle Haushaltsmitglieder) ────────────────────────────
 
+// Mengen duerfen Kommazahlen sein (1,5 kg Mehl) - nicht negativ, endlich,
+// mit einer sinnvollen Obergrenze. Gespeichert wird auf 2 Nachkommastellen
+// gerundet (normalizeQuantity), damit sich bei +/- keine Float-Reste wie
+// 0.30000000000000004 ansammeln.
+const MAX_QUANTITY = 100000
+const QUANTITY_ERROR = 'Menge muss eine Zahl zwischen 0 und 100000 sein'
+const MIN_QUANTITY_ERROR = 'Mindestmenge muss eine Zahl zwischen 0 und 100000 sein'
+
 function validateQuantity(quantity) {
-  return Number.isInteger(quantity) && quantity >= 0
+  return typeof quantity === 'number' && Number.isFinite(quantity) && quantity >= 0 && quantity <= MAX_QUANTITY
+}
+
+export function normalizeQuantity(quantity) {
+  return Math.round(quantity * 100) / 100
 }
 
 export async function createItem(categoryId, { name, quantity, unit, minQuantity }) {
   const err = validateName(name)
   if (err) throw httpError(400, err)
-  if (quantity != null && !validateQuantity(quantity)) throw httpError(400, 'Menge muss eine nicht-negative Ganzzahl sein')
-  if (minQuantity != null && !validateQuantity(minQuantity)) throw httpError(400, 'Mindestmenge muss eine nicht-negative Ganzzahl sein')
+  if (quantity != null && !validateQuantity(quantity)) throw httpError(400, QUANTITY_ERROR)
+  if (minQuantity != null && !validateQuantity(minQuantity)) throw httpError(400, MIN_QUANTITY_ERROR)
 
   const category = await prisma.storageCategory.findUnique({ where: { id: categoryId } })
   if (!category) throw httpError(404, 'Kategorie nicht gefunden')
@@ -159,9 +171,9 @@ export async function createItem(categoryId, { name, quantity, unit, minQuantity
       name: name.trim(),
       locationId: category.locationId,
       categoryId,
-      quantity: quantity ?? 0,
+      quantity: normalizeQuantity(quantity ?? 0),
       unit: unit?.trim() || null,
-      minQuantity: minQuantity ?? null,
+      minQuantity: minQuantity == null ? null : normalizeQuantity(minQuantity),
       sortOrder,
     },
   })
@@ -170,8 +182,8 @@ export async function createItem(categoryId, { name, quantity, unit, minQuantity
 export async function updateItem(id, { name, quantity, unit, minQuantity, categoryId }) {
   const err = validateName(name)
   if (err) throw httpError(400, err)
-  if (quantity != null && !validateQuantity(quantity)) throw httpError(400, 'Menge muss eine nicht-negative Ganzzahl sein')
-  if (minQuantity !== undefined && minQuantity !== null && !validateQuantity(minQuantity)) throw httpError(400, 'Mindestmenge muss eine nicht-negative Ganzzahl sein')
+  if (quantity != null && !validateQuantity(quantity)) throw httpError(400, QUANTITY_ERROR)
+  if (minQuantity !== undefined && minQuantity !== null && !validateQuantity(minQuantity)) throw httpError(400, MIN_QUANTITY_ERROR)
 
   const item = await prisma.storageItem.findUnique({ where: { id } })
   if (!item) throw httpError(404, 'Artikel nicht gefunden')
@@ -179,8 +191,8 @@ export async function updateItem(id, { name, quantity, unit, minQuantity, catego
   // Kategorie-Wechsel bewusst nicht per Drag, aber ueber Bearbeiten moeglich
   // (siehe TODO.md) - dabei den Lagerort der neuen Kategorie uebernehmen,
   // sonst wuerde locationId/categoryId auseinanderlaufen.
-  let data = { name: name.trim(), unit: unit?.trim() || null, minQuantity: minQuantity ?? null }
-  if (quantity != null) data.quantity = quantity
+  let data = { name: name.trim(), unit: unit?.trim() || null, minQuantity: minQuantity == null ? null : normalizeQuantity(minQuantity) }
+  if (quantity != null) data.quantity = normalizeQuantity(quantity)
   if (categoryId && categoryId !== item.categoryId) {
     const newCategory = await prisma.storageCategory.findUnique({ where: { id: categoryId } })
     if (!newCategory) throw httpError(404, 'Kategorie nicht gefunden')
@@ -192,10 +204,10 @@ export async function updateItem(id, { name, quantity, unit, minQuantity, catego
 }
 
 export async function setQuantity(id, quantity) {
-  if (!validateQuantity(quantity)) throw httpError(400, 'Menge muss eine nicht-negative Ganzzahl sein')
+  if (!validateQuantity(quantity)) throw httpError(400, QUANTITY_ERROR)
   const item = await prisma.storageItem.findUnique({ where: { id } })
   if (!item) throw httpError(404, 'Artikel nicht gefunden')
-  return prisma.storageItem.update({ where: { id }, data: { quantity } })
+  return prisma.storageItem.update({ where: { id }, data: { quantity: normalizeQuantity(quantity) } })
 }
 
 export async function deleteItem(id) {

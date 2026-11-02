@@ -41,6 +41,14 @@ test('Vorrat: Lagerort, Kategorie und Artikel anlegen, Menge ändern, Artikel l�
   await row.getByRole('button', { name: 'Menge verringern' }).click()
   await expect(row.getByTestId('item-quantity')).toHaveText('1')
 
+  // Kommazahl über das Bearbeiten-Modal (Komma-Eingabe), Stepper rechnet weiter
+  await row.getByRole('button', { name: 'E2E Tomaten', exact: true }).click()
+  await page.getByLabel('Menge', { exact: true }).fill('1,5')
+  await page.getByRole('button', { name: 'Speichern' }).click()
+  await expect(row.getByTestId('item-quantity')).toHaveText('1,5')
+  await row.getByRole('button', { name: 'Menge erhöhen' }).click()
+  await expect(row.getByTestId('item-quantity')).toHaveText('2,5')
+
   // Komplett löschen (nicht nur Menge auf 0)
   await row.getByRole('button', { name: 'E2E Tomaten löschen' }).click()
   await page.locator('[data-testid="confirm-dialog-confirm"]').click()

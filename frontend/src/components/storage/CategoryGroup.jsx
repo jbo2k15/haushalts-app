@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { parseQuantity, quantityInputValue } from '../../lib/quantity.js'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { DndContext, closestCenter } from '@dnd-kit/core'
@@ -23,7 +24,7 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
   const style = { transform: CSS.Transform.toString(transform), transition }
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(category.name)
-  const [defaultMinQuantity, setDefaultMinQuantity] = useState(category.defaultMinQuantity)
+  const [defaultMinQuantity, setDefaultMinQuantity] = useState(quantityInputValue(category.defaultMinQuantity))
 
   const items = category.items
   const displayItems = forDisplay(items, sortMode)
@@ -50,7 +51,9 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
   async function handleSave(e) {
     e.preventDefault()
     if (!name.trim()) return
-    await api.put(`/storage/categories/${category.id}`, { name: name.trim(), defaultMinQuantity: Number(defaultMinQuantity) || 0 })
+    const parsedMin = parseQuantity(defaultMinQuantity)
+    // Ungueltige Eingabe: bisherigen Wert behalten (Server ignoriert sie ohnehin).
+    await api.put(`/storage/categories/${category.id}`, { name: name.trim(), defaultMinQuantity: Number.isNaN(parsedMin) || parsedMin == null ? category.defaultMinQuantity : parsedMin })
     setEditing(false)
     await onChanged()
   }
@@ -75,7 +78,7 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
           <form onSubmit={handleSave} className="flex-1 flex items-center gap-2">
             <input autoFocus aria-label="Name der Kategorie" value={name} onChange={e => setName(e.target.value)} className="flex-1 rounded-control border border-outline-strong px-2 py-1 text-xs bg-surface-container" />
             <input
-              type="number" min="0" value={defaultMinQuantity} onChange={e => setDefaultMinQuantity(e.target.value)}
+              type="text" inputMode="decimal" value={defaultMinQuantity} onChange={e => setDefaultMinQuantity(e.target.value)}
               aria-label="Standard-Mindestmenge für Artikel dieser Kategorie"
               title="Standard-Mindestmenge für Artikel dieser Kategorie"
               className="w-14 rounded-control border border-outline-strong px-1 py-1 text-xs bg-surface-container"
