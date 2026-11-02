@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatQuantity } from '../../lib/quantity.js'
 import { api } from '../../api/client.js'
 import { useDialog } from '../../context/DialogContext.jsx'
 
@@ -27,7 +28,8 @@ export default function StorageItemRow({ item, defaultMinQuantity, onChanged, on
   const minQuantity = item.minQuantity ?? defaultMinQuantity
 
   async function changeQuantity(delta) {
-    const next = Math.max(0, quantity + delta)
+    // +/- bleibt bei ganzen Schritten; Rundung verhindert Float-Reste (0,5 - 1 -> 0).
+    const next = Math.max(0, Math.round((quantity + delta) * 100) / 100)
     setPendingQuantity(next)
     try {
       await api.patch(`/storage/items/${item.id}/quantity`, { quantity: next })
@@ -61,7 +63,7 @@ export default function StorageItemRow({ item, defaultMinQuantity, onChanged, on
       </button>
       <div className="flex items-center gap-1 shrink-0">
         <button onClick={() => changeQuantity(-1)} aria-label="Menge verringern" className="w-8 h-8 rounded-control border border-outline-strong text-base leading-none touch-manipulation">−</button>
-        <span className={`text-sm font-medium min-w-[1.5rem] text-center ${quantityClass(quantity, minQuantity)}`} data-testid="item-quantity">{quantity}</span>
+        <span className={`text-sm font-medium min-w-[1.5rem] text-center ${quantityClass(quantity, minQuantity)}`} data-testid="item-quantity">{formatQuantity(quantity)}</span>
         <button onClick={() => changeQuantity(1)} aria-label="Menge erhöhen" className="w-8 h-8 rounded-control border border-outline-strong text-base leading-none touch-manipulation">+</button>
       </div>
       <button onClick={handleDelete} aria-label={`${item.name} löschen`} className="text-danger text-xs shrink-0 px-2 py-2 -my-2 touch-manipulation">Löschen</button>

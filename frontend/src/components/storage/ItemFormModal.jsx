@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../../api/client.js'
 import Button from '../ui/Button.jsx'
+import { formatQuantity, parseQuantity, quantityInputValue } from '../../lib/quantity.js'
 
 // Anlegen/Bearbeiten eines Artikels. Kategorie-Wechsel ist möglich (siehe
 // TODO.md), aber nur innerhalb desselben Lagerorts - ein Wechsel des
@@ -11,19 +12,23 @@ export default function ItemFormModal({ categoryId, item, autocomplete, location
 
   const [name, setName] = useState(item?.name ?? '')
   const [selectedCategoryId, setSelectedCategoryId] = useState(startCategoryId)
-  const [quantity, setQuantity] = useState(item?.quantity ?? 0)
+  const [quantity, setQuantity] = useState(quantityInputValue(item?.quantity ?? 0))
   const [unit, setUnit] = useState(item?.unit ?? '')
-  const [minQuantity, setMinQuantity] = useState(item?.minQuantity ?? '')
+  const [minQuantity, setMinQuantity] = useState(quantityInputValue(item?.minQuantity))
   const [error, setError] = useState('')
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!name.trim()) { setError('Name ist erforderlich'); return }
+    const parsedQuantity = parseQuantity(quantity) ?? 0
+    const parsedMin = parseQuantity(minQuantity)
+    if (Number.isNaN(parsedQuantity)) { setError('Menge bitte als Zahl angeben, z. B. 2 oder 1,5'); return }
+    if (Number.isNaN(parsedMin)) { setError('Mindestmenge bitte als Zahl angeben, z. B. 1 oder 0,5'); return }
     const payload = {
       name: name.trim(),
-      quantity: Number(quantity) || 0,
+      quantity: parsedQuantity,
       unit: unit.trim() || null,
-      minQuantity: minQuantity === '' ? null : Number(minQuantity),
+      minQuantity: parsedMin,
     }
     try {
       if (item) {
@@ -81,7 +86,7 @@ export default function ItemFormModal({ categoryId, item, autocomplete, location
           <div className="flex-1">
             <label htmlFor="item-quantity" className="text-xs text-ink-muted">Menge</label>
             <input
-              id="item-quantity" type="number" min="0" value={quantity} onChange={e => setQuantity(e.target.value)}
+              id="item-quantity" type="text" inputMode="decimal" value={quantity} onChange={e => setQuantity(e.target.value)}
               className="w-full mt-0.5 rounded-control border border-outline-strong px-3 py-2 text-sm bg-surface-container"
             />
           </div>
@@ -96,10 +101,10 @@ export default function ItemFormModal({ categoryId, item, autocomplete, location
 
         <div>
           <label htmlFor="item-min-quantity" className="text-xs text-ink-muted">
-            Mindestmenge {category ? `(Kategorie-Default: ${category.defaultMinQuantity})` : ''}
+            Mindestmenge {category ? `(Kategorie-Default: ${formatQuantity(category.defaultMinQuantity)})` : ''}
           </label>
           <input
-            id="item-min-quantity" type="number" min="0" value={minQuantity} onChange={e => setMinQuantity(e.target.value)}
+            id="item-min-quantity" type="text" inputMode="decimal" value={minQuantity} onChange={e => setMinQuantity(e.target.value)}
             placeholder="leer = Kategorie-Default nutzen"
             className="w-full mt-0.5 rounded-control border border-outline-strong px-3 py-2 text-sm bg-surface-container"
           />
