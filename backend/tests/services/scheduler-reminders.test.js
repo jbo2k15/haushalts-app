@@ -100,6 +100,44 @@ describe('sendDailyReminders', () => {
   })
 })
 
+describe('sendDailyReminders — gleiche Quelle wie die Aufgabenliste', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  // 2026-07-20 ist ein Montag, 21:00 Uhr Berlin.
+  const MONDAY_EVENING = '2026-07-20T19:00:00Z'
+
+  it('nennt eine überfällige Wochentags-Aufgabe vom Vortag', async () => {
+    mockNow(MONDAY_EVENING)
+    await createUser()
+    await createTask({ title: 'Sonntags-Aufgabe', weekdays: JSON.stringify([0]), createdAt: new Date('2026-07-01T00:00:00Z') })
+
+    await sendDailyReminders()
+
+    expect(sendPushToUser.mock.calls[0][1].body).toContain('Sonntags-Aufgabe')
+  })
+
+  it('nennt eine Wochenaufgabe, deren fester Wochentag heute ist', async () => {
+    mockNow(MONDAY_EVENING)
+    await createUser()
+    await createTask({ title: 'Papier wegbringen', type: 'weekly', fixedWeekday: 1 })
+    await createTask({ title: 'Fenster putzen', type: 'weekly' }) // ohne festen Tag: nur Wochen-Erinnerung
+
+    await sendDailyReminders()
+
+    expect(sendPushToUser.mock.calls[0][1].body).toBe('Noch offen heute: Papier wegbringen.')
+  })
+
+  it('nennt eine Monatsaufgabe, deren fester Tag heute ist', async () => {
+    mockNow(MONDAY_EVENING)
+    await createUser()
+    await createTask({ title: 'Zählerstand ablesen', type: 'monthly', monthlyInterval: 1, nextDueMonth: '2026-07', fixedDayOfMonth: 20 })
+
+    await sendDailyReminders()
+
+    expect(sendPushToUser.mock.calls[0][1].body).toBe('Noch offen heute: Zählerstand ablesen.')
+  })
+})
+
 describe('sendWeeklyReminders', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -112,6 +150,21 @@ describe('sendWeeklyReminders', () => {
 
     const body = sendPushToUser.mock.calls[0][1].body
     expect(body).toBe('Noch offen in dieser Woche: Bad putzen.')
+  })
+})
+
+describe('sendWeeklyReminders — fester Wochentag', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('nennt eine Sonntags-Aufgabe nicht schon in der Samstags-Erinnerung', async () => {
+    mockNow('2026-07-25T07:00:00Z') // Samstag, 09:00 Uhr Berlin (Default)
+    await createUser()
+    await createTask({ title: 'Sonntags-Aufgabe', type: 'weekly', fixedWeekday: 0 })
+    await createTask({ title: 'Bad putzen', type: 'weekly' })
+
+    await sendWeeklyReminders()
+
+    expect(sendPushToUser.mock.calls[0][1].body).toBe('Noch offen in dieser Woche: Bad putzen.')
   })
 })
 

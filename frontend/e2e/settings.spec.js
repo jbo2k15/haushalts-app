@@ -176,9 +176,22 @@ test('weather-notification toggle persists across reload', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
-test('notification reminder times save and persist', async ({ page }) => {
+test('normale Nutzer sehen die Erinnerungszeiten nur (legt der Admin fest)', async ({ page }) => {
   const errors = attachErrorCollector(page)
-  await login(page, { email: SETTINGS_EMAIL, password: SETTINGS_PASSWORD })
+  await login(page, { email: SETTINGS_EMAIL, password: SETTINGS_PASSWORD }) // role: user
+
+  await page.goto('/settings')
+  await expect(page.locator('[data-testid="reminder-times-readonly-hint"]')).toBeVisible()
+  await expect(page.locator('[data-testid="daily-time"]')).toBeDisabled()
+  await expect(page.locator('[data-testid="monthly-day"]')).toBeDisabled()
+  await expect(page.locator('[data-testid="save-notification-settings"]')).toHaveCount(0)
+
+  expect(errors).toEqual([])
+})
+
+test('Admin speichert die Erinnerungszeiten für alle', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page) // E2E-Standardnutzer ist Admin
 
   await page.goto('/settings')
 

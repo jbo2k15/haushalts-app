@@ -26,20 +26,29 @@ export default function UsersTab({ users, currentUserId, onToggleRole, onToggleA
             {userRecord.role === 'admin' && (
               <Badge tone="primary" className="px-2 py-1.5">Admin</Badge>
             )}
-            <button
-              onClick={() => onToggleRole(userRecord.id)}
-              data-testid="toggle-role"
-              className="text-xs bg-surface-container-high text-ink-muted px-3 py-1.5 rounded-lg font-medium"
-            >
-              {userRecord.role === 'admin' ? '↓ Nutzer' : '↑ Admin'}
-            </button>
-            <button
-              onClick={() => onToggleApprove(userRecord.id)}
-              data-testid="toggle-approve"
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium ${userRecord.approved ? 'bg-danger-container text-on-danger-container' : 'bg-success-container text-on-success-container'}`}
-            >
-              {userRecord.approved ? 'Sperren' : 'Freischalten'}
-            </button>
+            {/* Eigenes Konto: weder Rolle aendern noch sperren noch loeschen -
+                der Server lehnt das ab, die Knoepfe waeren nur irrefuehrend. */}
+            {userRecord.id === currentUserId && (
+              <Badge tone="neutral" className="px-2 py-1.5">Du</Badge>
+            )}
+            {userRecord.id !== currentUserId && (
+              <button
+                onClick={() => onToggleRole(userRecord.id)}
+                data-testid="toggle-role"
+                className="text-xs bg-surface-container-high text-ink-muted px-3 py-1.5 rounded-lg font-medium"
+              >
+                {userRecord.role === 'admin' ? '↓ Nutzer' : '↑ Admin'}
+              </button>
+            )}
+            {userRecord.id !== currentUserId && (
+              <button
+                onClick={() => onToggleApprove(userRecord.id)}
+                data-testid="toggle-approve"
+                className={`text-xs px-3 py-1.5 rounded-lg font-medium ${userRecord.approved ? 'bg-danger-container text-on-danger-container' : 'bg-success-container text-on-success-container'}`}
+              >
+                {userRecord.approved ? 'Sperren' : 'Freischalten'}
+              </button>
+            )}
             {userRecord.id !== currentUserId && (
               <button
                 onClick={() => onDeleteUser(userRecord.id)}

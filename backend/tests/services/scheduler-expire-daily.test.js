@@ -73,4 +73,26 @@ describe('expireDailyTasks', () => {
 
     expect(await expiredLog(task.id)).toBeNull()
   })
+
+  it('loggt eine am Folgetag nachgeholte wochentagsbeschränkte Aufgabe NICHT als verfallen', async () => {
+    // Regression: Montag verpasst, Dienstag (als ueberfaellig) erledigt -> in
+    // der Liste erledigt, darf in der Nacht nicht trotzdem "verfallen" heissen.
+    mockWednesday()
+    const task = await createTask({ weekdays: JSON.stringify([1]) })
+    await prisma.taskCompletion.create({ data: { taskId: task.id, forDate: '2026-07-14' } })
+
+    await expireDailyTasks()
+
+    expect(await expiredLog(task.id)).toBeNull()
+  })
+
+  it('loggt eine am Folgetag als "heute nicht nötig" übersprungene Aufgabe NICHT als verfallen', async () => {
+    mockWednesday()
+    const task = await createTask({ weekdays: JSON.stringify([1]) })
+    await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'skipped', forDate: '2026-07-14' } })
+
+    await expireDailyTasks()
+
+    expect(await expiredLog(task.id)).toBeNull()
+  })
 })

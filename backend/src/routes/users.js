@@ -172,6 +172,11 @@ router.get('/', requireAuth, requireAdmin, async (req, res) => {
 })
 
 router.post('/:id/approve', requireAuth, requireAdmin, async (req, res) => {
+  // Eigenes Konto nicht sperrbar (analog zu Rolle aendern/Loeschen). Damit kann
+  // sich auch der letzte Admin nicht aussperren: der Aufrufer ist selbst ein
+  // aktiver Admin, ein ANDERER gesperrter Admin laesst also immer mindestens
+  // einen aktiven Admin uebrig.
+  if (req.params.id === req.user.id) return res.status(400).json({ error: 'Du kannst deinen eigenen Account nicht sperren' })
   const user = await prisma.user.findUnique({ where: { id: req.params.id } })
   if (!user) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
 

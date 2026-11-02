@@ -41,10 +41,14 @@ export default function Settings() {
 
   useEffect(() => {
     setPushSupported('serviceWorker' in navigator && 'PushManager' in window)
+    // Verschickt wird ausschliesslich nach den globalen (vom Admin festgelegten)
+    // Zeiten - deshalb immer diese anzeigen, nicht etwaige alte persoenliche
+    // Werte, die nie eine Wirkung hatten.
     api.get('/users/notifications').then(data => {
-      if (data.user) setSettings(data.user)
-      else if (data.global) setSettings(data.global)
-      if (data.global) setGlobalSettings(data.global)
+      if (data.global) {
+        setSettings(data.global)
+        setGlobalSettings(data.global)
+      }
     }).catch(() => {})
 
     if ('serviceWorker' in navigator) {
@@ -175,14 +179,14 @@ export default function Settings() {
 
   async function saveSettings() {
     try {
-      await api.put('/users/notifications', settings)
-      if (user.role === 'admin') await api.put('/users/notifications/global', settings)
+      await api.put('/users/notifications/global', settings)
       setSaved(true)
       setTimeout(() => navigate('/'), 1000)
     } catch {}
   }
 
-  const inputCls = 'border border-outline rounded-control px-3 py-2 text-sm bg-surface-container-high text-ink focus:outline-hidden focus:ring-2 focus:ring-primary'
+  const isAdmin = user?.role === 'admin'
+  const inputCls = 'border border-outline rounded-control px-3 py-2 text-sm bg-surface-container-high text-ink focus:outline-hidden focus:ring-2 focus:ring-primary disabled:cursor-not-allowed'
 
   return (
     <div className="min-h-screen bg-surface">
@@ -330,13 +334,19 @@ export default function Settings() {
 
           {/* Erinnerungszeiten */}
           <Card className="p-4 space-y-4">
-            <h2 className="font-medium text-ink">Erinnerungszeiten {user.role === 'admin' && <span className="text-xs text-ink-faint font-normal">(gilt für alle)</span>}</h2>
+            <h2 className="font-medium text-ink">Erinnerungszeiten <span className="text-xs text-ink-faint font-normal">(gilt für alle)</span></h2>
+            {!isAdmin && (
+              <p className="text-sm text-ink-muted" data-testid="reminder-times-readonly-hint">
+                Die Erinnerungszeiten legt ein Admin für den ganzen Haushalt fest.
+              </p>
+            )}
             <div>
               <label htmlFor="settings-daily-time" className="block text-sm text-ink-muted mb-1">Tägliche Erinnerung um</label>
               <input
                 id="settings-daily-time"
                 type="time"
                 data-testid="daily-time"
+                  disabled={!isAdmin}
                 className={inputCls}
                 value={settings.dailyTime}
                 onChange={e => setSettings(s => ({ ...s, dailyTime: e.target.value }))}
@@ -347,6 +357,7 @@ export default function Settings() {
               <div className="flex gap-2">
                 <select
                   data-testid="weekly-day"
+                  disabled={!isAdmin}
                   aria-label="Wöchentliche Erinnerung: Wochentag"
                   className={inputCls}
                   value={settings.weeklyDay}
@@ -357,6 +368,7 @@ export default function Settings() {
                 <input
                   type="time"
                   data-testid="weekly-time"
+                  disabled={!isAdmin}
                   aria-label="Wöchentliche Erinnerung: Uhrzeit"
                   className={inputCls}
                   value={settings.weeklyTime}
@@ -369,6 +381,7 @@ export default function Settings() {
               <div className="flex gap-2">
                 <select
                   data-testid="monthly-day"
+                  disabled={!isAdmin}
                   aria-label="Monatliche Erinnerung: Tag im Monat"
                   className={inputCls}
                   value={settings.monthlyDay}
@@ -379,6 +392,7 @@ export default function Settings() {
                 <input
                   type="time"
                   data-testid="monthly-time"
+                  disabled={!isAdmin}
                   aria-label="Monatliche Erinnerung: Uhrzeit"
                   className={inputCls}
                   value={settings.monthlyTime}
@@ -386,9 +400,11 @@ export default function Settings() {
                 />
               </div>
             </div>
-            <Button variant="primary" onClick={saveSettings} data-testid="save-notification-settings">
-              {saved ? 'Gespeichert ✓' : 'Speichern'}
-            </Button>
+            {isAdmin && (
+              <Button variant="primary" onClick={saveSettings} data-testid="save-notification-settings">
+                {saved ? 'Gespeichert ✓' : 'Speichern'}
+              </Button>
+            )}
           </Card>
 
           {/* Nutzerverwaltung - seit dem IA-Umbau hier statt in der Verwaltung
