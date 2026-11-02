@@ -21,8 +21,13 @@ passenden Bump vor (Patch/Minor/Major).
 
 ## 1. Version-Bump
 - Setze `version` auf `$ARGUMENTS` in `frontend/package.json` UND `backend/package.json`.
-- `package-lock.json` nur anfassen, wenn sich Dependencies geändert haben
-  (reiner Version-Bump ändert die Lockfiles nicht — Caret-Ranges decken es ab).
+- Danach in **beiden** Ordnern `npm install --package-lock-only` ausführen
+  (`cd backend`, dann `cd ../frontend`). Die `package-lock.json` enthält die
+  Projektversion zweimal (Wurzel + `packages[""]`) und muss mitgezogen werden —
+  sonst passt der wöchentliche Security-Scan sie später beim `npm audit fix`
+  nebenbei an (so geschehen bei v1.17.0). Erwartete Änderung: genau diese zwei
+  Zeilen pro Lockfile; zeigt `git diff --stat` deutlich mehr, Ursache klären
+  (andere npm-Version?) statt blind zu committen.
 
 ## 2. Release-Notes-Entwurf — HALT, Freigabe nötig
 - Formuliere eine kurze, nutzerorientierte deutsche Release-Note im Stil der
@@ -74,7 +79,7 @@ Lösche generierte Test-Artefakte, damit sie nicht in den Commit geraten:
 - `frontend/test-results`, `frontend/dist`
 
 ## 5. Commit + annotierter Tag
-- Committe die Release-Dateien (beide `package.json`, `release-notes.json`,
+- Committe die Release-Dateien (beide `package.json`, beide `package-lock.json`, `release-notes.json`,
   ggf. `README.md` und TODO.md) mit einer Zusammenfassung der Änderungen seit
   dem letzten Release.
 - Erzeuge einen **annotierten** Tag `v$ARGUMENTS` mit detaillierten technischen
@@ -86,11 +91,14 @@ Lösche generierte Test-Artefakte, damit sie nicht in den Commit geraten:
 - Falls der Tag remote bereits existiert und auf einen falschen Commit zeigt:
   NICHT blind force-pushen — das mit dem Nutzer klären.
 
-## 7. GitHub-Release (manuell — `gh` ist nicht installiert)
-- Gib dem Nutzer den fertigen Link
-  `https://github.com/jbo2k15/haushalts-app/releases/new?tag=v$ARGUMENTS`
-  plus Titel (`v$ARGUMENTS`) und eine Markdown-Beschreibung (nutzersichtbare
-  Punkte + technische Details + Testergebnis) zum Einfügen.
+## 7. GitHub-Release
+- `gh` ist installiert und über den Windows-Schlüsselbund angemeldet:
+  Markdown-Beschreibung (nutzersichtbare Punkte + technische Details +
+  Testergebnis) in eine temporäre Datei schreiben, dann
+  `gh release create v$ARGUMENTS --repo jbo2k15/haushalts-app --title "v$ARGUMENTS" --notes-file <datei> --verify-tag`.
+- Falls `gh` nicht verfügbar ist (`gh auth status` schlägt fehl): dem Nutzer
+  den Link `https://github.com/jbo2k15/haushalts-app/releases/new?tag=v$ARGUMENTS`
+  plus Titel und Beschreibung zum Einfügen geben.
 
 ## 8. Abschlusshinweis
 - Erinnere daran: Nach dem Deploy muss der neue Build aktiv werden — die
