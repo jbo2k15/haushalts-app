@@ -8,6 +8,7 @@ import {
   reorderCategories,
   reorderItems,
   listLowStockItems,
+  setQuantity,
 } from '../../src/domain/storage.js'
 
 async function makeLocation(name = 'Kühlschrank Garage') {
@@ -98,6 +99,40 @@ describe('createItem', () => {
     const location = await makeLocation()
     const category = await createCategory(location.id, { name: 'Konserven' })
     await expect(createItem(category.id, { name: 'Tomaten', quantity: -1 })).rejects.toMatchObject({ status: 400 })
+  })
+})
+
+describe('Kommazahlen im Vorrat', () => {
+  it('speichert Mengen und Mindestmengen mit Nachkommastellen', async () => {
+    const location = await makeLocation()
+    const category = await createCategory(location.id, { name: 'Backen', defaultMinQuantity: 0.5 })
+    const item = await createItem(category.id, { name: 'Mehl', quantity: 1.5, unit: 'kg', minQuantity: 0.75 })
+    expect(item.quantity).toBe(1.5)
+    expect(item.minQuantity).toBe(0.75)
+    expect(category.defaultMinQuantity).toBe(0.5)
+  })
+
+  it('rundet auf zwei Nachkommastellen (keine Float-Reste beim Rechnen)', async () => {
+    const location = await makeLocation()
+    const category = await createCategory(location.id, { name: 'Backen' })
+    const item = await createItem(category.id, { name: 'Zucker', quantity: 0 })
+    const updated = await setQuantity(item.id, 0.1 + 0.2)
+    expect(updated.quantity).toBe(0.3)
+  })
+
+  it('lehnt Text und zu große Werte ab', async () => {
+    const location = await makeLocation()
+    const category = await createCategory(location.id, { name: 'Backen' })
+    await expect(createItem(category.id, { name: 'Mehl', quantity: '1,5' })).rejects.toMatchObject({ status: 400 })
+    await expect(createItem(category.id, { name: 'Mehl', quantity: 1e9 })).rejects.toMatchObject({ status: 400 })
+  })
+
+  it('erkennt 0,5 kg bei Mindestmenge 1 als knapp', async () => {
+    const location = await makeLocation()
+    const category = await createCategory(location.id, { name: 'Backen', defaultMinQuantity: 1 })
+    await createItem(category.id, { name: 'Mehl', quantity: 0.5, unit: 'kg' })
+    const low = await listLowStockItems()
+    expect(low.map(i => i.name)).toContain('Mehl')
   })
 })
 
