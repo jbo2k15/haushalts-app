@@ -215,7 +215,7 @@ model StorageCategory {
   locationId         String
   name               String
   sortOrder          Int             @default(0)
-  defaultMinQuantity Int             @default(1)
+  defaultMinQuantity Float           @default(1)
   location           StorageLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
   items              StorageItem[]
 
@@ -227,9 +227,9 @@ model StorageItem {
   name        String
   locationId  String
   categoryId  String
-  quantity    Int             @default(0)
+  quantity    Float           @default(0)
   unit        String?
-  minQuantity Int?
+  minQuantity Float?
   sortOrder   Int             @default(0)
   location    StorageLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
   category    StorageCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
