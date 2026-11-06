@@ -52,6 +52,12 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: backend/package-lock.json
+      # Gleiche npm-Version wie im Backend-Docker-Image (dort npm@latest): ab
+      # npm 12 laufen Installationsskripte nur fuer Pakete in "allowScripts"
+      # (backend/package.json). Mit dem npm 11 aus Node 24 faellt eine fehlende
+      # Freigabe in der CI sonst nicht auf - erst der Deploy scheitert.
+      - name: npm wie im Docker-Image
+        run: npm install -g npm@latest
       # postinstall ruft `prisma generate`; vitest.config.js setzt DATABASE_URL
       # (file:./test.db) + JWT_SECRET inline, tests/global-setup.js legt die
       # Test-DB an - kein .env noetig.
@@ -68,6 +74,12 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      # Gleiche npm-Version wie im Backend-Docker-Image (dort npm@latest): ab
+      # npm 12 laufen Installationsskripte nur fuer Pakete in "allowScripts"
+      # (backend/package.json). Mit dem npm 11 aus Node 24 faellt eine fehlende
+      # Freigabe in der CI sonst nicht auf - erst der Deploy scheitert.
+      - name: npm wie im Docker-Image
+        run: npm install -g npm@latest
       # Beide Workspaces: die Playwright-webServer-Config (frontend/playwright
       # .config.js) startet Backend (node src/index.js) UND Frontend-Preview
       # selbst, beides braucht installierte Deps.
