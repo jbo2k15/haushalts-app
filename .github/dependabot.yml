@@ -32,17 +32,6 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-    ignore:
-      # @vitejs/plugin-react ab 6.2 zieht ueber die optionale Peer-Kette
-      # @rolldown/plugin-babel -> @babel/plugin-transform-runtime@8 eine
-      # Anforderung @babel/core ^8 nach; im Projekt steckt @babel/core 7
-      # (u. a. ueber workbox-build) -> npm install endet mit ERESOLVE.
-      # Ohne diese Ausnahme waere jeder frontend-minor-patch-Gruppen-PR
-      # blockiert. Entfernen, sobald `npm install @vitejs/plugin-react@latest
-      # --dry-run` im Frontend ohne ERESOLVE durchlaeuft (prueft die
-      # woechentliche Security-Routine). Zurueckgestellt seit 2026-11-02.
-      - dependency-name: "@vitejs/plugin-react"
-        versions: [">=6.2.0"]
     groups:
       frontend-minor-patch:
         update-types: ["minor", "patch"]
