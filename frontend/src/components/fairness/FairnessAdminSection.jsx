@@ -139,7 +139,7 @@ function CountModeSetting({ countMode }) {
     <fieldset className="px-4 py-3 border-b border-outline space-y-1.5">
       <legend className="sr-only">Rangliste und Statistik zählen</legend>
       <p className="text-sm text-ink" aria-hidden="true">Rangliste und Statistik zählen</p>
-      <div className="grid grid-cols-2 gap-1.5 bg-surface-container-high rounded-control p-1">
+      <div className="flex gap-2">
         {COUNT_MODES.map(mode => {
           const active = countMode === mode.value
           return (
@@ -150,10 +150,10 @@ function CountModeSetting({ countMode }) {
               disabled={saving}
               data-testid={`count-mode-${mode.value}`}
               onClick={() => choose(mode.value)}
-              className={`min-h-11 rounded-lg px-1 py-1.5 text-center ${active ? 'bg-surface-container text-ink shadow-sm' : 'text-ink-muted'}`}
+              className={`flex-1 flex flex-col items-center gap-0.5 min-h-11 py-2 rounded-control border text-xs font-medium transition-colors ${active ? 'bg-primary border-primary text-on-primary' : 'bg-surface-container-high border-outline text-ink-muted hover:border-primary'}`}
             >
-              <span className="block text-sm font-semibold">{mode.label}</span>
-              <span className="block text-xs">{mode.hint}</span>
+              <span className="text-sm font-semibold">{mode.label}</span>
+              <span>{mode.hint}</span>
             </button>
           )
         })}
