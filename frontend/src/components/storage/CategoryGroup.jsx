@@ -105,7 +105,7 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
                 item={item}
                 defaultMinQuantity={category.defaultMinQuantity}
                 onChanged={onChanged}
-                onEdit={() => onEditItem(item)}
+                onEdit={override => onEditItem(override ? { ...item, ...override } : item)}
               />
             ))}
           </SortableContext>
@@ -120,7 +120,7 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
             item={item}
             defaultMinQuantity={category.defaultMinQuantity}
             onChanged={onChanged}
-            onEdit={() => onEditItem(item)}
+            onEdit={override => onEditItem(override ? { ...item, ...override } : item)}
           />
         ))
       )}
