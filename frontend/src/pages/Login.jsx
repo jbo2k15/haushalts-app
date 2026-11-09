@@ -36,7 +36,7 @@ export default function Login() {
           <p className="text-ink-muted text-sm mt-1">Anmelden</p>
         </div>
         <form onSubmit={handleSubmit} className="bg-surface-container rounded-card border border-outline p-6 space-y-4">
-          {error && <div className="bg-danger-container border border-danger text-on-danger-container rounded-card p-3 text-sm">{error}</div>}
+          {error && <div role="alert" className="bg-danger-container border border-danger text-on-danger-container rounded-card p-3 text-sm">{error}</div>}
           <div>
             <label htmlFor="login-email" className="block text-sm text-ink-muted mb-1">E-Mail</label>
             <input

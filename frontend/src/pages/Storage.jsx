@@ -96,7 +96,7 @@ export default function Storage() {
   if (!locations) {
     return (
       <div className="min-h-screen bg-surface flex justify-center py-24">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" role="status" aria-label="Lädt" />
       </div>
     )
   }
@@ -104,10 +104,11 @@ export default function Storage() {
   return (
     <div className="min-h-screen bg-surface">
       <div className="max-w-lg mx-auto px-4 pb-24">
-        <header className="flex items-center justify-between py-3">
+        <header className="flex items-center justify-between py-4">
           <h1 className="text-xl font-semibold text-ink">Vorrat</h1>
         </header>
 
+        <main>
         <ShoppingListSection refreshKey={refreshKey} onChanged={load} />
 
         {locations.length === 0 ? (
@@ -118,7 +119,7 @@ export default function Storage() {
             {isAdmin && (
               <button
                 onClick={() => setManageLocationsOpen(true)}
-                className="text-sm text-primary hover:underline"
+                className="min-h-11 px-2 text-sm text-primary hover:underline"
               >
                 + Lagerort anlegen
               </button>
@@ -167,6 +168,7 @@ export default function Storage() {
             })()}
           </>
         )}
+        </main>
 
         {isAdmin && manageLocationsOpen && (
           <ManageLocationsModal

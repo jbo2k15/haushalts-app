@@ -93,7 +93,7 @@ export default function PushPromptBanner() {
   return (
     <div className="bg-primary-container rounded-card px-4 py-3 mb-2">
       <div className="flex items-start gap-3">
-        <span className="text-xl mt-0.5">🔔</span>
+        <span className="text-xl mt-0.5" aria-hidden="true">🔔</span>
         <div className="flex-1 min-w-0">
           {denied ? (
             <>

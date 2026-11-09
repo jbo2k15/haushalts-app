@@ -82,7 +82,7 @@ function UserFairness({ entry, currentUserId, onChanged }) {
       </div>
 
       <div className="px-4 pb-2">
-        <p className="text-xs font-semibold text-ink-faint uppercase tracking-wide">Urlaubszeiten</p>
+        <h3 className="text-xs font-semibold text-ink-faint uppercase tracking-wide">Urlaubszeiten</h3>
         {entry.vacations.length === 0 && <p className="text-xs text-ink-faint py-1.5">Keine eingetragen</p>}
       </div>
       {entry.vacations.map(v => (

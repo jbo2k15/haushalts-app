@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client.js'
 import { useModalGate } from '../context/ModalGateContext.jsx'
 import Button from './ui/Button.jsx'
+import { useDialogBehavior } from '../hooks/useDialogBehavior.js'
 
 export default function ReleaseNotesModal() {
   const [notes, setNotes] = useState([])
@@ -40,6 +41,8 @@ export default function ReleaseNotesModal() {
     } catch {}
   }
 
+  useDialogBehavior(notes.length > 0, () => dismiss())
+
   if (notes.length === 0) return null
 
   const latest = notes[notes.length - 1].version
@@ -50,9 +53,12 @@ export default function ReleaseNotesModal() {
         className="bg-surface-container rounded-modal w-full max-w-sm p-5 space-y-4 max-h-[80vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
         data-testid="release-notes-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="release-notes-heading"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-ink">Was ist neu — v{latest}</h2>
+          <h2 id="release-notes-heading" className="text-sm font-semibold text-ink">Was ist neu — v{latest}</h2>
           <button onClick={dismiss} aria-label="Schließen" className="shrink-0 w-11 h-11 -my-2 -mr-2 flex items-center justify-center text-ink-faint hover:text-ink text-lg leading-none">✕</button>
         </div>
         <div className="space-y-4">

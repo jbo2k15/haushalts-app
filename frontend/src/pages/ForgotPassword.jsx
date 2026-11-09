@@ -37,9 +37,10 @@ export default function ForgotPassword() {
         </div>
         <form onSubmit={handleSubmit} className="bg-surface-container rounded-card border border-outline p-6 space-y-4">
           <div>
-            <label className="block text-sm text-ink-muted mb-1">E-Mail</label>
+            <label htmlFor="forgot-email" className="block text-sm text-ink-muted mb-1">E-Mail</label>
             <input
-              type="email" required
+              id="forgot-email"
+              type="email" required autoComplete="email"
               className={inputCls}
               value={email} onChange={e => setEmail(e.target.value)}
             />

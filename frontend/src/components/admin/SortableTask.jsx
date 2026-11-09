@@ -35,9 +35,9 @@ export default function SortableTask({ task, onEdit, onDelete }) {
           {isPausePlanned && ' · ⏳ Pause geplant'}
         </div>
       </div>
-      <div className="flex gap-2 shrink-0">
-        <button onClick={() => onEdit(task)} className="text-xs text-primary hover:underline">Bearb.</button>
-        <button onClick={() => onDelete(task.id)} className="text-xs text-danger hover:underline">Löschen</button>
+      <div className="flex shrink-0">
+        <button onClick={() => onEdit(task)} className="min-h-11 px-2 text-xs text-primary hover:underline" aria-label={`Bearb. ${task.title}`}>Bearb.</button>
+        <button onClick={() => onDelete(task.id)} className="min-h-11 px-2 -mr-2 text-xs text-danger hover:underline" aria-label={`Löschen ${task.title}`}>Löschen</button>
       </div>
     </div>
   )

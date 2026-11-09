@@ -83,13 +83,13 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
               title="Standard-Mindestmenge für Artikel dieser Kategorie"
               className="w-14 rounded-control border border-outline-strong px-1 py-1 text-xs bg-surface-container"
             />
-            <button type="submit" className="text-xs text-primary hover:underline shrink-0">OK</button>
+            <button type="submit" className="min-h-11 -my-2 px-2 text-xs text-primary hover:underline shrink-0">OK</button>
           </form>
         ) : (
           <>
-            <span className="flex-1 text-xs font-medium text-ink-muted uppercase tracking-wide">{category.name}</span>
-            <button onClick={() => setEditing(true)} className="text-xs text-primary hover:underline shrink-0">Bearb.</button>
-            <button onClick={handleDelete} className="text-xs text-danger hover:underline shrink-0">Löschen</button>
+            <h3 className="flex-1 text-xs font-medium text-ink-muted uppercase tracking-wide">{category.name}</h3>
+            <button onClick={() => setEditing(true)} className="min-h-11 -my-2 px-2 text-xs text-primary hover:underline shrink-0" aria-label={`Bearb. ${category.name}`}>Bearb.</button>
+            <button onClick={handleDelete} className="min-h-11 -my-2 px-2 -mr-2 text-xs text-danger hover:underline shrink-0" aria-label={`Löschen ${category.name}`}>Löschen</button>
           </>
         )}
       </div>
@@ -105,7 +105,7 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
                 item={item}
                 defaultMinQuantity={category.defaultMinQuantity}
                 onChanged={onChanged}
-                onEdit={() => onEditItem(item)}
+                onEdit={override => onEditItem(override ? { ...item, ...override } : item)}
               />
             ))}
           </SortableContext>
@@ -120,7 +120,7 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
             item={item}
             defaultMinQuantity={category.defaultMinQuantity}
             onChanged={onChanged}
-            onEdit={() => onEditItem(item)}
+            onEdit={override => onEditItem(override ? { ...item, ...override } : item)}
           />
         ))
       )}
