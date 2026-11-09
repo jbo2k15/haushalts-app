@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { api } from '../api/client.js'
 import Card from './ui/Card.jsx'
+import { useFairnessConfig } from './fairness/useFairnessConfig.js' // Fairness-Statistik
 
 export default function StatsSection({ refreshKey }) {
   const navigate = useNavigate()
   const [stats, setStats] = useState([])
+  const fairness = useFairnessConfig()
+  const weighted = fairness?.enabled && fairness.countMode === 'weighted'
 
   useEffect(() => {
     api.get('/tasks/stats').then(setStats).catch(() => {})
-  }, [refreshKey])
+  }, [refreshKey, fairness?.countMode])
 
   const { maxDay, maxWeek, maxMonth } = useMemo(() => ({
     maxDay: stats.length ? Math.max(...stats.map(s => s.curDay)) : 0,
@@ -24,7 +27,7 @@ export default function StatsSection({ refreshKey }) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-outline bg-surface-container-high">
         <div className="flex items-center gap-2">
           <span className="text-base">📊</span>
-          <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Statistik</span>
+          <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Statistik{weighted && ' · Punkte'}</span>
         </div>
         <button
           onClick={() => navigate('/hall-of-fame', { replace: true })}

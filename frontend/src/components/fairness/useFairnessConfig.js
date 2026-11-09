@@ -6,14 +6,14 @@ import { api } from '../../api/client.js'
 // geladen und zwischen allen Komponenten geteilt; refreshFairnessConfig()
 // laedt neu (z. B. nachdem ein Admin seine eigene Freigabe geaendert hat).
 const EVENT = 'fairness-config-changed'
-const DISABLED = { enabled: false, canView: false }
+const DISABLED = { enabled: false, canView: false, countMode: 'count' }
 let cached = null
 let pending = null
 
 function load() {
   if (!pending) {
     pending = api.get('/fairness/config')
-      .then(cfg => (cached = { enabled: cfg?.enabled === true, canView: cfg?.canView === true }))
+      .then(cfg => (cached = { enabled: cfg?.enabled === true, canView: cfg?.canView === true, countMode: cfg?.countMode === 'weighted' ? 'weighted' : 'count' }))
       .catch(() => (cached = DISABLED))
       .finally(() => { pending = null })
   }

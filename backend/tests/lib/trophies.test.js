@@ -88,3 +88,20 @@ describe('calculateTrophies', () => {
     expect(result.dayTrophies.u1).toBe(1)
   })
 })
+
+describe('calculateTrophies mit Punkten (gewichtete Zählweise)', () => {
+  it('vergibt den Pokal nach Punkten statt nach Anzahl', () => {
+    const users = [{ id: 'a' }, { id: 'b' }]
+    const logs = [
+      { completedBy: 'a', loggedAt: '2026-11-02T10:00:00Z', points: 1 },
+      { completedBy: 'a', loggedAt: '2026-11-02T11:00:00Z', points: 1 },
+      { completedBy: 'a', loggedAt: '2026-11-02T12:00:00Z', points: 1 },
+      { completedBy: 'b', loggedAt: '2026-11-02T10:00:00Z', points: 3 },
+      { completedBy: 'b', loggedAt: '2026-11-02T11:00:00Z', points: 3 },
+    ]
+    const opts = { today: '2026-11-09', curWeekStart: '2026-11-09', curMonthStart: '2026-11-01' }
+    expect(calculateTrophies(logs, users, opts).dayTrophies).toEqual({ a: 0, b: 1 })
+    const unweighted = logs.map(({ points, ...l }) => l)
+    expect(calculateTrophies(unweighted, users, opts).dayTrophies).toEqual({ a: 1, b: 0 })
+  })
+})
