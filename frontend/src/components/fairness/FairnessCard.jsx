@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Scale } from 'lucide-react'
 import { api } from '../../api/client.js'
 import Card from '../ui/Card.jsx'
 import { useFairnessConfig } from './useFairnessConfig.js'
@@ -99,7 +98,7 @@ export function FairnessContent({ data }) {
       </p>
 
       {data.lowData && (
-        <p className="text-xs text-on-warning-container bg-warning-container rounded-xl px-3 py-2">
+        <p className="text-xs text-on-warning-container bg-warning-container rounded-control px-3 py-2">
           Noch wenig Daten – die Verteilung kann stark schwanken.
         </p>
       )}
@@ -128,7 +127,7 @@ export function FairnessContent({ data }) {
                   <Dot people={people} id={p.id} />
                   <span className="text-sm font-medium text-ink">{p.name}</span>
                 </div>
-                <span className="text-[28px] leading-tight font-semibold text-ink">{p.share} %</span>
+                <span className="text-2xl font-semibold text-ink">{p.share} %</span>
                 <span className="text-xs text-ink-muted">{points(p.points)}</span>
                 {p.vacationDays > 0 && <span className="text-xs text-ink-muted">{days(p.vacationDays)} herausgerechnet</span>}
               </div>
@@ -140,7 +139,7 @@ export function FairnessContent({ data }) {
       <AwayNotes mostlyAway={data.mostlyAway} />
 
       {data.trend && data.previous && (
-        <p className="text-sm text-on-info-container bg-info-container rounded-xl px-3 py-2.5" data-testid="fairness-trend">
+        <p className="text-sm text-on-info-container bg-info-container rounded-control px-3 py-2.5" data-testid="fairness-trend">
           {TREND_TEXT[data.trend]} – der gewichtete Anteil war {data.previous.persons.map(p => `${p.name} ${p.share} %`).join(', ')}.
         </p>
       )}
@@ -150,7 +149,7 @@ export function FairnessContent({ data }) {
       {persons.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           {persons.map(p => (
-            <div key={p.id} className="bg-surface-container-high rounded-xl p-3 flex flex-col gap-1">
+            <div key={p.id} className="bg-surface-container-high rounded-control p-3 flex flex-col gap-1">
               <span className="text-sm font-medium text-ink">{p.name}</span>
               <span className="text-sm text-ink-muted">{p.count} erledigt</span>
               <span className="text-sm text-ink-muted">Ø Aufwand {decimal(p.avgWeight)}</span>
@@ -183,7 +182,7 @@ export default function FairnessCard() {
     <Card className="overflow-hidden mb-4" data-testid="fairness-card">
       <section aria-labelledby="fairness-title">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container-high">
-          <Scale size={18} aria-hidden="true" className="text-ink-muted" />
+          <span className="text-base" aria-hidden="true">⚖️</span>
           <h2 id="fairness-title" className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Fairness · letzte 30 Tage</h2>
         </div>
         <div className="p-4 flex flex-col gap-4">
