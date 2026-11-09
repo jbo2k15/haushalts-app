@@ -112,6 +112,59 @@ function UserFairness({ entry, currentUserId, onChanged }) {
   )
 }
 
+const COUNT_MODES = [
+  { value: 'count', label: 'Anzahl', hint: 'Jede Erledigung zählt 1' },
+  { value: 'weighted', label: 'Gewichtet', hint: 'Punkte nach Aufwand' },
+]
+
+// Zaehlweise fuer Pokale (Ruhmeshalle) und Statistik (Startseite).
+function CountModeSetting({ countMode }) {
+  const dialog = useDialog()
+  const [saving, setSaving] = useState(false)
+
+  async function choose(value) {
+    if (value === countMode || saving) return
+    setSaving(true)
+    try {
+      await api.put('/fairness/admin/settings', { countMode: value })
+      await refreshFairnessConfig()
+    } catch (err) {
+      dialog.alert(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <fieldset className="px-4 py-3 border-b border-outline space-y-1.5">
+      <legend className="sr-only">Rangliste und Statistik zählen</legend>
+      <p className="text-sm text-ink" aria-hidden="true">Rangliste und Statistik zählen</p>
+      <div className="grid grid-cols-2 gap-1.5 bg-surface-container-high rounded-control p-1">
+        {COUNT_MODES.map(mode => {
+          const active = countMode === mode.value
+          return (
+            <button
+              type="button"
+              key={mode.value}
+              aria-pressed={active}
+              disabled={saving}
+              data-testid={`count-mode-${mode.value}`}
+              onClick={() => choose(mode.value)}
+              className={`min-h-11 rounded-lg px-1 py-1.5 text-center ${active ? 'bg-surface-container text-ink shadow-sm' : 'text-ink-muted'}`}
+            >
+              <span className="block text-sm font-semibold">{mode.label}</span>
+              <span className="block text-xs">{mode.hint}</span>
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-xs text-ink-muted">
+        Beim Umstellen werden die Pokale aus dem gespeicherten Verlauf (2 Jahre) neu berechnet; zurückstellen stellt den alten Stand wieder her.
+      </p>
+    </fieldset>
+  )
+}
+
 export default function FairnessAdminSection({ currentUserId }) {
   const config = useFairnessConfig()
   const [entries, setEntries] = useState([])
@@ -129,6 +182,7 @@ export default function FairnessAdminSection({ currentUserId }) {
     <section className="space-y-2" data-testid="fairness-admin">
       <h2 className="font-medium text-ink">Fairness-Statistik <span className="text-xs text-ink-faint font-normal">(gilt für alle)</span></h2>
       <Card className="overflow-hidden">
+        <CountModeSetting countMode={config.countMode} />
         {entries.map(entry => (
           <UserFairness key={entry.id} entry={entry} currentUserId={currentUserId} onChanged={load} />
         ))}

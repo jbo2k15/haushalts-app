@@ -49,7 +49,7 @@ describe('Sichtbarkeit der Fairness-Statistik', () => {
   it('/config meldet, ob die Karte angezeigt werden darf', async () => {
     const user = await createUser({ showFairness: true })
     const res = await request(app).get('/api/fairness/config').set(authHeader(user.id))
-    expect(res.body).toEqual({ enabled: true, canView: true })
+    expect(res.body).toEqual({ enabled: true, canView: true, countMode: 'count' })
   })
 
   it('FAIRNESS_ENABLED=false schaltet das Feature ab', async () => {
@@ -58,7 +58,7 @@ describe('Sichtbarkeit der Fairness-Statistik', () => {
     expect((await request(app).get('/api/fairness').set(authHeader(user.id))).status).toBe(404)
     expect((await request(app).get('/api/fairness/admin/users').set(authHeader(user.id))).status).toBe(404)
     const cfg = await request(app).get('/api/fairness/config').set(authHeader(user.id))
-    expect(cfg.body).toEqual({ enabled: false, canView: false })
+    expect(cfg.body).toEqual({ enabled: false, canView: false, countMode: 'count' })
   })
 
   it('nur Admins schalten die Freigabe pro Nutzer', async () => {
@@ -134,6 +134,61 @@ describe('Aufwand und Punkte', () => {
     const res = await request(app).get('/api/fairness').set(authHeader(user.id))
     expect(res.body.totalPoints).toBe(4)
     expect(res.body.persons[0]).toMatchObject({ id: user.id, points: 4, count: 2, share: 100 })
+  })
+})
+
+describe('Zählweise für Rangliste und Statistik', () => {
+  async function weightedLog(user, weight, isoDate) {
+    return prisma.taskLog.create({
+      data: { taskTitle: 'X', taskType: 'daily', status: 'completed', completedBy: user.id, forDate: isoDate, loggedAt: new Date(`${isoDate}T10:00:00Z`), weight },
+    })
+  }
+
+  it('nur Admins stellen die Zählweise um, ungültige Werte werden abgelehnt', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const user = await createUser()
+    expect((await request(app).put('/api/fairness/admin/settings').set(authHeader(user.id)).send({ countMode: 'weighted' })).status).toBe(403)
+    expect((await request(app).put('/api/fairness/admin/settings').set(authHeader(admin.id)).send({ countMode: 'punkte' })).status).toBe(400)
+    const res = await request(app).put('/api/fairness/admin/settings').set(authHeader(admin.id)).send({ countMode: 'weighted' })
+    expect(res.body).toEqual({ countMode: 'weighted' })
+    expect((await request(app).get('/api/fairness/config').set(authHeader(user.id))).body.countMode).toBe('weighted')
+  })
+
+  it('Statistik zählt bei gewichteter Zählweise Punkte', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const task = await createTask({ type: 'daily', difficulty: 3 })
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(admin.id))
+
+    let stats = await request(app).get('/api/tasks/stats').set(authHeader(admin.id))
+    expect(stats.body.find(u => u.id === admin.id).curDay).toBe(1)
+
+    await request(app).put('/api/fairness/admin/settings').set(authHeader(admin.id)).send({ countMode: 'weighted' })
+    stats = await request(app).get('/api/tasks/stats').set(authHeader(admin.id))
+    expect(stats.body.find(u => u.id === admin.id).curDay).toBe(3)
+
+    process.env.FAIRNESS_ENABLED = 'false'
+    stats = await request(app).get('/api/tasks/stats').set(authHeader(admin.id))
+    expect(stats.body.find(u => u.id === admin.id).curDay).toBe(1)
+  })
+
+  it('Umstellen berechnet die Pokale neu und lässt sich zurückdrehen', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const viel = await createUser({ name: 'Viel leicht' })
+    // Vorgestern (abgeschlossener Tag): 3 leichte Erledigungen gegen 2 aufwaendige
+    const day = addDaysToDateString(todayString(), -2)
+    for (let i = 0; i < 3; i++) await weightedLog(viel, 1, day)
+    for (let i = 0; i < 2; i++) await weightedLog(admin, 3, day)
+
+    await request(app).put('/api/fairness/admin/settings').set(authHeader(admin.id)).send({ countMode: 'count' })
+    expect((await prisma.user.findUnique({ where: { id: viel.id } })).dayTrophies).toBe(1)
+    expect((await prisma.user.findUnique({ where: { id: admin.id } })).dayTrophies).toBe(0)
+
+    await request(app).put('/api/fairness/admin/settings').set(authHeader(admin.id)).send({ countMode: 'weighted' })
+    expect((await prisma.user.findUnique({ where: { id: viel.id } })).dayTrophies).toBe(0)
+    expect((await prisma.user.findUnique({ where: { id: admin.id } })).dayTrophies).toBe(1)
+
+    await request(app).put('/api/fairness/admin/settings').set(authHeader(admin.id)).send({ countMode: 'count' })
+    expect((await prisma.user.findUnique({ where: { id: viel.id } })).dayTrophies).toBe(1)
   })
 })
 

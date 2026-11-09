@@ -125,3 +125,24 @@ test('Admin gibt sich die Fairness-Statistik frei und trägt Urlaub nach', async
   await expect(toggle).toHaveAttribute('aria-checked', 'false')
   expect(errors).toEqual([])
 })
+
+test('Admin stellt Rangliste und Statistik auf gewichtete Zählung um', async ({ page }) => {
+  const errors = attachErrorCollector(page)
+  await login(page)
+  await page.goto('/settings')
+
+  const weighted = page.locator('[data-testid="count-mode-weighted"]')
+  const count = page.locator('[data-testid="count-mode-count"]')
+  await expect(count).toHaveAttribute('aria-pressed', 'true')
+  await weighted.click()
+  await expect(weighted).toHaveAttribute('aria-pressed', 'true')
+
+  await page.goto('/hall-of-fame')
+  await expect(page.locator('[data-testid="count-mode-note"]')).toContainText('Punkte nach Aufwand')
+
+  // Aufraeumen: zurueck auf Anzahl, andere Specs erwarten das Standardverhalten.
+  await page.goto('/settings')
+  await count.click()
+  await expect(count).toHaveAttribute('aria-pressed', 'true')
+  expect(errors).toEqual([])
+})

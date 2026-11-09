@@ -24,7 +24,7 @@ import {
   isPausedOnDay,
 } from './pauses.js'
 // Fairness-Statistik: Aufwand pro Aufgabe und Punkte pro Erledigung.
-import { validateDifficulty, logWeightFields, syncLegacyWeights, DEFAULT_DIFFICULTY } from './fairness.js'
+import { validateDifficulty, logWeightFields, syncLegacyWeights, DEFAULT_DIFFICULTY, getCountMode } from './fairness.js'
 
 export const LOG_LIMIT = 100
 
@@ -538,13 +538,15 @@ export const EXCLUDE_ONCE = {
 // completedBy statt je Nutzer eine eigene count-Query (früher 3×N Queries pro
 // /stats-Aufruf, jetzt 3 unabhängig von der Nutzerzahl). completedBy: not null,
 // weil groupBy sonst eine null-Gruppe (z.B. verfallene Logs) mitzählen würde.
-async function completedCountsByUser(where) {
+// Fairness-Statistik: bei gewichteter Zaehlweise Summe der Punkte statt Anzahl.
+async function completedCountsByUser(where, countMode = 'count') {
+  const weighted = countMode === 'weighted'
   const groups = await prisma.taskLog.groupBy({
     by: ['completedBy'],
     where: { status: 'completed', completedBy: { not: null }, ...EXCLUDE_ONCE, ...where },
-    _count: true,
+    ...(weighted ? { _sum: { weight: true } } : { _count: true }),
   })
-  return Object.fromEntries(groups.map(g => [g.completedBy, g._count]))
+  return Object.fromEntries(groups.map(g => [g.completedBy, weighted ? (g._sum.weight ?? 0) : g._count]))
 }
 
 export async function getStats() {
@@ -562,11 +564,12 @@ export async function getStats() {
   // Symmetrisch faellt eine wochenübergreifende Woche denselben Fehler fuer
   // die Monats-Statistik. loggedAt umgeht das, da es fuer jeden Aufgabentyp
   // immer der tatsaechliche Erledigungszeitpunkt ist (DB-Default now()).
+  const countMode = await getCountMode()
   const [users, dayCounts, weekCounts, monthCounts] = await Promise.all([
     prisma.user.findMany({ where: { approved: true } }),
-    completedCountsByUser({ loggedAt: getUTCRangeForBerlinDay(today) }),
-    completedCountsByUser({ loggedAt: { gte: getUTCRangeForBerlinDay(curWeekStart).gte } }),
-    completedCountsByUser({ loggedAt: { gte: getUTCRangeForBerlinDay(curMonthStart).gte } }),
+    completedCountsByUser({ loggedAt: getUTCRangeForBerlinDay(today) }, countMode),
+    completedCountsByUser({ loggedAt: { gte: getUTCRangeForBerlinDay(curWeekStart).gte } }, countMode),
+    completedCountsByUser({ loggedAt: { gte: getUTCRangeForBerlinDay(curMonthStart).gte } }, countMode),
   ])
 
   return users.map(u => ({
