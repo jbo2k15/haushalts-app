@@ -1,14 +1,16 @@
 import { Router } from 'express'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import * as fairness from '../domain/fairness.js'
+import { updateTrophyCache } from '../services/scheduler.js'
+import { broadcastTasksUpdated } from '../lib/sse.js'
 
 // Fairness-Statistik (siehe domain/fairness.js). Mit FAIRNESS_ENABLED=false
 // antwortet nur noch /config (enabled: false), alles andere mit 404.
 const router = Router()
 
-router.get('/config', requireAuth, (req, res) => {
+router.get('/config', requireAuth, async (req, res) => {
   const enabled = fairness.isFairnessEnabled()
-  res.json({ enabled, canView: enabled && req.user.showFairness === true })
+  res.json({ enabled, canView: enabled && req.user.showFairness === true, countMode: await fairness.getCountMode() })
 })
 
 router.use((req, res, next) => {
@@ -28,6 +30,15 @@ router.get('/admin/users', requireAuth, requireAdmin, async (req, res) => {
 
 router.put('/admin/users/:id/visibility', requireAuth, requireAdmin, async (req, res) => {
   res.json(await fairness.setVisibility(req.params.id, req.body?.showFairness))
+})
+
+// Zaehlweise umstellen: Pokale sofort neu berechnen (aus dem gespeicherten
+// Verlauf), damit Rangliste und Statistik direkt zur Einstellung passen.
+router.put('/admin/settings', requireAuth, requireAdmin, async (req, res) => {
+  const result = await fairness.setCountMode(req.body?.countMode)
+  await updateTrophyCache()
+  broadcastTasksUpdated()
+  res.json(result)
 })
 
 router.post('/admin/vacations', requireAuth, requireAdmin, async (req, res) => {

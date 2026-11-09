@@ -40,19 +40,23 @@ export function calculateTrophies(allLogs, users, { today, curWeekStart, curMont
     const monthKey = logDate.slice(0, 7)
     const userId = log.completedBy
 
+    // points: Zaehlwert der Erledigung (1 = nach Anzahl; bei gewichteter
+    // Zaehlung die Aufwands-Punkte, siehe Fairness-Statistik).
+    const points = log.points ?? 1
+
     if (logDate < today) {
       byDay[logDate] ??= {}
-      byDay[logDate][userId] = (byDay[logDate][userId] || 0) + 1
+      byDay[logDate][userId] = (byDay[logDate][userId] || 0) + points
     }
 
     if (weekKey < curWeekStart) {
       byWeek[weekKey] ??= {}
-      byWeek[weekKey][userId] = (byWeek[weekKey][userId] || 0) + 1
+      byWeek[weekKey][userId] = (byWeek[weekKey][userId] || 0) + points
     }
 
     if (monthKey < curMonthStart.slice(0, 7)) {
       byMonth[monthKey] ??= {}
-      byMonth[monthKey][userId] = (byMonth[monthKey][userId] || 0) + 1
+      byMonth[monthKey][userId] = (byMonth[monthKey][userId] || 0) + points
     }
   }
 

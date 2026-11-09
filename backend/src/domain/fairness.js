@@ -35,6 +35,37 @@ export function isFairnessEnabled() {
 }
 
 // ---------------------------------------------------------------------------
+// Zaehlweise fuer Rangliste (Pokale) und Statistik auf der Startseite
+// ---------------------------------------------------------------------------
+
+export const COUNT_MODES = ['count', 'weighted']
+
+// "count" = nach Anzahl Erledigungen (Standard, Verhalten von vor dem
+// Feature), "weighted" = nach Aufwands-Punkten. Ist das Feature abgeschaltet,
+// wird immer nach Anzahl gezaehlt.
+export async function getCountMode() {
+  if (!isFairnessEnabled()) return 'count'
+  const settings = await prisma.fairnessSettings.findUnique({ where: { id: 'singleton' } })
+  return settings?.countMode === 'weighted' ? 'weighted' : 'count'
+}
+
+export async function setCountMode(countMode) {
+  if (!COUNT_MODES.includes(countMode)) throw httpError(400, 'Ungültige Zählweise')
+  await prisma.fairnessSettings.upsert({
+    where: { id: 'singleton' },
+    update: { countMode },
+    create: { id: 'singleton', countMode },
+  })
+  return { countMode }
+}
+
+// Haengt an jeden Log den Zaehlwert fuer calculateTrophies (lib/trophies.js).
+export function withPoints(logs, countMode) {
+  if (countMode !== 'weighted') return logs
+  return logs.map(l => ({ ...l, points: l.weight ?? DEFAULT_DIFFICULTY }))
+}
+
+// ---------------------------------------------------------------------------
 // Aufwand pro Aufgabe (Hooks fuer domain/tasks.js)
 // ---------------------------------------------------------------------------
 
