@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { WEEKDAY_LABELS, PRIORITY_LABELS, TYPE_LABELS } from './constants.js'
 import Badge from '../ui/Badge.jsx'
+import DifficultyBadge from '../fairness/DifficultyBadge.jsx' // Fairness-Statistik
 
 export default function SortableTask({ task, onEdit, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
@@ -20,6 +21,7 @@ export default function SortableTask({ task, onEdit, onDelete }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-ink truncate">{task.title}</span>
+          <DifficultyBadge task={task} />
           {!task.isActive && <Badge tone="warning" className="shrink-0">Inaktiv</Badge>}
         </div>
         <div className="text-xs text-ink-faint mt-0.5">

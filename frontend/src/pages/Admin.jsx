@@ -8,6 +8,7 @@ import TaskFormFields from '../components/admin/TaskFormFields.jsx'
 import TasksTab from '../components/admin/TasksTab.jsx'
 import Button from '../components/ui/Button.jsx'
 import { EMPTY_FORM } from '../components/admin/constants.js'
+import RatingHint from '../components/fairness/RatingHint.jsx' // Fairness-Statistik
 
 // Verwaltung: seit dem IA-Umbau (siehe REDESIGN.md) ausschließlich
 // Aufgabenverwaltung. Die Nutzerverwaltung ist als admin-only Abschnitt in
@@ -122,6 +123,7 @@ export default function Admin() {
       weatherDependent: task.weatherDependent || false,
       pauseFrom: task.pauseFrom || '',
       pauseTo: task.pauseTo || '',
+      difficulty: task.difficulty ?? 2,
     })
     setEditId(task.id)
     setShowForm(false)
@@ -181,7 +183,8 @@ export default function Admin() {
           <p className="text-xs text-ink-faint mt-0.5">Aufgaben des Haushalts</p>
         </header>
 
-        <main>
+        <main className="space-y-4">
+          <RatingHint />
           <TasksTab
             tasks={tasks}
             wasteTasks={wasteTasks}

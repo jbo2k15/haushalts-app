@@ -9,6 +9,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 - **Aufgabenlog** — Protokoll aller erledigten, abgelaufenen, übersprungenen und gelöschten Aufgaben (bis 100 Einträge)
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, die laufende Woche und den laufenden Monat
 - **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger; per Wisch-Geste (links/rechts, Touch oder Maus) direkt von der Startseite erreichbar
+- **Fairness-Statistik** — Karte in der Ruhmeshalle mit dem Anteil jeder Person an den erledigten Aufgaben der letzten 30 Tage, gewichtet nach Aufwand (Leicht/Mittel/Aufwändig pro Aufgabe), mit Trend und 4-Wochen-Verlauf; Urlaubszeiten (aus dem Urlaubsmodus oder vom Admin nachgetragen) werden herausgerechnet. Nur für Nutzer sichtbar, die ein Admin freigibt; komplett abschaltbar per `FAIRNESS_ENABLED=false` (Entfernen: `docs/fairness-entfernen.md`)
 - **Navigation** — Bottom-Navigation (unten) mit direktem Zugriff auf Aufgaben, Vorrat, Ruhmeshalle, Einstellungen und (für Admins) Verwaltung; zwischen Aufgaben und Ruhmeshalle zusätzlich per Wisch-Geste (links/rechts, Touch oder Maus). Der Browser-/System-Zurück-Pfeil verlässt Einstellungen/Verwaltung/Vorrat zuverlässig, auf der Startseite fragt er erst nach, ob die App wirklich geschlossen werden soll (abschaltbar)
 - **Vorratsschrank** — Lagerorte (z.B. Kühlschrank, Vorratsschrank; für Admins über ein eigenes Verwalten-Menü anlegbar/umbenennbar/sortierbar) als horizontal wechselbare Auswahl, damit immer nur ein Ort auf einmal angezeigt wird; darin frei anlegbare Kategorien (mit klebenbleibendem Header beim Scrollen) und Artikel (Menge — auch mit Komma, z. B. 1,5 kg —, Einheit, optionale eigene Mindestmenge je Artikel oder Kategorie-Standardwert), jeweils per Drag & Drop sortierbar, wahlweise umschaltbar auf eine Sortierung nach dringlichstem Nachkaufbedarf. Artikel bei/unter der Mindestmenge erscheinen automatisch in einer Einkaufsliste, lösen einen Hinweis auf der Startseite aus und eine einmalige Push-Benachrichtigung, sobald sie neu knapp werden
 - **Erscheinungsbild** — Hell/Dunkel/System-Design sowie eine stufenweise anpassbare Textgröße (Zoom), beides unter Einstellungen konfigurierbar und geräteweise gespeichert
@@ -82,6 +83,7 @@ Alle Werte in `.env` ausfüllen:
 | `WASTE_ICAL_URL` | iCal-URL des Abfallkalenders (optional, muss mit `https://` beginnen) |
 | `WEATHER_LAT` / `WEATHER_LON` | Koordinaten des Haushalts für die Regenmessung (optional — ohne diese Werte bleibt die Wetterabhängigkeit inaktiv) |
 | `WEATHER_RAIN_THRESHOLD_MM` | Regenmenge in mm seit Mitternacht, ab der wetterabhängige Aufgaben automatisch erledigt werden (optional, Default `5`) |
+| `FAIRNESS_ENABLED` | `false` schaltet die Fairness-Statistik komplett ab (Karte, Aufwand-Auswahl, Urlaubszeiten); optional, Default an |
 
 ### 4. App starten
 
