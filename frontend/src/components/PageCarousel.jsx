@@ -186,7 +186,12 @@ export default function PageCarousel() {
                 {/* tabIndex=0: der eigene Scroll-Container jedes Slides muss per
                     Tastatur erreichbar sein, damit auch ohne Maus/Touch
                     gescrollt werden kann (axe: scrollable-region-focusable). */}
-                <div className="h-dvh overflow-y-auto" tabIndex={0} data-testid="carousel-slide-scroll" data-slide-path={path}>
+                {/* inert: die gerade nicht angezeigte Seite (am Rand angeschnitten
+                    sichtbar) ist fuer Tastatur und Screenreader ausgeblendet -
+                    sonst springt Tab in die unsichtbare Seite und es gibt zwei
+                    h1/main gleichzeitig. Massgeblich ist die URL, die beim
+                    Wischen mitgefuehrt wird. */}
+                <div className="h-dvh overflow-y-auto" tabIndex={0} data-testid="carousel-slide-scroll" data-slide-path={path} inert={path !== location.pathname}>
                   <Component />
                 </div>
               </div>

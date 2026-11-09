@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../../api/client.js'
 import Button from '../ui/Button.jsx'
+import { useDialogBehavior } from '../../hooks/useDialogBehavior.js'
 import { formatQuantity, parseQuantity, quantityInputValue } from '../../lib/quantity.js'
 
 // Anlegen/Bearbeiten eines Artikels. Kategorie-Wechsel ist möglich (siehe
@@ -16,6 +17,7 @@ export default function ItemFormModal({ categoryId, item, autocomplete, location
   const [unit, setUnit] = useState(item?.unit ?? '')
   const [minQuantity, setMinQuantity] = useState(quantityInputValue(item?.minQuantity))
   const [error, setError] = useState('')
+  useDialogBehavior(true, onClose)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -52,11 +54,11 @@ export default function ItemFormModal({ categoryId, item, autocomplete, location
         className="bg-surface-container rounded-modal w-full max-w-sm p-4 space-y-3"
         role="dialog"
         aria-modal="true"
-        aria-label={item ? 'Artikel bearbeiten' : 'Artikel anlegen'}
+        aria-label={item ? 'Artikel bearbeiten' : 'Neuer Artikel'}
       >
         <h2 className="text-sm font-semibold text-ink">{item ? 'Artikel bearbeiten' : 'Neuer Artikel'}</h2>
 
-        {error && <p className="text-xs text-danger">{error}</p>}
+        {error && <p role="alert" className="text-xs text-danger">{error}</p>}
 
         <div>
           <label htmlFor="item-name" className="text-xs text-ink-muted">Name</label>

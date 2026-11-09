@@ -44,16 +44,17 @@ export default function TaskFormFields({ form, setForm }) {
         </div>
       </div>
       {form.type === 'daily' && (
-        <div>
-          <label className="block text-sm text-ink-muted mb-1">Wochentage (leer = täglich)</label>
+        <fieldset>
+          <legend className="block text-sm text-ink-muted mb-1">Wochentage (leer = täglich)</legend>
           <div className="flex gap-1 flex-wrap">
             {WEEKDAY_ORDER.map(i => (
               <button type="button" key={i} onClick={() => toggleWeekday(i)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium ${form.weekdays.includes(i) ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-ink-muted'}`}
+                aria-pressed={form.weekdays.includes(i)}
+                className={`min-w-11 min-h-11 px-2.5 py-1 rounded-lg text-xs font-medium ${form.weekdays.includes(i) ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-ink-muted'}`}
               >{WEEKDAY_LABELS[i]}</button>
             ))}
           </div>
-        </div>
+        </fieldset>
       )}
       {(form.type === 'daily' || form.type === 'weekly') && (
         <div className="flex items-center gap-2">

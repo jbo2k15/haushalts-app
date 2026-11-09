@@ -10,7 +10,7 @@ test('admin sees the weather status card in its "not configured" state', async (
   await login(page)
   await page.goto('/admin')
 
-  await expect(page.getByText('☔ Wetter-Status')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Wetter-Status' })).toBeVisible()
   await expect(page.getByText('Nicht konfiguriert', { exact: false })).toBeVisible()
 
   expect(errors).toEqual([])

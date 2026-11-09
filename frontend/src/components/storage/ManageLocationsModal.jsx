@@ -4,6 +4,7 @@ import { MouseSensor, TouchSensor, KeyboardSensor, useSensor, useSensors } from 
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import SortableLocationHeader from './SortableLocationHeader.jsx'
 import Button from '../ui/Button.jsx'
+import { useDialogBehavior } from '../../hooks/useDialogBehavior.js'
 
 // Admin-Verwaltung der Lagerorte (umbenennen/löschen/umsortieren) - vorher
 // inline auf der Vorrat-Seite, jetzt als Modal ausgelagert (TODO.md "Vorrat:
@@ -15,6 +16,7 @@ import Button from '../ui/Button.jsx'
 export default function ManageLocationsModal({ locations, onClose, onChanged, onDragEnd, onAddLocation, onDeleteLocation }) {
   const [addingLocation, setAddingLocation] = useState(false)
   const [newLocationName, setNewLocationName] = useState('')
+  useDialogBehavior(true, onClose)
 
   const sensors = useSensors(
     useSensor(MouseSensor),

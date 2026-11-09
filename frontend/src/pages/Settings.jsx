@@ -206,6 +206,7 @@ export default function Settings() {
                 <button
                   key={opt.value}
                   onClick={() => setTheme(opt.value)}
+                  aria-pressed={theme === opt.value}
                   data-testid={`theme-${opt.value}`}
                   className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-control border text-xs font-medium transition-colors ${
                     theme === opt.value
@@ -213,7 +214,7 @@ export default function Settings() {
                       : 'bg-surface-container-high border-outline text-ink-muted hover:border-primary'
                   }`}
                 >
-                  <span className="text-base">{opt.icon}</span>
+                  <span className="text-base" aria-hidden="true">{opt.icon}</span>
                   {opt.label}
                 </button>
               ))}
@@ -243,7 +244,7 @@ export default function Settings() {
               </div>
             </div>
             {zoom !== DEFAULT_ZOOM && (
-              <button type="button" onClick={resetZoom} data-testid="zoom-reset" className="text-xs text-primary hover:underline">
+              <button type="button" onClick={resetZoom} data-testid="zoom-reset" className="min-h-11 text-xs text-primary hover:underline">
                 Auf Standardgröße zurücksetzen
               </button>
             )}
@@ -252,9 +253,9 @@ export default function Settings() {
           {/* Profil */}
           <Card className="p-4 space-y-4">
             <h2 className="font-medium text-ink">Mein Profil</h2>
-            {nameError && <p className="text-sm text-danger">{nameError}</p>}
+            {nameError && <p role="alert" className="text-sm text-danger">{nameError}</p>}
             <div>
-              <label className="block text-sm text-ink-muted mb-1">E-Mail</label>
+              <p className="block text-sm text-ink-muted mb-1">E-Mail</p>
               <p className="text-sm text-ink-muted px-3 py-2 bg-surface-container-high rounded-control border border-outline">{user?.email}</p>
             </div>
             <div>
