@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client.js'
 import Card from '../components/ui/Card.jsx'
+import FairnessCard from '../components/fairness/FairnessCard.jsx' // Fairness-Statistik
 
 const TROPHY_TYPES = [
   { key: 'dayTrophies',   icon: '🥉', label: 'Tagessieger',   desc: 'Meiste erledigte Aufgaben an einem abgeschlossenen Tag' },
@@ -74,6 +75,8 @@ export default function HallOfFame() {
               Pokale werden nur bei eindeutigem Sieger vergeben — kein Pokal bei Gleichstand.
             </p>
           </Card>
+
+          <FairnessCard />
 
           <Card className="overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container-high">
