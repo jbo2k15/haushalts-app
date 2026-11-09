@@ -162,9 +162,16 @@ model TaskLog {
   loggedAt     DateTime        @default(now())
   forDate      String
   completionId String?
+  // Aufgabentyp zum Zeitpunkt des Eintrags. Bleibt erhalten, wenn die Aufgabe
+  // geloescht wird (taskId wird dann null), damit EXCLUDE_ONCE einmalige
+  // Aufgaben/Abfall-Termine auch ohne Task weiter herausfiltern kann.
+  taskType     String?
   task         Task?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
   user         User?           @relation(fields: [completedBy], references: [id], onDelete: SetNull)
-  completion   TaskCompletion? @relation(fields: [completionId], references: [id], onDelete: Cascade)
+  // SetNull statt Cascade: Loeschen einer Aufgabe (Task -> TaskCompletion)
+  // soll die Historie nicht mehr mitloeschen. Zuruecknehmen einer Erledigung
+  // loescht den Log-Eintrag deshalb explizit (siehe domain/tasks.js).
+  completion   TaskCompletion? @relation(fields: [completionId], references: [id], onDelete: SetNull)
 
   @@index([completedBy, status, forDate])
   @@index([loggedAt])

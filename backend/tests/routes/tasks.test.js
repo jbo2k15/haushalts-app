@@ -892,6 +892,47 @@ describe('DELETE /api/tasks/admin/:id (Abfallkalender-Aufgaben)', () => {
   })
 })
 
+describe('Historie bleibt beim Löschen einer Aufgabe erhalten', () => {
+  it('behält den Log-Eintrag einer gelöschten Aufgabe mit Titel und Typ', async () => {
+    const admin = await createUser({ email: 'hist-admin@test.com', role: 'admin' })
+    const task = await createTask({ title: 'Bad putzen', type: 'weekly' })
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(admin.id))
+
+    const res = await request(app).delete(`/api/tasks/admin/${task.id}`).set(authHeader(admin.id))
+    expect(res.status).toBe(200)
+
+    const logs = await prisma.taskLog.findMany({ where: { status: 'completed' } })
+    expect(logs).toHaveLength(1)
+    expect(logs[0]).toMatchObject({ taskId: null, completionId: null, taskTitle: 'Bad putzen', taskType: 'weekly', completedBy: admin.id })
+  })
+
+  it('zählt Erledigungen gelöschter Aufgaben weiter in der Statistik, gelöschte einmalige nicht', async () => {
+    const admin = await createUser({ email: 'hist-admin2@test.com', role: 'admin' })
+    const weekly = await createTask({ title: 'Wäsche', type: 'weekly' })
+    const once = await createTask({ title: 'Keller', type: 'once', dueDate: todayString() })
+    await request(app).post(`/api/tasks/${weekly.id}/complete`).set(authHeader(admin.id))
+    await request(app).post(`/api/tasks/${once.id}/complete`).set(authHeader(admin.id))
+    await request(app).delete(`/api/tasks/admin/${weekly.id}`).set(authHeader(admin.id))
+    await request(app).delete(`/api/tasks/admin/${once.id}`).set(authHeader(admin.id))
+
+    const res = await request(app).get('/api/tasks/stats').set(authHeader(admin.id))
+    const me = res.body.find(u => u.id === admin.id)
+    expect(me.curDay).toBe(1)
+  })
+
+  it('Zurücknehmen bei Mehrfach-Aufgaben löscht den Log-Eintrag weiterhin', async () => {
+    const user = await createUser({ email: 'hist-user@test.com' })
+    const task = await createTask({ title: 'Spülmaschine', type: 'daily', allowMultiple: true })
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(user.id))
+    expect(await prisma.taskLog.count({ where: { status: 'completed' } })).toBe(2)
+
+    const res = await request(app).post(`/api/tasks/${task.id}/uncomplete-last`).set(authHeader(user.id))
+    expect(res.body.count).toBe(1)
+    expect(await prisma.taskLog.count({ where: { status: 'completed' } })).toBe(1)
+  })
+})
+
 describe('Abfall-Termine: Vorab-Banking + gestaffelte Anzeige', () => {
   const findOnce = (res, title) => res.body.once.find(t => t.title === title)
 

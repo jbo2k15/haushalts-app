@@ -369,11 +369,15 @@ export async function getTaskOverview() {
   return { ...result, pauseSummary }
 }
 
-async function createCompletion({ taskId, taskTitle, forDate, userId, userName }) {
+async function createCompletion({ task, forDate, userId, userName }) {
+  const taskId = task.id
   return prisma.$transaction(async (tx) => {
     const completion = await tx.taskCompletion.create({ data: { taskId, completedBy: userId, forDate } })
     await tx.taskLog.create({
-      data: { taskId, taskTitle, status: 'completed', completedBy: userId, userName, forDate, completionId: completion.id },
+      data: {
+        taskId, taskTitle: task.title, taskType: task.type, status: 'completed',
+        completedBy: userId, userName, forDate, completionId: completion.id,
+      },
     })
     await tx.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } })
     return completion
@@ -404,7 +408,7 @@ export async function completeTask(id, { userId, userName }) {
   // completion (undone separately via /uncomplete-last) — no toggle-off
   // here. Everything else keeps the original single toggle behavior below.
   if (MULTI_ELIGIBLE_TYPES.includes(task.type) && task.allowMultiple) {
-    await createCompletion({ taskId: id, taskTitle: task.title, forDate, userId, userName })
+    await createCompletion({ task, forDate, userId, userName })
     const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate } })
     broadcastTasksUpdated()
     return { completed: true, count }
@@ -428,7 +432,7 @@ export async function completeTask(id, { userId, userName }) {
     return { completed: false }
   }
 
-  await createCompletion({ taskId: id, taskTitle: task.title, forDate, userId, userName })
+  await createCompletion({ task, forDate, userId, userName })
 
   // Bei monthly-Tasks mit Interval: nextDueMonth weiterzählen
   if (task.type === 'monthly' && task.monthlyInterval && task.nextDueMonth) {
@@ -463,8 +467,13 @@ export async function uncompleteLast(id) {
   })
   if (!last) throw httpError(400, 'Keine Erledigung zum Zurücknehmen vorhanden')
 
-  // Cascades to the linked TaskLog entry (see schema: TaskLog.completionId onDelete: Cascade)
-  await prisma.taskCompletion.delete({ where: { id: last.id } })
+  // Log-Eintrag explizit mitloeschen: TaskLog.completionId ist SetNull (damit
+  // das Loeschen einer Aufgabe die Historie nicht mitnimmt), kaskadiert also
+  // nicht mehr.
+  await prisma.$transaction([
+    prisma.taskLog.deleteMany({ where: { completionId: last.id } }),
+    prisma.taskCompletion.delete({ where: { id: last.id } }),
+  ])
   const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate } })
 
   broadcastTasksUpdated()
@@ -508,7 +517,17 @@ export function getUTCRangeForBerlinDay(dateStr) {
   return { gte: dayStart, lt: dayEnd }
 }
 
-export const EXCLUDE_ONCE = { OR: [{ taskId: null }, { task: { type: { not: 'once' } } }] }
+// Einmalige Aufgaben (inkl. Abfall-Termine) zaehlen nicht fuer Statistik,
+// Pokale und Fairness. Massgeblich ist der im Log festgehaltene taskType (bleibt
+// nach dem Loeschen der Aufgabe erhalten); Alt-Eintraege ohne taskType fallen
+// auf den Typ der noch vorhandenen Aufgabe zurueck.
+export const EXCLUDE_ONCE = {
+  OR: [
+    { taskType: { not: 'once' } },
+    { taskType: null, taskId: null },
+    { taskType: null, task: { type: { not: 'once' } } },
+  ],
+}
 
 // Erledigte Logs pro Nutzer in einem Zeitfenster zählen - ein groupBy über
 // completedBy statt je Nutzer eine eigene count-Query (früher 3×N Queries pro
