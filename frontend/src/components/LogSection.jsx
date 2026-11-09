@@ -29,14 +29,17 @@ export default function LogSection({ refreshKey }) {
 
   return (
     <Card className="overflow-hidden">
-      <button
-        className="w-full flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container-high"
-        onClick={() => setOpen(o => !o)}
-      >
-        <span className="text-base">📋</span>
-        <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Verlauf</span>
-        <span className="ml-auto text-xs text-ink-faint">{open ? '▲' : '▼'}</span>
-      </button>
+      <h2>
+        <button
+          className="w-full flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container-high"
+          onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
+        >
+          <span className="text-base" aria-hidden="true">📋</span>
+          <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Verlauf</span>
+          <span className="ml-auto text-xs text-ink-faint" aria-hidden="true">{open ? '▲' : '▼'}</span>
+        </button>
+      </h2>
       {open && (
         <div className="divide-y divide-outline max-h-96 overflow-y-auto">
           {logs.length === 0 && <p className="text-sm text-ink-faint p-4 text-center">Noch keine Einträge</p>}

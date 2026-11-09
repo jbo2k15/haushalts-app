@@ -23,9 +23,9 @@ export default function WeatherStatusCard() {
 
   return (
     <Card className="overflow-hidden mb-3">
-      <div className="px-4 py-2.5 bg-surface-container-high border-b border-outline flex items-center justify-between">
-        <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">☔ Wetter-Status</span>
-        <button onClick={load} className="text-xs text-primary hover:underline">Aktualisieren</button>
+      <div className="px-4 py-3 bg-surface-container-high border-b border-outline flex items-center justify-between">
+        <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wide"><span aria-hidden="true">☔ </span>Wetter-Status</h2>
+        <button onClick={load} className="min-h-11 -my-3 -mr-2 px-2 text-xs text-primary hover:underline">Aktualisieren</button>
       </div>
       <div className="p-4 space-y-2">
         {loading && <p className="text-sm text-ink-faint">Lädt…</p>}

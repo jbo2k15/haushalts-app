@@ -32,7 +32,7 @@ test('admin can start and end a global pause covering all tasks', async ({ page 
   // Start the global pause via GlobalPauseCard. The "+Neue Aufgabe" form
   // auto-collapses after a successful submit (see Admin.jsx handleSubmit),
   // so the card's own two date inputs are the only ones on the page here.
-  await expect(page.getByText('⏸ Alle Aufgaben pausieren')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Alle Aufgaben pausieren' })).toBeVisible()
   const pauseInputs = page.locator('input[type="date"]')
   await expect(pauseInputs).toHaveCount(2)
   await pauseInputs.nth(0).fill(from)

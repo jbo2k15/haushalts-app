@@ -30,6 +30,18 @@ test('Login-Seite ist frei von axe-Verstößen', async ({ page }) => {
   expect(await auditViolations(page)).toEqual([])
 })
 
+test('Registrierung ist frei von axe-Verstößen', async ({ page }) => {
+  await page.goto('/register')
+  await expect(page.getByLabel('E-Mail')).toBeVisible()
+  expect(await auditViolations(page)).toEqual([])
+})
+
+test('Passwort vergessen ist frei von axe-Verstößen', async ({ page }) => {
+  await page.goto('/forgot-password')
+  await expect(page.getByLabel('E-Mail')).toBeVisible()
+  expect(await auditViolations(page)).toEqual([])
+})
+
 test('Aufgaben (Home) ist frei von axe-Verstößen', async ({ page }) => {
   await login(page)
   await expect(page.locator('[data-testid="nav-home"]')).toHaveAttribute('aria-current', 'page')

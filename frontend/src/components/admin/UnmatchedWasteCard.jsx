@@ -23,9 +23,9 @@ export default function UnmatchedWasteCard() {
 
   return (
     <div className="overflow-hidden mb-3 rounded-card border border-danger bg-danger-container text-on-danger-container">
-      <div className="px-4 py-2.5 border-b border-danger flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide">⚠️ Unbekannte Kalendereinträge</span>
-        <button onClick={load} className="text-xs hover:underline">Aktualisieren</button>
+      <div className="px-4 py-3 border-b border-danger flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-wide"><span aria-hidden="true">⚠️ </span>Unbekannte Kalendereinträge</h2>
+        <button onClick={load} className="min-h-11 -my-3 -mr-2 px-2 text-xs hover:underline">Aktualisieren</button>
       </div>
       <div className="p-4 space-y-2">
         <p className="text-sm">

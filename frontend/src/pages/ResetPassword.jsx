@@ -38,11 +38,12 @@ export default function ResetPassword() {
           <h1 className="text-2xl font-semibold text-ink">Neues Passwort</h1>
         </div>
         <form onSubmit={handleSubmit} className="bg-surface-container rounded-card border border-outline p-6 space-y-4">
-          {error && <div className="bg-danger-container border border-danger text-on-danger-container rounded-card p-3 text-sm">{error}</div>}
+          {error && <div role="alert" className="bg-danger-container border border-danger text-on-danger-container rounded-card p-3 text-sm">{error}</div>}
           <div>
-            <label className="block text-sm text-ink-muted mb-1">Neues Passwort</label>
+            <label htmlFor="reset-password" className="block text-sm text-ink-muted mb-1">Neues Passwort</label>
             <input
-              type="password" required
+              id="reset-password"
+              type="password" required autoComplete="new-password"
               className={inputCls}
               value={password} onChange={e => setPassword(e.target.value)}
             />

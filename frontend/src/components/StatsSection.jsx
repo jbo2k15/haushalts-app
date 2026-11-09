@@ -26,12 +26,12 @@ export default function StatsSection({ refreshKey }) {
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-outline bg-surface-container-high">
         <div className="flex items-center gap-2">
-          <span className="text-base">📊</span>
-          <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Statistik{weighted && ' · Punkte'}</span>
+          <span className="text-base" aria-hidden="true">📊</span>
+          <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Statistik{weighted && ' · Punkte'}</h2>
         </div>
         <button
           onClick={() => navigate('/hall-of-fame', { replace: true })}
-          className="text-xs text-primary font-medium"
+          className="min-h-11 -my-3 -mr-2 px-2 text-xs text-primary font-medium"
         >
           🏆 Ruhmeshalle
         </button>

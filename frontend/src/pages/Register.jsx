@@ -52,7 +52,7 @@ export default function Register() {
           <p className="text-ink-muted text-sm mt-1">Neuen Account erstellen</p>
         </div>
         <form onSubmit={handleSubmit} className="bg-surface-container rounded-card border border-outline p-6 space-y-4">
-          {error && <div className="bg-danger-container border border-danger text-on-danger-container rounded-card p-3 text-sm">{error}</div>}
+          {error && <div role="alert" className="bg-danger-container border border-danger text-on-danger-container rounded-card p-3 text-sm">{error}</div>}
           {/* Honeypot: verstecktes Feld gegen einfache Bots, für Menschen unsichtbar */}
           <div className="absolute left-[-9999px]" aria-hidden="true">
             <label htmlFor="website">Website</label>
@@ -60,18 +60,18 @@ export default function Register() {
               value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-sm text-ink-muted mb-1">Name</label>
-            <input type="text" required className={inputCls}
+            <label htmlFor="register-name" className="block text-sm text-ink-muted mb-1">Name</label>
+            <input id="register-name" type="text" required autoComplete="name" className={inputCls}
               value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-sm text-ink-muted mb-1">E-Mail</label>
-            <input type="email" required className={inputCls}
+            <label htmlFor="register-email" className="block text-sm text-ink-muted mb-1">E-Mail</label>
+            <input id="register-email" type="email" required autoComplete="email" className={inputCls}
               value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-sm text-ink-muted mb-1">Passwort</label>
-            <input type="password" required className={inputCls}
+            <label htmlFor="register-password" className="block text-sm text-ink-muted mb-1">Passwort</label>
+            <input id="register-password" type="password" required autoComplete="new-password" className={inputCls}
               value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
             <PasswordStrength password={form.password} />
           </div>

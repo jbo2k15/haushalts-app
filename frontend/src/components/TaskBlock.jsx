@@ -53,8 +53,8 @@ const TaskBlock = memo(function TaskBlock({ type, tasks, onToggle, pauseInfo }) 
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container-high">
-        <span className="text-base">{config.icon}</span>
-        <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">{config.label}</span>
+        <span className="text-base" aria-hidden="true">{config.icon}</span>
+        <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">{config.label}</h2>
         {actionableTasks.length > 0 && (
           <span className="ml-auto text-xs text-ink-muted">
             {completedCount}/{actionableTasks.length}
