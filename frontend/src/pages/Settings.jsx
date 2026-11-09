@@ -10,6 +10,7 @@ import Card from '../components/ui/Card.jsx'
 import Switch from '../components/ui/Switch.jsx'
 import Button from '../components/ui/Button.jsx'
 import UsersTab from '../components/admin/UsersTab.jsx'
+import FairnessAdminSection from '../components/fairness/FairnessAdminSection.jsx' // Fairness-Statistik
 import { useDialog } from '../context/DialogContext.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
@@ -421,6 +422,8 @@ export default function Settings() {
               />
             </section>
           )}
+
+          {user?.role === 'admin' && <FairnessAdminSection currentUserId={user?.id} />}
 
           <Card className="p-4">
             <Button variant="secondary" onClick={logout} className="w-full" data-testid="logout">Abmelden</Button>

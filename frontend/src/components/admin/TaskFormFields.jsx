@@ -1,4 +1,5 @@
 import { WEEKDAY_LABELS, WEEKDAY_ORDER, inputCls } from './constants.js'
+import DifficultyField from '../fairness/DifficultyField.jsx' // Fairness-Statistik
 
 // Die Formularfelder für eine Aufgabe (geteilt zwischen "Neue Aufgabe" und dem
 // Bearbeiten-Modal). Kontrolliert über form/setForm des Elternteils.
@@ -117,6 +118,7 @@ export default function TaskFormFields({ form, setForm }) {
           </div>
         </div>
       )}
+      <DifficultyField form={form} setForm={setForm} />
       <div className="flex items-center gap-2">
         <input type="checkbox" id="isActive" checked={form.isActive}
           onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} className="accent-primary" />

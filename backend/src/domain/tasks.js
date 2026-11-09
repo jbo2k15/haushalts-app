@@ -23,6 +23,8 @@ import {
   getGlobalPause,
   isPausedOnDay,
 } from './pauses.js'
+// Fairness-Statistik: Aufwand pro Aufgabe und Punkte pro Erledigung.
+import { validateDifficulty, logWeightFields, syncLegacyWeights, DEFAULT_DIFFICULTY } from './fairness.js'
 
 export const LOG_LIMIT = 100
 
@@ -99,7 +101,7 @@ export function weeklyTaskVisible(task, todayWeekday) {
   return pos(todayWeekday) >= pos(task.fixedWeekday)
 }
 
-export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo }) {
+export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty }) {
   if (!title || typeof title !== 'string' || title.trim().length === 0) return 'Titel ist erforderlich'
   if (title.length > 200) return 'Titel darf maximal 200 Zeichen haben'
   if (!VALID_TYPES.includes(type)) return 'Ungültiger Typ'
@@ -120,6 +122,8 @@ export function validateTaskInput({ title, type, priority, weekdays, fixedWeekda
   const pauseErr = validatePauseRange(pauseFrom, pauseTo)
   if (pauseErr) return pauseErr
   if ((pauseFrom || pauseTo) && type === 'once') return 'Pausenzeitraum ist für einmalige Aufgaben nicht verfügbar'
+  const difficultyErr = validateDifficulty(difficulty)
+  if (difficultyErr) return difficultyErr
   return null
 }
 
@@ -369,11 +373,16 @@ export async function getTaskOverview() {
   return { ...result, pauseSummary }
 }
 
-async function createCompletion({ taskId, taskTitle, forDate, userId, userName }) {
+async function createCompletion({ task, forDate, userId, userName }) {
+  const taskId = task.id
   return prisma.$transaction(async (tx) => {
     const completion = await tx.taskCompletion.create({ data: { taskId, completedBy: userId, forDate } })
     await tx.taskLog.create({
-      data: { taskId, taskTitle, status: 'completed', completedBy: userId, userName, forDate, completionId: completion.id },
+      data: {
+        taskId, taskTitle: task.title, taskType: task.type, status: 'completed',
+        completedBy: userId, userName, forDate, completionId: completion.id,
+        ...logWeightFields(task),
+      },
     })
     await tx.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } })
     return completion
@@ -404,7 +413,7 @@ export async function completeTask(id, { userId, userName }) {
   // completion (undone separately via /uncomplete-last) — no toggle-off
   // here. Everything else keeps the original single toggle behavior below.
   if (MULTI_ELIGIBLE_TYPES.includes(task.type) && task.allowMultiple) {
-    await createCompletion({ taskId: id, taskTitle: task.title, forDate, userId, userName })
+    await createCompletion({ task, forDate, userId, userName })
     const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate } })
     broadcastTasksUpdated()
     return { completed: true, count }
@@ -428,7 +437,7 @@ export async function completeTask(id, { userId, userName }) {
     return { completed: false }
   }
 
-  await createCompletion({ taskId: id, taskTitle: task.title, forDate, userId, userName })
+  await createCompletion({ task, forDate, userId, userName })
 
   // Bei monthly-Tasks mit Interval: nextDueMonth weiterzählen
   if (task.type === 'monthly' && task.monthlyInterval && task.nextDueMonth) {
@@ -463,8 +472,13 @@ export async function uncompleteLast(id) {
   })
   if (!last) throw httpError(400, 'Keine Erledigung zum Zurücknehmen vorhanden')
 
-  // Cascades to the linked TaskLog entry (see schema: TaskLog.completionId onDelete: Cascade)
-  await prisma.taskCompletion.delete({ where: { id: last.id } })
+  // Log-Eintrag explizit mitloeschen: TaskLog.completionId ist SetNull (damit
+  // das Loeschen einer Aufgabe die Historie nicht mitnimmt), kaskadiert also
+  // nicht mehr.
+  await prisma.$transaction([
+    prisma.taskLog.deleteMany({ where: { completionId: last.id } }),
+    prisma.taskCompletion.delete({ where: { id: last.id } }),
+  ])
   const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate } })
 
   broadcastTasksUpdated()
@@ -508,7 +522,17 @@ export function getUTCRangeForBerlinDay(dateStr) {
   return { gte: dayStart, lt: dayEnd }
 }
 
-export const EXCLUDE_ONCE = { OR: [{ taskId: null }, { task: { type: { not: 'once' } } }] }
+// Einmalige Aufgaben (inkl. Abfall-Termine) zaehlen nicht fuer Statistik,
+// Pokale und Fairness. Massgeblich ist der im Log festgehaltene taskType (bleibt
+// nach dem Loeschen der Aufgabe erhalten); Alt-Eintraege ohne taskType fallen
+// auf den Typ der noch vorhandenen Aufgabe zurueck.
+export const EXCLUDE_ONCE = {
+  OR: [
+    { taskType: { not: 'once' } },
+    { taskType: null, taskId: null },
+    { taskType: null, task: { type: { not: 'once' } } },
+  ],
+}
 
 // Erledigte Logs pro Nutzer in einem Zeitfenster zählen - ein groupBy über
 // completedBy statt je Nutzer eine eigene count-Query (früher 3×N Queries pro
@@ -572,7 +596,7 @@ export async function exportTasks() {
   const tasks = await prisma.task.findMany({
     where: { isAutoGenerated: false },
     orderBy: [{ sortOrder: 'asc' }],
-    select: { id: true, title: true, type: true, priority: true, weekdays: true, fixedWeekday: true, fixedDayOfMonth: true, dueDate: true, isActive: true, allowMultiple: true, weatherDependent: true },
+    select: { id: true, title: true, type: true, priority: true, weekdays: true, fixedWeekday: true, fixedDayOfMonth: true, dueDate: true, isActive: true, allowMultiple: true, weatherDependent: true, difficulty: true },
   })
   const pauseMap = await getIndividualPausesForTasks(tasks.map(t => t.id))
   const tasksByType = await prisma.task.findMany({
@@ -615,6 +639,7 @@ export async function importTasks(tasks, userId) {
       isActive: t.isActive !== false,
       allowMultiple: MULTI_ELIGIBLE_TYPES.includes(t.type) && t.allowMultiple === true,
       weatherDependent: t.type === 'daily' && t.weatherDependent === true,
+      difficulty: t.difficulty ?? DEFAULT_DIFFICULTY,
       sortOrder: nextOrder + i,
     }
     if (t.type === 'monthly') {
@@ -634,8 +659,8 @@ export async function importTasks(tasks, userId) {
 }
 
 export async function createTask(body, userId) {
-  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo } = body
-  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo })
+  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty } = body
+  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty })
   if (err) throw httpError(400, err)
 
   const maxOrder = await prisma.task.aggregate({ _max: { sortOrder: true } })
@@ -651,6 +676,7 @@ export async function createTask(body, userId) {
     isActive: isActive !== false,
     allowMultiple: MULTI_ELIGIBLE_TYPES.includes(type) && allowMultiple === true,
     weatherDependent: type === 'daily' && weatherDependent === true,
+    difficulty: difficulty ?? DEFAULT_DIFFICULTY,
     sortOrder: (maxOrder._max.sortOrder || 0) + 1,
   }
   if (type === 'monthly') {
@@ -667,8 +693,8 @@ export async function updateTask(id, body, userId) {
   if (!task) throw httpError(404, 'Aufgabe nicht gefunden')
   if (task.isAutoGenerated) throw httpError(403, 'Auto-generierte Aufgaben können nicht bearbeitet werden')
 
-  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo } = body
-  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo })
+  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty } = body
+  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty })
   if (err) throw httpError(400, err)
 
   const currentMonth = currentMonthStart().slice(0, 7)
@@ -684,6 +710,8 @@ export async function updateTask(id, body, userId) {
     allowMultiple: MULTI_ELIGIBLE_TYPES.includes(type) && allowMultiple === true,
     weatherDependent: type === 'daily' && weatherDependent === true,
   }
+  // Fehlt der Aufwand (z. B. Fairness abgeschaltet), bleibt er unveraendert.
+  if (difficulty != null) data.difficulty = difficulty
   if (type === 'monthly') {
     data.monthlyInterval = Number.isInteger(monthlyInterval) ? monthlyInterval : null
     if (task.type !== 'monthly' || !task.nextDueMonth) {
@@ -704,6 +732,7 @@ export async function updateTask(id, body, userId) {
     }
   }
   const updated = await prisma.task.update({ where: { id }, data })
+  if (difficulty != null && difficulty !== task.difficulty) await syncLegacyWeights(id, difficulty)
   await setIndividualPause(updated.id, { pauseFrom: type !== 'once' ? pauseFrom : null, pauseTo: type !== 'once' ? pauseTo : null }, userId)
   return updated
 }

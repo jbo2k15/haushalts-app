@@ -2,6 +2,7 @@ import { Router } from 'express'
 import prisma from '../lib/prisma.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import { sendApprovalEmail } from '../services/email.js'
+import { recordVacationToggle } from '../domain/fairness.js' // Fairness-Statistik
 
 const router = Router()
 
@@ -20,6 +21,8 @@ router.put('/me', requireAuth, async (req, res) => {
 router.put('/me/vacation', requireAuth, async (req, res) => {
   const { vacationMode } = req.body
   if (typeof vacationMode !== 'boolean') return res.status(400).json({ error: 'Ungültiger Wert' })
+  // Fairness-Statistik: Urlaubszeit mitschreiben, wenn sich der Modus aendert.
+  if (vacationMode !== req.user.vacationMode) await recordVacationToggle(req.user.id, vacationMode)
   const updated = await prisma.user.update({
     where: { id: req.user.id },
     data: { vacationMode },
