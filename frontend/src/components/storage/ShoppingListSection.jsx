@@ -31,8 +31,8 @@ export default function ShoppingListSection({ refreshKey, onChanged }) {
 
   return (
     <Card className="overflow-hidden mb-3">
-      <div className="px-4 py-2.5 bg-surface-container-high border-b border-outline flex items-center gap-2">
-        <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide flex-1">Einkaufsliste</span>
+      <div className="px-4 py-3 bg-surface-container-high border-b border-outline flex items-center gap-2">
+        <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wide flex-1">Einkaufsliste</h2>
         <Badge tone="warning">{items.length} knapp</Badge>
       </div>
       {items.map(item => (

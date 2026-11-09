@@ -13,7 +13,7 @@ export default function StorageLocationChips({ locations, activeLocationId, onSe
   return (
     <Card className="overflow-hidden mb-3 p-3">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Lagerort</span>
+        <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Lagerort</h2>
         <div className="flex items-center gap-2">
           <Badge tone="primary">{locations.length} {locations.length === 1 ? 'Ort' : 'Orte'}</Badge>
           {isAdmin && (

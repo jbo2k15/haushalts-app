@@ -82,7 +82,7 @@ export default function LocationSection({ location, sortMode, autocomplete, onCh
             <Button type="button" variant="ghost" size="md" className="text-xs" onClick={() => setAddingCategory(false)}>Abbrechen</Button>
           </form>
         ) : (
-          <button onClick={() => setAddingCategory(true)} className="text-xs text-primary hover:underline">+ Kategorie</button>
+          <button onClick={() => setAddingCategory(true)} className="min-h-11 px-2 -ml-2 text-xs text-primary hover:underline">+ Kategorie</button>
         )}
       </div>
 

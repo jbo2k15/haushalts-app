@@ -57,7 +57,7 @@ export default function HallOfFame() {
 
         <main>
           <Card className="p-4 mb-4">
-            <p className="text-xs font-semibold text-ink-faint uppercase tracking-wide mb-3">Legende</p>
+            <h2 className="text-xs font-semibold text-ink-faint uppercase tracking-wide mb-3">Legende</h2>
             <div className="space-y-3">
               {TROPHY_TYPES.map(({ icon, label, desc }) => {
                 const s = BADGE_STYLES[icon]
@@ -85,8 +85,8 @@ export default function HallOfFame() {
 
           <Card className="overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container-high">
-              <span className="text-base">🏆</span>
-              <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Gesamtrangliste</span>
+              <span className="text-base" aria-hidden="true">🏆</span>
+              <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Gesamtrangliste</h2>
             </div>
 
             {ranked.length === 0 ? (
@@ -118,7 +118,7 @@ export default function HallOfFame() {
           {stats.filter(userStat => userStat.dayTrophies === 0 && userStat.weekTrophies === 0 && userStat.monthTrophies === 0).length > 0 && (
             <Card className="mt-4 overflow-hidden">
               <div className="px-4 py-3 border-b border-outline bg-surface-container-high">
-                <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Noch keine Pokale</span>
+                <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Noch keine Pokale</h2>
               </div>
               <div className="divide-y divide-outline">
                 {stats.filter(userStat => userStat.dayTrophies === 0 && userStat.weekTrophies === 0 && userStat.monthTrophies === 0).map(userStat => (

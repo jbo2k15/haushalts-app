@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatQuantity } from '../../lib/quantity.js'
 import { api } from '../../api/client.js'
 import { useDialog } from '../../context/DialogContext.jsx'
@@ -19,28 +19,74 @@ function quantityClass(quantity, minQuantity) {
 // innerhalb eines dnd-kit SortableContext) verwendet.
 export default function StorageItemRow({ item, defaultMinQuantity, onChanged, onEdit, dragHandleProps, setNodeRef, style }) {
   const dialog = useDialog()
-  // Nur ein optimistisches Override waehrend die Anfrage laeuft (wie
-  // TaskRow.jsx's optimistic-State) - kein dauerhafter lokaler Mengen-State.
-  // item.quantity bleibt sonst die alleinige Wahrheitsquelle, auch wenn sich
-  // derselbe Artikel anderswo aendert (z.B. Abhaken in der Einkaufsliste).
+  // Optimistisches Override, solange Aenderungen noch nicht gespeichert sind -
+  // kein dauerhafter lokaler Mengen-State. item.quantity bleibt sonst die
+  // alleinige Wahrheitsquelle, auch wenn sich derselbe Artikel anderswo
+  // aendert (z.B. Abhaken in der Einkaufsliste).
+  //
+  // Schnelles Tippen auf +/-: jeder Tipp zaehlt sofort auf dem angezeigten
+  // Wert weiter (targetRef), gespeichert wird gebuendelt erst nach einer
+  // kurzen Pause und immer nur eine Anfrage gleichzeitig. Vorher schickte
+  // jeder Tipp eine eigene Anfrage, und deren Antworten setzten die Anzeige
+  // zwischendurch auf einen alten Stand zurueck - Tipps gingen verloren.
   const [pendingQuantity, setPendingQuantity] = useState(null)
   const quantity = pendingQuantity ?? item.quantity
   const minQuantity = item.minQuantity ?? defaultMinQuantity
+  const targetRef = useRef(null)
+  const timerRef = useRef(null)
+  const inFlightRef = useRef(false)
+  const onChangedRef = useRef(onChanged)
+  onChangedRef.current = onChanged
 
-  async function changeQuantity(delta) {
-    // +/- bleibt bei ganzen Schritten; Rundung verhindert Float-Reste (0,5 - 1 -> 0).
-    const next = Math.max(0, Math.round((quantity + delta) * 100) / 100)
-    setPendingQuantity(next)
+  async function flush() {
+    clearTimeout(timerRef.current)
+    timerRef.current = null
+    if (inFlightRef.current || targetRef.current == null) return
+    const value = targetRef.current
+    inFlightRef.current = true
     try {
-      await api.patch(`/storage/items/${item.id}/quantity`, { quantity: next })
-      await onChanged()
+      await api.patch(`/storage/items/${item.id}/quantity`, { quantity: value })
+    } catch {
+      targetRef.current = null
+      setPendingQuantity(null)
     } finally {
+      inFlightRef.current = false
+    }
+    // Waehrend der Anfrage weiter getippt: den neuesten Stand nachschicken.
+    if (targetRef.current != null && targetRef.current !== value) return flush()
+    await onChangedRef.current()
+    if (targetRef.current === value) {
+      targetRef.current = null
       setPendingQuantity(null)
     }
   }
 
+  function changeQuantity(delta) {
+    const base = targetRef.current ?? item.quantity
+    // +/- bleibt bei ganzen Schritten; Rundung verhindert Float-Reste (0,5 - 1 -> 0).
+    const next = Math.max(0, Math.round((base + delta) * 100) / 100)
+    targetRef.current = next
+    setPendingQuantity(next)
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(flush, 350)
+  }
+
+  // Beim Verlassen der Seite nichts verlieren: offene Aenderung sofort senden.
+  useEffect(() => () => { if (timerRef.current) flush() }, [])
+
+  function handleEdit() {
+    // Dialog mit der angezeigten (ggf. noch nicht gespeicherten) Menge oeffnen
+    // und die offene Aenderung sofort senden.
+    const shown = targetRef.current
+    if (timerRef.current) flush()
+    onEdit(shown != null ? { quantity: shown } : undefined)
+  }
+
   async function handleDelete(e) {
     e.stopPropagation()
+    // Offene +/- Aenderung zuerst speichern - sonst liefe sie nach dem
+    // Loeschen gegen einen nicht mehr vorhandenen Artikel (404).
+    if (timerRef.current) await flush()
     const ok = await dialog.confirm({
       title: 'Artikel löschen?',
       message: `"${item.name}" wird komplett aus der Liste entfernt (nicht nur Menge auf 0).`,
@@ -57,7 +103,7 @@ export default function StorageItemRow({ item, defaultMinQuantity, onChanged, on
       {dragHandleProps && (
         <span {...dragHandleProps} style={{ touchAction: 'none' }} className="text-ink-faint cursor-grab active:cursor-grabbing text-sm" data-testid="item-drag-handle">⠿</span>
       )}
-      <button onClick={onEdit} className="flex-1 text-left text-sm text-ink truncate">
+      <button onClick={handleEdit} className="flex-1 text-left text-sm text-ink truncate">
         {item.name}
         {item.unit && <span className="text-ink-faint text-xs ml-1">({item.unit})</span>}
       </button>
