@@ -135,17 +135,19 @@ export default function Storage() {
               onManageLocations={() => setManageLocationsOpen(true)}
             />
 
-            <Card className="overflow-hidden mb-3">
-              <div className="flex text-xs font-medium">
+            <Card className="p-2 mb-3">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setMode('manual')}
-                  className={`flex-1 py-2 ${sortMode === 'manual' ? 'bg-primary-container text-on-primary-container' : 'text-ink-muted'}`}
+                  aria-pressed={sortMode === 'manual'}
+                  className={`flex-1 min-h-11 rounded-control border text-xs font-medium transition-colors ${sortMode === 'manual' ? 'bg-primary border-primary text-on-primary' : 'bg-surface-container-high border-outline text-ink-muted hover:border-primary'}`}
                 >
                   Meine Sortierung
                 </button>
                 <button
                   onClick={() => setMode('restock')}
-                  className={`flex-1 py-2 ${sortMode === 'restock' ? 'bg-primary-container text-on-primary-container' : 'text-ink-muted'}`}
+                  aria-pressed={sortMode === 'restock'}
+                  className={`flex-1 min-h-11 rounded-control border text-xs font-medium transition-colors ${sortMode === 'restock' ? 'bg-primary border-primary text-on-primary' : 'bg-surface-container-high border-outline text-ink-muted hover:border-primary'}`}
                 >
                   Was ist aufzufüllen
                 </button>

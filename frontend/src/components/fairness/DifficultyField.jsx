@@ -16,7 +16,7 @@ export default function DifficultyField({ form, setForm }) {
   return (
     <fieldset className="space-y-1.5">
       <legend className="block text-sm text-ink-muted mb-1">Aufwand</legend>
-      <div className="grid grid-cols-3 gap-1.5 bg-surface-container-high rounded-control p-1">
+      <div className="flex gap-2">
         {DIFFICULTY_LEVELS.map(level => {
           const active = current === level.value
           return (
@@ -26,10 +26,10 @@ export default function DifficultyField({ form, setForm }) {
               aria-pressed={active}
               data-testid={`difficulty-${level.value}`}
               onClick={() => setForm(f => ({ ...f, difficulty: level.value }))}
-              className={`min-h-11 rounded-lg px-1 py-1.5 text-center ${active ? 'bg-surface-container text-ink shadow-sm' : 'text-ink-muted'}`}
+              className={`flex-1 flex flex-col items-center gap-0.5 min-h-11 py-2 rounded-control border text-xs font-medium transition-colors ${active ? 'bg-primary border-primary text-on-primary' : 'bg-surface-container-high border-outline text-ink-muted hover:border-primary'}`}
             >
-              <span className="block text-sm font-semibold">{level.label}</span>
-              <span className="block text-xs">{level.points}</span>
+              <span className="text-sm font-semibold">{level.label}</span>
+              <span>{level.points}</span>
             </button>
           )
         })}
