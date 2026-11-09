@@ -84,6 +84,9 @@ export default function StorageItemRow({ item, defaultMinQuantity, onChanged, on
 
   async function handleDelete(e) {
     e.stopPropagation()
+    // Offene +/- Aenderung zuerst speichern - sonst liefe sie nach dem
+    // Loeschen gegen einen nicht mehr vorhandenen Artikel (404).
+    if (timerRef.current) await flush()
     const ok = await dialog.confirm({
       title: 'Artikel löschen?',
       message: `"${item.name}" wird komplett aus der Liste entfernt (nicht nur Menge auf 0).`,
