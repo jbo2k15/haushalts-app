@@ -88,8 +88,8 @@ export default function CategoryGroup({ category, sortMode, autocomplete, onChan
         ) : (
           <>
             <h3 className="flex-1 text-xs font-medium text-ink-muted uppercase tracking-wide">{category.name}</h3>
-            <button onClick={() => setEditing(true)} className="min-h-11 -my-2 px-2 text-xs text-primary hover:underline shrink-0">Bearb.<span className="sr-only"> {category.name}</span></button>
-            <button onClick={handleDelete} className="min-h-11 -my-2 px-2 -mr-2 text-xs text-danger hover:underline shrink-0">Löschen<span className="sr-only"> {category.name}</span></button>
+            <button onClick={() => setEditing(true)} className="min-h-11 -my-2 px-2 text-xs text-primary hover:underline shrink-0" aria-label={`Bearb. ${category.name}`}>Bearb.</button>
+            <button onClick={handleDelete} className="min-h-11 -my-2 px-2 -mr-2 text-xs text-danger hover:underline shrink-0" aria-label={`Löschen ${category.name}`}>Löschen</button>
           </>
         )}
       </div>

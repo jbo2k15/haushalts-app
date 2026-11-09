@@ -36,8 +36,8 @@ export default function SortableTask({ task, onEdit, onDelete }) {
         </div>
       </div>
       <div className="flex shrink-0">
-        <button onClick={() => onEdit(task)} className="min-h-11 px-2 text-xs text-primary hover:underline">Bearb.<span className="sr-only"> {task.title}</span></button>
-        <button onClick={() => onDelete(task.id)} className="min-h-11 px-2 -mr-2 text-xs text-danger hover:underline">Löschen<span className="sr-only"> {task.title}</span></button>
+        <button onClick={() => onEdit(task)} className="min-h-11 px-2 text-xs text-primary hover:underline" aria-label={`Bearb. ${task.title}`}>Bearb.</button>
+        <button onClick={() => onDelete(task.id)} className="min-h-11 px-2 -mr-2 text-xs text-danger hover:underline" aria-label={`Löschen ${task.title}`}>Löschen</button>
       </div>
     </div>
   )

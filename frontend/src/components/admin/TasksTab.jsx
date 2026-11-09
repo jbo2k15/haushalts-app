@@ -80,7 +80,7 @@ export default function TasksTab({
               </div>
             </div>
             {!task.isActive && (
-              <button onClick={() => onDelete(task.id)} className="min-h-11 px-2 -mr-2 text-xs text-danger hover:underline shrink-0">Löschen<span className="sr-only"> {task.title}</span></button>
+              <button onClick={() => onDelete(task.id)} className="min-h-11 px-2 -mr-2 text-xs text-danger hover:underline shrink-0" aria-label={`Löschen ${task.title}`}>Löschen</button>
             )}
           </div>
         ))}
