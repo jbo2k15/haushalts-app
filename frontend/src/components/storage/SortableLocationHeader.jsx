@@ -35,8 +35,8 @@ export default function SortableLocationHeader({ location, onRename, onDelete })
       ) : (
         <>
           <p className="flex-1 text-sm text-ink">{location.name}</p>
-          <button onClick={() => setEditing(true)} className="min-h-11 -my-2 px-2 text-xs text-primary hover:underline">Bearb.<span className="sr-only"> {location.name}</span></button>
-          <button onClick={onDelete} className="min-h-11 -my-2 px-2 text-xs text-danger hover:underline">Löschen<span className="sr-only"> {location.name}</span></button>
+          <button onClick={() => setEditing(true)} className="min-h-11 -my-2 px-2 text-xs text-primary hover:underline" aria-label={`Bearb. ${location.name}`}>Bearb.</button>
+          <button onClick={onDelete} className="min-h-11 -my-2 px-2 text-xs text-danger hover:underline" aria-label={`Löschen ${location.name}`}>Löschen</button>
         </>
       )}
     </div>
