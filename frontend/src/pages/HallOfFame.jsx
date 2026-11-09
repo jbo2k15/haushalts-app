@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client.js'
 import Card from '../components/ui/Card.jsx'
 import FairnessCard from '../components/fairness/FairnessCard.jsx' // Fairness-Statistik
+import CountModeNote from '../components/fairness/CountModeNote.jsx' // Fairness-Statistik
+import { useFairnessConfig } from '../components/fairness/useFairnessConfig.js' // Fairness-Statistik
 
 const TROPHY_TYPES = [
   { key: 'dayTrophies',   icon: '🥉', label: 'Tagessieger',   desc: 'Meiste erledigte Aufgaben an einem abgeschlossenen Tag' },
@@ -30,10 +32,12 @@ function TrophyBadge({ icon, count }) {
 
 export default function HallOfFame() {
   const [stats, setStats] = useState([])
+  // Fairness-Statistik: nach Umstellen der Zaehlweise Pokale neu laden.
+  const countMode = useFairnessConfig()?.countMode
 
   useEffect(() => {
     api.get('/tasks/stats').then(setStats).catch(() => {})
-  }, [])
+  }, [countMode])
 
   const ranked = [...stats]
     .filter(userStat => userStat.dayTrophies > 0 || userStat.weekTrophies > 0 || userStat.monthTrophies > 0)
@@ -74,6 +78,7 @@ export default function HallOfFame() {
             <p className="text-xs text-ink-faint mt-3 border-t border-outline pt-3">
               Pokale werden nur bei eindeutigem Sieger vergeben — kein Pokal bei Gleichstand.
             </p>
+            <CountModeNote />
           </Card>
 
           <FairnessCard />

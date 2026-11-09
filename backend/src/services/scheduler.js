@@ -14,6 +14,8 @@ import {
   getGlobalPause,
   getIndividualPausesForTasks,
 } from '../domain/pauses.js'
+// Fairness-Statistik: Pokale optional nach Aufwands-Punkten statt Anzahl.
+import { getCountMode, withPoints } from '../domain/fairness.js'
 
 async function cleanupExpiredTokens() {
   const now = new Date()
@@ -387,10 +389,10 @@ export async function sendMonthlyReminders() {
 // gewonnene Pokale rueckwirkend zu verlieren.
 export async function updateTrophyCache() {
   const users = await prisma.user.findMany({ where: { approved: true } })
-  const allLogs = await prisma.taskLog.findMany({
+  const allLogs = withPoints(await prisma.taskLog.findMany({
     where: { status: 'completed', completedBy: { not: null }, ...EXCLUDE_ONCE },
-    select: { completedBy: true, loggedAt: true },
-  })
+    select: { completedBy: true, loggedAt: true, weight: true },
+  }), await getCountMode())
 
   const today = todayString()
   const curWeekStart = currentWeekStart()
@@ -427,10 +429,11 @@ export async function pruneOldTaskLogs() {
   const cutoffInstant = getUTCRangeForBerlinDay(cutoffDateStr).gte
 
   const users = await prisma.user.findMany({ where: { approved: true } })
-  const oldTrophyLogs = await prisma.taskLog.findMany({
+  // Eingefroren wird nach der beim Prunen aktiven Zaehlweise.
+  const oldTrophyLogs = withPoints(await prisma.taskLog.findMany({
     where: { status: 'completed', completedBy: { not: null }, ...EXCLUDE_ONCE, loggedAt: { lt: cutoffInstant } },
-    select: { completedBy: true, loggedAt: true },
-  })
+    select: { completedBy: true, loggedAt: true, weight: true },
+  }), await getCountMode())
 
   if (oldTrophyLogs.length > 0) {
     const cutoffWeekStart = mondayOnOrBefore(cutoffDateStr)
