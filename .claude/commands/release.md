@@ -41,7 +41,7 @@ passenden Bump vor (Patch/Minor/Major).
   Absätze).
 
 ## 2b. README aktualisieren — verpflichtende Checkliste, nicht überspringen
-Gehe für JEDES Release explizit diese drei Punkte durch (auch wenn das
+Gehe für JEDES Release explizit diese vier Punkte durch (auch wenn das
 Feature schon während der Entwicklung fertig wirkte — README-Pflege wird
 dort erfahrungsgemäß vergessen, weil kein Release-Lauf stattfand):
 
@@ -56,6 +56,14 @@ dort erfahrungsgemäß vergessen, weil kein Release-Lauf stattfand):
    Beschreibung + optional/Default).
 3. **Sonstige Abschnitte** (Ablauf, Voraussetzungen, Deploy-Schritte) — nur
    falls das Release daran etwas ändert.
+4. **Begleitskripte bei geändertem API-Verhalten** — antwortet ein Endpunkt
+   seit dem letzten Tag anders (anderer Statuscode, neue/entfernte Route)?
+   Dann `scripts/smoke-test.sh` gegenlesen: der Smoke-Test läuft nach jedem
+   Deploy und lässt ihn bei einer veralteten Erwartung rot werden, obwohl die
+   App korrekt läuft (so geschehen 2026-11-10 mit der abschaltbaren
+   Registrierung). Neue Routen müssen außerdem in
+   `backend/tests/routes/authz-matrix.test.js` eingestuft sein (der Test
+   erzwingt das).
 - Falls README-Anpassungen für dieses Feature bereits vorab (außerhalb eines
   /release-Laufs) gemacht wurden: hier nur verifizieren, dass alle drei
   Punkte abgedeckt sind, nicht doppelt einfügen.
@@ -68,26 +76,57 @@ dort erfahrungsgemäß vergessen, weil kein Release-Lauf stattfand):
 
 ## 3. Tests — müssen grün sein
 - Backend: `cd backend && npm test` (Vitest).
+  - Schlagen **alle** Tests sofort mit `Cannot read properties of undefined
+    (reading 'deleteMany')` fehl, ist der lokale Prisma-Client älter als das
+    Schema → `npx prisma generate` im Ordner `backend`, dann erneut.
 - Frontend E2E: `cd frontend && npm run test:e2e` (Playwright) — lange laufend,
   ggf. im Hintergrund starten und auf Abschluss warten.
+  - Brechen **alle** Tests nach ~1 ms mit `Executable doesn't exist … ms-playwright`
+    ab, fehlt nach einem Playwright-Update der Browser → den Nutzer bitten,
+    `npx playwright install chromium` auszuführen (Download nicht ungefragt
+    starten), dann erneut.
 - Bei roten Tests: NICHT taggen. Ursache melden und mit dem Nutzer klären.
+- Testzahlen für Tag-Text und Release-Beschreibung aus der Ausgabe notieren.
 
 ## 4. Artefakte aufräumen (vor dem Commit)
-Lösche generierte Test-Artefakte, damit sie nicht in den Commit geraten:
-- `backend/e2e.db`, `backend/e2e.db-journal`, `backend/e2e-emails.jsonl`
-- `backend/test.db`, `backend/test.db-journal`
+Lösche generierte Test-Artefakte (alle stehen in `.gitignore`, sollen aber
+nicht liegen bleiben). Die Datenbanken laufen im WAL-Modus, die Sidecar-Dateien
+heißen daher `-wal`/`-shm`, nicht mehr `-journal`:
+- `backend/e2e.db`, `backend/e2e.db-wal`, `backend/e2e.db-shm`, `backend/e2e-emails.jsonl`
+- `backend/test.db`, `backend/test.db-wal`, `backend/test.db-shm`
 - `frontend/test-results`, `frontend/dist`
+- Danach muss `git status --short` nur die Release-Dateien zeigen.
 
-## 5. Commit + annotierter Tag
+## 5. Commit
 - Committe die Release-Dateien (beide `package.json`, beide `package-lock.json`, `release-notes.json`,
-  ggf. `README.md` und TODO.md) mit einer Zusammenfassung der Änderungen seit
-  dem letzten Release.
-- Erzeuge einen **annotierten** Tag `v$ARGUMENTS` mit detaillierten technischen
-  Release-Notes (Features/Fixes seit letztem Tag + "Tests: X Backend, Y E2E, alle grün").
-- Commit-Message-Footer: `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
+  ggf. `README.md` und TODO.md) als `chore(release): v$ARGUMENTS` mit einer
+  Zusammenfassung der Änderungen seit dem letzten Release.
+- Commit-Message-Footer: die `Co-Authored-By`-Zeile, die die laufende Session
+  vorgibt (Modellname nicht fest hier eintragen — er veraltet).
 
-## 6. Push
-- `git push` und `git push origin v$ARGUMENTS`.
+## 6. Push, CI und Auto-Deploy abwarten — erst danach taggen
+Ein Push auf `main` löst die CI aus und deployt nach grünen Jobs **automatisch**
+auf den Server (Job „Deploy (self-hosted)“, inkl. Pre-Deploy-Backup und
+Smoke-Test). Der Tag soll nur auf einen Stand zeigen, der wirklich ausgerollt
+ist.
+- `git push`.
+- CI-Lauf zum Commit ermitteln und abwarten:
+  `gh run list --repo jbo2k15/haushalts-app --commit <sha> --workflow ci.yml --json databaseId`,
+  dann `gh run watch <id> --repo jbo2k15/haushalts-app --exit-status` (Timeout ~10 min),
+  dann `gh run view <id> --repo jbo2k15/haushalts-app --json jobs --jq ".jobs[] | {name, conclusion}"`.
+- Alle vier Jobs müssen `success` sein, danach
+  `curl.exe -s -o NUL -w "%{http_code}" https://haushalt-braun.org/api/health` → `200`.
+- Ein Job rot: NICHT taggen. Fehlerausgabe holen
+  (`gh run view <id> --repo jbo2k15/haushalts-app --log-failed`), dem Nutzer
+  melden. Schlägt nur der Smoke-Test fehl, laufen die neuen Container bereits —
+  es gibt kein automatisches Zurückrollen (Abhilfe: Ursache beheben oder
+  `git revert` + Push). Nicht selbst reverten.
+
+## 6b. Annotierter Tag
+- Erzeuge einen **annotierten** Tag `v$ARGUMENTS` auf dem Release-Commit mit
+  detaillierten technischen Release-Notes (Features/Fixes seit letztem Tag +
+  "Tests: X Backend, Y E2E, alle grün").
+- `git push origin v$ARGUMENTS` (ein Tag-Push löst keinen weiteren Deploy aus).
 - Falls der Tag remote bereits existiert und auf einen falschen Commit zeigt:
   NICHT blind force-pushen — das mit dem Nutzer klären.
 
@@ -101,6 +140,8 @@ Lösche generierte Test-Artefakte, damit sie nicht in den Commit geraten:
   plus Titel und Beschreibung zum Einfügen geben.
 
 ## 8. Abschlusshinweis
-- Erinnere daran: Nach dem Deploy muss der neue Build aktiv werden — die
+- Nenne das Ergebnis aus Schritt 6 (CI grün, Deploy ok, Health 200).
+- Erinnere daran: Der Deploy ist bereits gelaufen, der neue Build muss aber im
+  Browser aktiv werden — die
   installierte PWA einmal komplett schließen/neu öffnen (Service-Worker-
   Lifecycle), damit Versionsanzeige im Footer und Release-Notes-Modal greifen.
