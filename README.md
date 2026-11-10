@@ -19,7 +19,7 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 - **Pausenzeitraum für Aufgaben** — Tägliche, wöchentliche und monatliche Aufgaben können für einen Zeitraum pausiert werden, einzeln pro Aufgabe oder haushaltsweit über eine „Alle Aufgaben pausieren"-Karte in der Verwaltung; pausierte Aufgaben verschwinden für den Zeitraum aus der Übersicht (Sammelzeile zeigt die Anzahl), einmalige Aufgaben und Abfallkalender-Termine sind davon ausgenommen
 - **Urlaubsmodus** — Pausiert Benachrichtigungen für einzelne Nutzer und hält die Urlaubszeit fest, damit sie in der Fairness-Statistik herausgerechnet wird (Ein- und Ausschalttag zählen als normale Tage)
 - **Export / Import** — Aufgaben als JSON exportieren und importieren (max. 200 Aufgaben)
-- **Nutzerverwaltung** — Registrierung mit Admin-Freischaltung, Rollenverwaltung, Sperren/Entsperren, Löschen
+- **Nutzerverwaltung** — Registrierung mit Admin-Freischaltung, Rollenverwaltung, Sperren/Entsperren, Löschen; die Selbst-Registrierung ist standardmäßig aus und wird von einem Admin in den Einstellungen ein- und ausgeschaltet, Admins erhalten bei jeder neuen Registrierung eine Push-Nachricht, nie freigeschaltete Registrierungen werden nach 10 Tagen gelöscht
 - **Passwort-Reset** — Per E-Mail-Link; invalidiert automatisch alle aktiven Sessions
 - **PWA** — Installierbar auf Android und iOS; funktioniert nach Erstladen auch offline (statische Assets)
 - **Echtzeit-Sync** — Änderungen anderer Nutzer erscheinen sofort per Server-Sent Events, mit Fallback-Polling
