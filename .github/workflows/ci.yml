@@ -107,15 +107,16 @@ jobs:
 
   # Auto-Deploy auf den Proxmox-Server (self-hosted Runner in LXC 103).
   # Nur nach gruenen Jobs, nur Push auf main (nie pull_request - oeffentliches
-  # Repo!), nicht fuer den Montags-Scan-Bot. Kein checkout: laeuft im bestehenden
+  # Repo!). Gilt seit 2026-11-10 auch fuer "chore: auto security patch"-Commits
+  # des Security-Scans (vorher ausgenommen): gepatchte CVEs sollen nicht bis zum
+  # naechsten regulaeren Push ungepatcht in Produktion laufen; dieselben Gates
+  # (needs) + Pre-Deploy-Backup + Smoke-Test greifen. Kein checkout: laeuft im bestehenden
   # Repo unter /opt/haushalts-app. SKIP_CI_CHECK, weil dieser Lauf selbst noch
   # "in progress" waere (needs garantiert Gruen).
   deploy:
     name: Deploy (self-hosted)
     needs: [audit, backend-tests, e2e]
-    if: >-
-      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-      !startsWith(github.event.head_commit.message, 'chore: auto security patch')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, proxmox-prod]
     concurrency:
       group: production-deploy

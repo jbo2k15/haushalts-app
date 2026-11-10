@@ -112,7 +112,7 @@ Das Script führt automatisch `git pull`, Backend-Tests, Playwright-E2E-Tests (n
 
 ### Automatischer Deploy (self-hosted Runner)
 
-Optional: Ein Push nach `main` kann nach grüner CI automatisch deployen. Dafür läuft in LXC 103 ein GitHub-Actions-Runner (Label `proxmox-prod`, als root, weil `deploy.sh` apt/Docker-Volumes braucht). Der Job `deploy` in `.github/workflows/ci.yml` ruft `scripts/deploy.sh` mit `SKIP_CI_CHECK=1` (CI-Lauf ist der Aufrufer selbst), `SKIP_TESTS=1` (CI hat getestet) und `NOTIFY_ON_FAILURE=1` (Push an Admins bei Fehler) auf. Commits `chore: auto security patch` (Montags-Scan) deployen nicht automatisch.
+Optional: Ein Push nach `main` kann nach grüner CI automatisch deployen. Dafür läuft in LXC 103 ein GitHub-Actions-Runner (Label `proxmox-prod`, als root, weil `deploy.sh` apt/Docker-Volumes braucht). Der Job `deploy` in `.github/workflows/ci.yml` ruft `scripts/deploy.sh` mit `SKIP_CI_CHECK=1` (CI-Lauf ist der Aufrufer selbst), `SKIP_TESTS=1` (CI hat getestet) und `NOTIFY_ON_FAILURE=1` (Push an Admins bei Fehler) auf. Das gilt seit 2026-11-10 auch für Commits `chore: auto security patch` des Security-Scans (vorher ausgenommen) – ein automatisches Zurückrollen gibt es nicht: bei einem fehlgeschlagenen Deploy den Patch-Commit per `git revert` zurücknehmen und pushen.
 
 - Vor jedem Deploy legt `deploy.sh` ein Backup `haushalt-<Datum>-predeploy-<HHMM>.db.gz` an.
 - Runner-Status: `systemctl status 'actions.runner.*'` (Logs: `journalctl -u 'actions.runner.*' -n 50`).
