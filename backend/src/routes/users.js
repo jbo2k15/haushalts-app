@@ -3,6 +3,7 @@ import prisma from '../lib/prisma.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import { sendApprovalEmail } from '../services/email.js'
 import { recordVacationToggle } from '../domain/fairness.js' // Fairness-Statistik
+import { setRegistrationEnabled } from '../lib/appSettings.js'
 
 const router = Router()
 
@@ -144,6 +145,16 @@ router.delete('/push-subscription', requireAuth, async (req, res) => {
   const { endpoint } = req.body
   await prisma.pushSubscription.deleteMany({ where: { endpoint, userId: req.user.id } })
   res.json({ message: 'Subscription entfernt' })
+})
+
+// Selbst-Registrierung ein-/ausschalten (Standard: aus). Der aktuelle Zustand
+// ist öffentlich über GET /api/auth/config lesbar, ändern dürfen ihn nur Admins.
+router.put('/registration', requireAuth, requireAdmin, async (req, res) => {
+  const { enabled } = req.body ?? {}
+  if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'Ungültiger Wert' })
+  const result = await setRegistrationEnabled(enabled)
+  console.info(`[AUTH] Selbst-Registrierung ${enabled ? 'EINgeschaltet' : 'ausgeschaltet'} von userId=${req.user.id}`)
+  res.json(result)
 })
 
 router.post('/:id/role', requireAuth, requireAdmin, async (req, res) => {

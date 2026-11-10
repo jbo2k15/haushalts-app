@@ -95,10 +95,25 @@ CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   -X POST "$BASE_URL/api/auth/register" \
   -H "Content-Type: application/json" \
   -d '{"email":"x","password":"x","name":"x"}' 2>/dev/null)
-if [ "$CODE" = "400" ] || [ "$CODE" = "409" ] || [ "$CODE" = "429" ]; then
-  ok "POST /api/auth/register reagiert ($CODE)"
+# Die Selbst-Registrierung ist abschaltbar (Standard: aus, Schalter in den
+# Einstellungen). Ist sie aus, MUSS /register mit 404 antworten - das ist dann
+# der erwartete, sichere Zustand und kein Fehler.
+REG_ENABLED=$(curl -s "$BASE_URL/api/auth/config" 2>/dev/null | grep -o '"registrationEnabled":[a-z]*' | cut -d: -f2)
+if [ "$REG_ENABLED" = "true" ]; then
+  if [ "$CODE" = "400" ] || [ "$CODE" = "409" ] || [ "$CODE" = "429" ]; then
+    ok "POST /api/auth/register reagiert ($CODE)"
+  else
+    fail "POST /api/auth/register → $CODE"
+  fi
+  warn "Selbst-Registrierung ist EINgeschaltet — nach dem Aufnehmen neuer Mitglieder in den Einstellungen wieder ausschalten"
+elif [ "$REG_ENABLED" = "false" ]; then
+  if [ "$CODE" = "404" ]; then
+    ok "Registrierung ist aus: POST /api/auth/register → 404"
+  else
+    fail "Registrierung ist aus, aber POST /api/auth/register → $CODE (erwartet 404)"
+  fi
 else
-  fail "POST /api/auth/register → $CODE"
+  fail "GET /api/auth/config liefert keinen Registrierungs-Zustand"
 fi
 
 # ── Admin Guard ─────────────────────────────
@@ -133,7 +148,9 @@ CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   -X POST "$BASE_URL/api/auth/register" \
   -H "Content-Type: application/json" \
   -d '{"email":"test@test.de","password":"schwach","name":"Test"}' 2>/dev/null)
-if [ "$CODE" = "400" ]; then
+if [ "$REG_ENABLED" != "true" ] && [ "$CODE" = "404" ]; then
+  ok "Registrierung ist aus: schwaches Passwort → 404 (gar nicht erst geprüft)"
+elif [ "$CODE" = "400" ]; then
   ok "Registrierung mit schwachem Passwort → 400"
 else
   fail "Registrierung mit schwachem Passwort → $CODE (erwartet 400)"
@@ -143,7 +160,9 @@ CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   -X POST "$BASE_URL/api/auth/register" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"test@test.de\",\"password\":\"Test1234!\",\"name\":\"$(python3 -c 'print("x"*101)' 2>/dev/null || printf '%0.s x' {1..101})\"}" 2>/dev/null)
-if [ "$CODE" = "400" ]; then
+if [ "$REG_ENABLED" != "true" ] && [ "$CODE" = "404" ]; then
+  ok "Registrierung ist aus: zu langer Name → 404 (gar nicht erst geprüft)"
+elif [ "$CODE" = "400" ]; then
   ok "Registrierung mit zu langem Namen → 400"
 else
   warn "Registrierung mit zu langem Namen → $CODE (erwartet 400)"

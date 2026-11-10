@@ -26,6 +26,10 @@ export const E2E_SWIPE_EMAIL = 'e2e-swipe@example.com'
 export const E2E_SWIPE_PASSWORD = 'E2eSwipe1234!'
 
 async function main() {
+  // Selbst-Registrierung ist standardmäßig aus; die E2E-Tests (a11y,
+  // route-smoke, registration-toggle) prüfen das Formular, also einschalten.
+  await prisma.appSettings.create({ data: { id: 'singleton', registrationEnabled: true } })
+
   const passwordHash = await bcrypt.hash(E2E_PASSWORD, 4) // low rounds, speed over security in tests
   await prisma.user.create({
     data: {

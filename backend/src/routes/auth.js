@@ -7,6 +7,7 @@ import { requireAuth } from '../middleware/auth.js'
 import { sendPasswordResetEmail } from '../services/email.js'
 import { recordFailedLogin } from '../lib/loginMonitor.js'
 import { sendPushToAdmins } from '../services/push.js'
+import { isRegistrationEnabled } from '../lib/appSettings.js'
 
 const router = Router()
 
@@ -54,23 +55,17 @@ async function issueRefreshToken(userId, res) {
   res.cookie(COOKIE_NAME, token, COOKIE_OPTS)
 }
 
-// Selbst-Registrierung ist standardmäßig AUS (REGISTRATION_ENABLED=true schaltet
-// sie ein). Solange der Haushalt vollständig ist, gibt es so keinen öffentlich
-// erreichbaren Weg, Konten anzulegen. Bei jedem Request gelesen (nicht beim
-// Modul-Laden), damit Tests den Schalter umlegen können.
-export function isRegistrationEnabled() {
-  return process.env.REGISTRATION_ENABLED === 'true'
-}
-
 // Öffentlich (ohne Login): die Anmeldeseite muss wissen, ob sie den
 // "Registrieren"-Link zeigen darf. Verrät nichts, was ein POST /register nicht
-// ohnehin verraten würde.
-router.get('/config', (req, res) => {
-  res.json({ registrationEnabled: isRegistrationEnabled() })
+// ohnehin verraten würde. Umgeschaltet wird per PUT /api/users/registration
+// (nur Admins, siehe routes/users.js).
+router.get('/config', async (req, res) => {
+  res.json({ registrationEnabled: await isRegistrationEnabled() })
 })
 
 router.post('/register', async (req, res) => {
-  if (!isRegistrationEnabled()) return res.status(404).json({ error: 'Registrierung ist deaktiviert' })
+  // Selbst-Registrierung ist standardmäßig AUS (siehe lib/appSettings.js).
+  if (!(await isRegistrationEnabled())) return res.status(404).json({ error: 'Registrierung ist deaktiviert' })
 
   const { email, password, name, website } = req.body ?? {}
   // Honeypot: unsichtbares Feld, das nur Bots ausfüllen. Vorgetäuschter Erfolg, kein Account angelegt.
