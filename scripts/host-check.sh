@@ -229,15 +229,16 @@ if [ -f "$ENV_FILE" ]; then
   OWNER="$(stat -c '%U' "$ENV_FILE")"
   if [ "$PERM" = "600" ] || [ "$PERM" = "400" ]; then ok ".env ist nur für $OWNER lesbar ($PERM)."
   else warn ".env hat Rechte $PERM (Besitzer $OWNER) — auf 600 setzen: chmod 600 $ENV_FILE"; fi
-  # Nur prüfen, OB der Schalter gesetzt ist - niemals Werte ausgeben.
-  if grep -q -E '^REGISTRATION_ENABLED=true' "$ENV_FILE"; then
-    warn "Selbst-Registrierung ist eingeschaltet (REGISTRATION_ENABLED=true) — nach dem Anlegen neuer Konten wieder entfernen."
-  else
-    ok "Selbst-Registrierung ist aus."
-  fi
 else
   info ".env nicht gefunden unter $ENV_FILE."
 fi
+# Selbst-Registrierung (Schalter in den Einstellungen der App, Standard: aus).
+REG="$(curl -s --max-time 10 http://localhost:80/api/auth/config 2>/dev/null | grep -o '"registrationEnabled":[a-z]*' | cut -d: -f2)"
+case "$REG" in
+  false) ok "Selbst-Registrierung ist aus." ;;
+  true)  warn "Selbst-Registrierung ist eingeschaltet — nach dem Aufnehmen neuer Mitglieder in den Einstellungen wieder ausschalten." ;;
+  *)     info "Zustand der Selbst-Registrierung nicht abrufbar." ;;
+esac
 
 # ── 8. Backups ───────────────────────────────────────────────────────────────
 section "Backups"

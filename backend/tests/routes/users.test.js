@@ -496,3 +496,35 @@ describe('DELETE /api/users/push-subscription', () => {
     expect(sub).not.toBeNull()
   })
 })
+
+describe('PUT /api/users/registration', () => {
+  const config = async () => (await request(app).get('/api/auth/config')).body.registrationEnabled
+
+  it('Admin schaltet die Selbst-Registrierung ein und wieder aus', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const on = await request(app).put('/api/users/registration').set(authHeader(admin.id)).send({ enabled: true })
+    expect(on.status).toBe(200)
+    expect(on.body).toEqual({ registrationEnabled: true })
+    expect(await config()).toBe(true)
+
+    const off = await request(app).put('/api/users/registration').set(authHeader(admin.id)).send({ enabled: false })
+    expect(off.body).toEqual({ registrationEnabled: false })
+    expect(await config()).toBe(false)
+  })
+
+  it('normale Mitglieder dürfen nicht umschalten', async () => {
+    const user = await createUser()
+    const res = await request(app).put('/api/users/registration').set(authHeader(user.id)).send({ enabled: true })
+    expect(res.status).toBe(403)
+    expect(await config()).toBe(false)
+  })
+
+  it('lehnt Nicht-Boolean ab', async () => {
+    const admin = await createUser({ role: 'admin' })
+    for (const enabled of ['true', 1, null]) {
+      const res = await request(app).put('/api/users/registration').set(authHeader(admin.id)).send({ enabled })
+      expect(res.status).toBe(400)
+    }
+    expect(await config()).toBe(false)
+  })
+})

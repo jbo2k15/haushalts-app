@@ -84,7 +84,8 @@ Alle Werte in `.env` ausfüllen:
 | `WEATHER_LAT` / `WEATHER_LON` | Koordinaten des Haushalts für die Regenmessung (optional — ohne diese Werte bleibt die Wetterabhängigkeit inaktiv) |
 | `WEATHER_RAIN_THRESHOLD_MM` | Regenmenge in mm seit Mitternacht, ab der wetterabhängige Aufgaben automatisch erledigt werden (optional, Default `5`) |
 | `FAIRNESS_ENABLED` | `false` schaltet die Fairness-Statistik komplett ab (Karte, Aufwand-Auswahl, Urlaubszeiten); optional, Default an |
-| `REGISTRATION_ENABLED` | `true` schaltet die Selbst-Registrierung ein; optional, **Default aus** (`POST /api/auth/register` antwortet dann mit 404, der Link auf der Anmeldeseite entfällt). Zum Aufnehmen eines neuen Mitglieds in `.env` auf `true` setzen, `docker compose up -d backend`, Konto anlegen lassen und freischalten, danach wieder entfernen. Admins bekommen bei jeder neuen Registrierung eine Push-Nachricht; nie freigeschaltete Registrierungen werden nach 10 Tagen automatisch gelöscht |
+
+**Registrierung:** Die Selbst-Registrierung ist standardmäßig **aus** (`POST /api/auth/register` antwortet mit 404, der Link auf der Anmeldeseite entfällt). Um ein neues Mitglied aufzunehmen, schaltet ein Admin sie unter *Einstellungen → Nutzerverwaltung → Registrierung erlauben* ein, lässt das Konto anlegen, schaltet es frei und schaltet die Registrierung wieder aus. Admins bekommen bei jeder neuen Registrierung eine Push-Nachricht; nie freigeschaltete Registrierungen werden nach 10 Tagen automatisch gelöscht.
 
 ### 4. App starten
 

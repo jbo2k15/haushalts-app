@@ -71,6 +71,7 @@ const MATRIX = {
   'POST /api/users/push-subscription': 'USER',
   'DELETE /api/users/push-subscription': 'USER',
   'GET /api/users': 'ADMIN',
+  'PUT /api/users/registration': 'ADMIN',
   'POST /api/users/:id/role': 'ADMIN',
   'POST /api/users/:id/approve': 'ADMIN',
   'DELETE /api/users/:id': 'ADMIN',

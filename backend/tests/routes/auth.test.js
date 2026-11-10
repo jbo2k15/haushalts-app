@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi, afterEach } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, vi, afterEach } from 'vitest'
 import request from 'supertest'
 import bcrypt from 'bcryptjs'
 import { createHash } from 'crypto'
@@ -6,6 +6,7 @@ import prisma from '../../src/lib/prisma.js'
 import { createApp } from '../../src/app.js'
 import * as email from '../../src/services/email.js'
 import * as push from '../../src/services/push.js'
+import { setRegistrationEnabled } from '../../src/lib/appSettings.js'
 
 const app = createApp()
 
@@ -137,6 +138,9 @@ describe('POST /api/auth/login — Per-Account-Lockout (L1)', () => {
 })
 
 describe('POST /api/auth/register', () => {
+  // Standard ist aus (siehe unten) - für diese Tests einschalten.
+  beforeEach(() => setRegistrationEnabled(true))
+
   it('registriert einen neuen Nutzer', async () => {
     const res = await request(app)
       .post('/api/auth/register')
@@ -203,36 +207,30 @@ describe('POST /api/auth/register', () => {
   })
 })
 
-describe('Registrierung abschaltbar (REGISTRATION_ENABLED, Standard: aus)', () => {
-  const original = process.env.REGISTRATION_ENABLED
-  afterEach(() => { process.env.REGISTRATION_ENABLED = original })
+describe('Registrierung abschaltbar (Standard: aus)', () => {
+  const body = { email: 'new@test.com', password: 'Sicher1234!', name: 'Neu' }
 
-  it('ohne gesetzte Variable ist die Registrierung aus: 404, kein Konto', async () => {
-    delete process.env.REGISTRATION_ENABLED
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'new@test.com', password: 'Sicher1234!', name: 'Neu' })
+  it('ohne gespeicherte Einstellung ist die Registrierung aus: 404, kein Konto', async () => {
+    const res = await request(app).post('/api/auth/register').send(body)
     expect(res.status).toBe(404)
     expect(await prisma.user.count()).toBe(0)
   })
 
-  it('nur exakt "true" schaltet ein', async () => {
-    for (const value of ['false', '1', 'TRUE', '']) {
-      process.env.REGISTRATION_ENABLED = value
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({ email: 'new@test.com', password: 'Sicher1234!', name: 'Neu' })
-      expect(res.status).toBe(404)
-    }
+  it('nach dem Ausschalten wird wieder abgelehnt', async () => {
+    await setRegistrationEnabled(true)
+    expect((await request(app).post('/api/auth/register').send(body)).status).toBe(200)
+    await setRegistrationEnabled(false)
+    const res = await request(app).post('/api/auth/register').send({ ...body, email: 'zwei@test.com' })
+    expect(res.status).toBe(404)
+    expect(await prisma.user.count()).toBe(1)
   })
 
   it('GET /api/auth/config meldet den Zustand ohne Anmeldung', async () => {
-    process.env.REGISTRATION_ENABLED = 'true'
+    const off = await request(app).get('/api/auth/config')
+    expect(off.status).toBe(200)
+    expect(off.body).toEqual({ registrationEnabled: false })
+    await setRegistrationEnabled(true)
     expect((await request(app).get('/api/auth/config')).body).toEqual({ registrationEnabled: true })
-    delete process.env.REGISTRATION_ENABLED
-    const res = await request(app).get('/api/auth/config')
-    expect(res.status).toBe(200)
-    expect(res.body).toEqual({ registrationEnabled: false })
   })
 })
 

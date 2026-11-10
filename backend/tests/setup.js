@@ -18,5 +18,6 @@ beforeEach(async () => {
   await prisma.storageLocation.deleteMany()
   await prisma.vacationPeriod.deleteMany()
   await prisma.fairnessSettings.deleteMany()
+  await prisma.appSettings.deleteMany()
   await prisma.user.deleteMany()
 })

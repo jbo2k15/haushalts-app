@@ -39,6 +39,8 @@ export default function Settings() {
   const [weatherNotify, setWeatherNotify] = useState(user?.notifyOnWeatherSkip ?? true)
   const [exitConfirmEnabled, setExitConfirmEnabled] = useState(() => localStorage.getItem(HIDE_EXIT_CONFIRM_KEY) !== 'true')
   const [users, setUsers] = useState([])
+  // Selbst-Registrierung (Standard: aus). null = Zustand noch nicht geladen.
+  const [registrationEnabled, setRegistrationEnabled] = useState(null)
 
   useEffect(() => {
     setPushSupported('serviceWorker' in navigator && 'PushManager' in window)
@@ -74,10 +76,30 @@ export default function Settings() {
   useEffect(() => {
     if (user?.role !== 'admin') return
     loadUsers()
+    api.get('/auth/config')
+      .then(cfg => setRegistrationEnabled(cfg?.registrationEnabled === true))
+      .catch(() => {})
   }, [user?.role])
 
   async function loadUsers() {
     try { setUsers(await api.get('/users')) } catch {}
+  }
+
+  // Einschalten öffnet einen öffentlich erreichbaren Weg, Konten anzulegen -
+  // deshalb mit Rückfrage. Ausschalten geht ohne.
+  async function toggleRegistration() {
+    const next = !registrationEnabled
+    if (next && !(await dialog.confirm({
+      title: 'Registrierung einschalten?',
+      message: 'Solange der Schalter an ist, kann sich jeder mit der Adresse der App ein Konto anlegen. Neue Konten bleiben gesperrt, bis du sie freischaltest. Schalte die Registrierung danach wieder aus.',
+      confirmLabel: 'Einschalten',
+    }))) return
+    try {
+      const result = await api.put('/users/registration', { enabled: next })
+      setRegistrationEnabled(result.registrationEnabled === true)
+    } catch (err) {
+      dialog.alert(err.message)
+    }
   }
 
   async function toggleUser(id) {
@@ -414,6 +436,27 @@ export default function Settings() {
           {user?.role === 'admin' && (
             <section className="space-y-2">
               <h2 className="font-medium text-ink">Nutzerverwaltung <span className="text-xs text-ink-faint font-normal">(gilt für alle)</span></h2>
+              {registrationEnabled !== null && (
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="pr-3">
+                      <span className="text-sm text-ink-muted">Registrierung erlauben</span>
+                      <p className="text-xs text-ink-faint mt-0.5">
+                        {registrationEnabled
+                          ? 'An: Auf der Anmeldeseite kann sich jeder ein Konto anlegen. Neue Konten musst du freischalten. Danach wieder ausschalten.'
+                          : 'Aus: Es können keine neuen Konten angelegt werden. Nur einschalten, um ein neues Mitglied aufzunehmen.'}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={registrationEnabled}
+                      onChange={toggleRegistration}
+                      aria-label="Registrierung erlauben"
+                      data-testid="registration-toggle"
+                      data-registration-enabled={registrationEnabled}
+                    />
+                  </div>
+                </Card>
+              )}
               <UsersTab
                 users={users}
                 currentUserId={user?.id}
