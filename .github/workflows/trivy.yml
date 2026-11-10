@@ -1,0 +1,66 @@
+name: Trivy
+
+# Container-CVEs der GEBAUTEN Produktions-Images nach GitHub Code Scanning
+# hochladen, damit der woechentliche Security-Scan sie automatisch abfragen kann
+# (gh api .../code-scanning/alerts, tool = Trivy) statt nur an das Log auf dem
+# Host zu erinnern. Code-Scanning-Alerts sind auch bei oeffentlichem Repo nur
+# fuer Personen mit Schreibrecht sichtbar.
+#
+# Laeuft auf dem self-hosted Runner (LXC 103), weil nur dort die gebauten Images
+# liegen (haushalts-app-backend installiert per apk zusaetzliche Pakete - ein
+# Scan des Base-Tags waere dafuer blind) und Trivy dort bereits installiert ist.
+#
+# Bewusst NUR schedule + workflow_dispatch, nie push/pull_request: dieser Job
+# laeuft auf dem Produktions-Host (oeffentliches Repo!). workflow_dispatch
+# koennen nur Personen mit Schreibrecht ausloesen.
+on:
+  schedule:
+    - cron: '17 3 * * 1'   # montags 03:17 UTC, vor dem woechentlichen Security-Scan
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Trivy (self-hosted)
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, proxmox-prod]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write   # SARIF-Upload ins Code Scanning
+    steps:
+      # Nur fuer .trivyignore und damit upload-sarif Commit/Ref kennt. Landet im
+      # Arbeitsverzeichnis des Runners, NICHT in /opt/haushalts-app.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Images scannen
+        run: |
+          set -euo pipefail
+          command -v trivy >/dev/null || { echo "::error::trivy ist auf dem Runner nicht installiert"; exit 1; }
+          trivy --version | head -1
+          for svc in backend frontend; do
+            image="haushalts-app-$svc"
+            docker image inspect "$image" >/dev/null 2>&1 || { echo "::error::Image $image fehlt auf dem Host"; exit 1; }
+            # --scanners vuln: keine Secret-Suche im Image (gehoert nicht in Alerts).
+            # Kein --ignore-unfixed: auch CVEs ohne Fix sollen sichtbar sein und
+            # koennen im Code-Scanning-Tab einzeln begruendet geschlossen werden.
+            # Kein --exit-code: Funde lassen den Job nicht fehlschlagen, sie werden
+            # als Alerts gemeldet; rot wird der Job nur, wenn der Scan selbst scheitert.
+            trivy image --quiet --scanners vuln --severity HIGH,CRITICAL \
+              --ignorefile .trivyignore \
+              --format sarif --output "trivy-$svc.sarif" "$image"
+          done
+
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend
+
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend

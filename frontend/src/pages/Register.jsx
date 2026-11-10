@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { api } from '../api/client.js'
 import PasswordStrength, { validatePassword } from '../components/PasswordStrength.jsx'
 import Button from '../components/ui/Button.jsx'
+import { useRegistrationEnabled } from '../hooks/useRegistrationEnabled.js'
 
 const inputCls = 'w-full border border-outline rounded-control px-3 py-2.5 text-sm bg-surface-container-high text-ink focus:outline-hidden focus:ring-2 focus:ring-primary'
 
@@ -11,6 +12,7 @@ export default function Register() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const registrationEnabled = useRegistrationEnabled()
 
   const passwordOk = validatePassword(form.password)
 
@@ -27,6 +29,23 @@ export default function Register() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Registrierung serverseitig abgeschaltet (Standard): statt eines Formulars,
+  // das nur in einen Fehler läuft, einen klaren Hinweis zeigen.
+  if (registrationEnabled === null) return <div className="min-h-screen bg-surface" />
+  if (!registrationEnabled) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+        <main className="w-full max-w-sm text-center">
+          <div className="bg-surface-container rounded-card border border-outline p-6">
+            <h1 className="text-lg font-medium text-ink mb-2">Registrierung deaktiviert</h1>
+            <p className="text-ink-muted text-sm">Neue Konten können derzeit nicht angelegt werden. Wende dich an einen Admin dieses Haushalts.</p>
+            <Link to="/login" className="mt-4 inline-block text-primary text-sm">Zur Anmeldung</Link>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   if (success) {

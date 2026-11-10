@@ -20,6 +20,9 @@ const backendEnv = {
   NODE_ENV: 'test',
   FRONTEND_URL: 'http://localhost:4173',
   PORT: '3101',
+  // Registrierung ist standardmäßig aus; die E2E-Tests (a11y, route-smoke)
+  // prüfen das Formular, also hier einschalten.
+  REGISTRATION_ENABLED: 'true',
   // Self-contained dummy values so the e2e server doesn't depend on
   // whatever backend/.env happens to contain on this machine (push
   // notifications aren't exercised by these tests). Throwaway key pair

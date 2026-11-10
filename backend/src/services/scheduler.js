@@ -28,6 +28,30 @@ async function cleanupExpiredTokens() {
   }
 }
 
+// Registrierungen, die nie freigeschaltet wurden, nach 10 Tagen entfernen -
+// sonst sammeln sich (bei eingeschalteter Registrierung) beliebig viele
+// Karteileichen bzw. Spam-Konten an. Eng gefasst, damit ein vom Admin
+// GESPERRTES Konto (approved wieder false) nie darunter fällt: nur Konten, die
+// sich nie angemeldet haben (lastActiveAt null - ohne Freischaltung ist kein
+// Login möglich) und an denen keinerlei Verlauf hängt.
+const UNAPPROVED_RETENTION_DAYS = 10
+
+export async function cleanupUnapprovedUsers(now = new Date()) {
+  const cutoff = new Date(now.getTime() - UNAPPROVED_RETENTION_DAYS * 24 * 60 * 60 * 1000)
+  const { count } = await prisma.user.deleteMany({
+    where: {
+      approved: false,
+      role: 'user',
+      lastActiveAt: null,
+      createdAt: { lt: cutoff },
+      taskCompletions: { none: {} },
+      taskLogs: { none: {} },
+    },
+  })
+  if (count > 0) console.log(`[Cleanup] ${count} nie freigeschaltete Registrierung(en) älter als ${UNAPPROVED_RETENTION_DAYS} Tage gelöscht`)
+  return count
+}
+
 // Pausenzeiträume sind reine Anzeige-Filterung, kein gespeicherter Zustand -
 // eine abgelaufene Zeile hat also keine Auswirkung mehr, soll aber nicht
 // unbegrenzt in der Verwaltung als "Pausiert"/"Pause geplant" aufgeführt
@@ -485,6 +509,7 @@ export function startScheduler() {
   cron.schedule('0 0 * * *', async () => {
     for (const [name, job] of [
       ['cleanupExpiredTokens', cleanupExpiredTokens],
+      ['cleanupUnapprovedUsers', cleanupUnapprovedUsers],
       ['expireDailyTasks', expireDailyTasks],
       ['expireWeeklyTasks', expireWeeklyTasks],
       ['expireMonthlyTasks', expireMonthlyTasks],
