@@ -33,6 +33,11 @@ export async function sendPushToUser(userId, payload) {
   }
 }
 
+export async function sendPushToAdmins(payload) {
+  const admins = await prisma.user.findMany({ where: { approved: true, role: 'admin' } })
+  await Promise.all(admins.map(u => sendPushToUser(u.id, payload)))
+}
+
 export async function sendPushToAll(payload) {
   const users = await prisma.user.findMany({ where: { approved: true } })
   for (const user of users) {

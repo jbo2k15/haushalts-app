@@ -15,6 +15,8 @@ export default defineConfig({
       FRONTEND_URL: 'http://localhost:3000',
       DATABASE_URL: 'file:./test.db',
       DOTENV_CONFIG_QUIET: 'true',
+      // Standard ist aus; einzelne Tests schalten gezielt ab (auth.test.js).
+      REGISTRATION_ENABLED: 'true',
       VAPID_EMAIL: 'mailto:test@example.com',
       // Throwaway key pair generated solely for this test config - never
       // reuse a real/production VAPID key here (see GitGuardian incident

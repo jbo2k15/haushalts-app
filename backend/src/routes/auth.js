@@ -6,6 +6,7 @@ import prisma from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
 import { sendPasswordResetEmail } from '../services/email.js'
 import { recordFailedLogin } from '../lib/loginMonitor.js'
+import { sendPushToAdmins } from '../services/push.js'
 
 const router = Router()
 
@@ -53,12 +54,32 @@ async function issueRefreshToken(userId, res) {
   res.cookie(COOKIE_NAME, token, COOKIE_OPTS)
 }
 
+// Selbst-Registrierung ist standardmäßig AUS (REGISTRATION_ENABLED=true schaltet
+// sie ein). Solange der Haushalt vollständig ist, gibt es so keinen öffentlich
+// erreichbaren Weg, Konten anzulegen. Bei jedem Request gelesen (nicht beim
+// Modul-Laden), damit Tests den Schalter umlegen können.
+export function isRegistrationEnabled() {
+  return process.env.REGISTRATION_ENABLED === 'true'
+}
+
+// Öffentlich (ohne Login): die Anmeldeseite muss wissen, ob sie den
+// "Registrieren"-Link zeigen darf. Verrät nichts, was ein POST /register nicht
+// ohnehin verraten würde.
+router.get('/config', (req, res) => {
+  res.json({ registrationEnabled: isRegistrationEnabled() })
+})
+
 router.post('/register', async (req, res) => {
-  const { email, password, name, website } = req.body
+  if (!isRegistrationEnabled()) return res.status(404).json({ error: 'Registrierung ist deaktiviert' })
+
+  const { email, password, name, website } = req.body ?? {}
   // Honeypot: unsichtbares Feld, das nur Bots ausfüllen. Vorgetäuschter Erfolg, kein Account angelegt.
   if (website) return res.json({ message: 'Registrierung erfolgreich. Warte auf Freischaltung durch einen Admin.' })
 
   if (!email || !password || !name) return res.status(400).json({ error: 'Alle Felder sind erforderlich' })
+  // Typprüfung vor name.trim()/Regex-Tests: ein Objekt/Array/eine Zahl würde
+  // sonst eine TypeError-Exception und damit einen 500 auslösen statt 400.
+  if (typeof name !== 'string' || typeof password !== 'string') return res.status(400).json({ error: 'Ungültige Eingabe' })
   if (!isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' })
   if (name.trim().length === 0 || name.length > 100) return res.status(400).json({ error: 'Name muss zwischen 1 und 100 Zeichen lang sein' })
   const pwError = validatePassword(password)
@@ -79,6 +100,16 @@ router.post('/register', async (req, res) => {
   await prisma.user.create({
     data: { email: email.toLowerCase(), passwordHash, name, role: 'user', approved: false },
   })
+
+  // Admins per Push informieren, damit eine neue (auch unerwartete)
+  // Registrierung nicht unbemerkt bleibt. Bewusst NICHT awaited: der variable
+  // Push-Versand würde sonst die Antwortzeit gegenüber dem "E-Mail existiert
+  // bereits"-Pfad verlängern (Timing-Enumeration, siehe oben). Der Name ist
+  // Fremdeingabe - gekürzt, und Benachrichtigungen rendern nur Text.
+  sendPushToAdmins({
+    title: 'Neue Registrierung',
+    body: `${name.trim().slice(0, 40)} wartet auf Freischaltung (Verwaltung → Nutzer).`,
+  }).catch(err => console.error('[Push] Admin-Hinweis zur Registrierung fehlgeschlagen:', err.message))
 
   res.json({ message: 'Registrierung erfolgreich. Warte auf Freischaltung durch einen Admin.' })
 })

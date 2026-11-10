@@ -84,6 +84,7 @@ Alle Werte in `.env` ausfüllen:
 | `WEATHER_LAT` / `WEATHER_LON` | Koordinaten des Haushalts für die Regenmessung (optional — ohne diese Werte bleibt die Wetterabhängigkeit inaktiv) |
 | `WEATHER_RAIN_THRESHOLD_MM` | Regenmenge in mm seit Mitternacht, ab der wetterabhängige Aufgaben automatisch erledigt werden (optional, Default `5`) |
 | `FAIRNESS_ENABLED` | `false` schaltet die Fairness-Statistik komplett ab (Karte, Aufwand-Auswahl, Urlaubszeiten); optional, Default an |
+| `REGISTRATION_ENABLED` | `true` schaltet die Selbst-Registrierung ein; optional, **Default aus** (`POST /api/auth/register` antwortet dann mit 404, der Link auf der Anmeldeseite entfällt). Zum Aufnehmen eines neuen Mitglieds in `.env` auf `true` setzen, `docker compose up -d backend`, Konto anlegen lassen und freischalten, danach wieder entfernen. Admins bekommen bei jeder neuen Registrierung eine Push-Nachricht; nie freigeschaltete Registrierungen werden nach 10 Tagen automatisch gelöscht |
 
 ### 4. App starten
 
@@ -161,6 +162,25 @@ crontab -e
 bash scripts/backup.sh
 ls -lh /opt/backups/haushalts-app/
 ```
+
+## Host-Check
+
+`scripts/host-check.sh` prüft den Server rein lesend: ausstehende (Sicherheits-)Updates und automatische Updates, ausstehender Neustart, unerwartet lauschende Ports, SSH-Einstellungen, Plattenplatz, Zustand und Härtung der Container, Tunnel- und Runner-Dienst, Rechte der `.env`, Alter und Lesbarkeit des letzten Backups, Alter des Trivy-Logs. Exit-Code 0 = ok, 1 = Warnungen, 2 = Fehler.
+
+```bash
+# Im App-Container (LXC)
+bash scripts/host-check.sh
+
+# Auf dem Proxmox-Host selbst (ohne Docker-/App-Prüfungen)
+HOST_ROLE=proxmox bash host-check.sh
+
+# Wöchentlich per Cron, nur Auffälligkeiten ins Log
+# 30 5 * * 1 /opt/haushalts-app/scripts/host-check.sh --quiet >> /var/log/haushalts-host-check.log 2>&1
+```
+
+## Container-CVEs (Trivy)
+
+Der Workflow `.github/workflows/trivy.yml` scannt montags auf dem self-hosted Runner die gebauten Images mit Trivy (HIGH/CRITICAL, `.trivyignore` wird beachtet) und lädt die Ergebnisse nach GitHub Code Scanning hoch (Security → Code scanning, Tool „Trivy“). Manuell: `gh workflow run trivy.yml`. Behoben werden Funde in der Regel durch einen Rebuild (`deploy`).
 
 ---
 

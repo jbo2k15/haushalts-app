@@ -5,6 +5,7 @@ import { createHash } from 'crypto'
 import prisma from '../../src/lib/prisma.js'
 import { createApp } from '../../src/app.js'
 import * as email from '../../src/services/email.js'
+import * as push from '../../src/services/push.js'
 
 const app = createApp()
 
@@ -170,6 +171,68 @@ describe('POST /api/auth/register', () => {
       .post('/api/auth/register')
       .send({ email: 'long@test.com', password: 'Sicher1234!', name: 'x'.repeat(101) })
     expect(res.status).toBe(400)
+  })
+
+  it('lehnt Nicht-Text als Name oder Passwort mit 400 ab (kein 500)', async () => {
+    for (const body of [
+      { email: 'a@test.com', password: 'Sicher1234!', name: { x: 1 } },
+      { email: 'a@test.com', password: 'Sicher1234!', name: 12345 },
+      { email: 'a@test.com', password: ['Sicher1234!'], name: 'Test' },
+    ]) {
+      const res = await request(app).post('/api/auth/register').send(body)
+      expect(res.status).toBe(400)
+    }
+    expect(await prisma.user.count()).toBe(0)
+  })
+
+  it('informiert Admins per Push über eine neue Registrierung', async () => {
+    const spy = vi.spyOn(push, 'sendPushToAdmins').mockResolvedValue()
+    await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'neu@test.com', password: 'Sicher1234!', name: 'Neue Person' })
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy.mock.calls[0][0].body).toContain('Neue Person')
+  })
+
+  it('sendet keinen Push, wenn kein Konto angelegt wird (Honeypot, doppelte E-Mail)', async () => {
+    const spy = vi.spyOn(push, 'sendPushToAdmins').mockResolvedValue()
+    await createUser({ email: 'dup@test.com' })
+    await request(app).post('/api/auth/register').send({ email: 'dup@test.com', password: 'Sicher1234!', name: 'Neu' })
+    await request(app).post('/api/auth/register').send({ email: 'bot@test.com', password: 'Sicher1234!', name: 'Bot', website: 'x' })
+    expect(spy).not.toHaveBeenCalled()
+  })
+})
+
+describe('Registrierung abschaltbar (REGISTRATION_ENABLED, Standard: aus)', () => {
+  const original = process.env.REGISTRATION_ENABLED
+  afterEach(() => { process.env.REGISTRATION_ENABLED = original })
+
+  it('ohne gesetzte Variable ist die Registrierung aus: 404, kein Konto', async () => {
+    delete process.env.REGISTRATION_ENABLED
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'new@test.com', password: 'Sicher1234!', name: 'Neu' })
+    expect(res.status).toBe(404)
+    expect(await prisma.user.count()).toBe(0)
+  })
+
+  it('nur exakt "true" schaltet ein', async () => {
+    for (const value of ['false', '1', 'TRUE', '']) {
+      process.env.REGISTRATION_ENABLED = value
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({ email: 'new@test.com', password: 'Sicher1234!', name: 'Neu' })
+      expect(res.status).toBe(404)
+    }
+  })
+
+  it('GET /api/auth/config meldet den Zustand ohne Anmeldung', async () => {
+    process.env.REGISTRATION_ENABLED = 'true'
+    expect((await request(app).get('/api/auth/config')).body).toEqual({ registrationEnabled: true })
+    delete process.env.REGISTRATION_ENABLED
+    const res = await request(app).get('/api/auth/config')
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ registrationEnabled: false })
   })
 })
 
