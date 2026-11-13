@@ -73,7 +73,10 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
 
     setOptimistic(task.completed ? 'uncompleted' : 'completed')
     try {
-      await api.post(`/tasks/${task.id}/complete`, {})
+      // Zielzustand mitschicken statt blind umzuschalten: ist die Ansicht
+      // veraltet (jemand anderes hat schon abgehakt), bleibt die Aufgabe
+      // erledigt, statt wieder geoeffnet zu werden.
+      await api.post(`/tasks/${task.id}/complete`, { completed: !task.completed })
       await onToggle()
     } finally {
       setOptimistic(null)
