@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router'
 import { api } from '../../api/client.js'
 import Card from '../ui/Card.jsx'
 import { useFairnessConfig } from './useFairnessConfig.js'
@@ -165,6 +166,10 @@ export default function FairnessCard() {
   const config = useFairnessConfig()
   const [data, setData] = useState(null)
   const canView = config?.canView === true
+  // Die Ruhmeshalle bleibt in der Wisch-Ansicht dauerhaft geladen: beim
+  // Wechsel dorthin neu laden, sonst zeigte die Karte nach dem Abhaken auf der
+  // Startseite bis zum naechsten App-Start den alten Stand.
+  const onHallOfFame = useLocation().pathname === '/hall-of-fame'
 
   useEffect(() => {
     if (!canView) { setData(null); return }
@@ -174,7 +179,7 @@ export default function FairnessCard() {
     const onVisible = () => { if (document.visibilityState === 'visible') load() }
     document.addEventListener('visibilitychange', onVisible)
     return () => { active = false; document.removeEventListener('visibilitychange', onVisible) }
-  }, [canView])
+  }, [canView, onHallOfFame])
 
   if (!canView || !data) return null
 

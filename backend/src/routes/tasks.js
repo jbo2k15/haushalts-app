@@ -28,7 +28,8 @@ router.post('/:id/uncomplete-last', requireAuth, async (req, res) => {
 })
 
 router.post('/:id/skip', requireAuth, async (req, res) => {
-  res.json(await tasks.skipTask(req.params.id))
+  const desired = typeof req.body?.skipped === 'boolean' ? req.body.skipped : undefined
+  res.json(await tasks.skipTask(req.params.id, { desired }))
 })
 
 router.get('/log', requireAuth, async (req, res) => {
