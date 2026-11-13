@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import prisma from '../../src/lib/prisma.js'
 import { expireOnce } from '../../src/services/scheduler.js'
+import { completeTask, getTaskOverview } from '../../src/domain/tasks.js'
 
 afterEach(() => vi.useRealTimers())
 
@@ -30,8 +31,18 @@ describe('expireOnce — Abfall-Termine', () => {
     expect(await expiredLogs(task.id)).toHaveLength(0)
   })
 
-  it('deaktiviert einen nicht erledigten Abfall-Termin am Folgetag und loggt ihn als verfallen', async () => {
-    mockNight('2026-07-06')
+  it('lässt einen nicht erledigten Abfall-Termin am Abholtag noch aktiv und abhakbar', async () => {
+    mockNight('2026-07-06') // Abholtag (Faelligkeitstag war der 05.07.)
+    const task = await createWasteTask('2026-07-05')
+
+    await expireOnce()
+
+    expect(await isActive(task.id)).toBe(true)
+    expect(await expiredLogs(task.id)).toHaveLength(0)
+  })
+
+  it('deaktiviert einen nicht erledigten Abfall-Termin in der Nacht nach dem Abholtag und loggt ihn als verfallen', async () => {
+    mockNight('2026-07-07')
     const task = await createWasteTask('2026-07-05')
 
     await expireOnce()
@@ -43,7 +54,7 @@ describe('expireOnce — Abfall-Termine', () => {
   })
 
   it('loggt einen erledigten Abfall-Termin nicht als verfallen', async () => {
-    mockNight('2026-07-06')
+    mockNight('2026-07-07')
     const task = await createWasteTask('2026-07-05')
     await prisma.taskCompletion.create({ data: { taskId: task.id, forDate: '2026-07-05' } })
 
@@ -54,12 +65,32 @@ describe('expireOnce — Abfall-Termine', () => {
   })
 
   it('schreibt keinen doppelten Verfallen-Eintrag, wenn der Termin erneut geprüft wird', async () => {
-    mockNight('2026-07-06')
+    mockNight('2026-07-07')
     const task = await createWasteTask('2026-07-05')
     await prisma.taskLog.create({ data: { taskId: task.id, taskTitle: task.title, status: 'expired', forDate: '2026-07-05' } })
 
     await expireOnce()
 
     expect(await expiredLogs(task.id)).toHaveLength(1)
+  })
+
+  it('am Abholtag ist der Termin sichtbar, abhakbar und verfällt danach nicht', async () => {
+    mockNight('2026-07-06') // Abholtag
+    const user = await prisma.user.create({ data: { email: 'tonne@test.com', passwordHash: 'x', name: 'Tonne', approved: true } })
+    const task = await createWasteTask('2026-07-05')
+    await expireOnce()
+
+    const before = (await getTaskOverview()).once.find(t => t.id === task.id)
+    expect(before).toMatchObject({ completed: false, infoOnly: false, isOverdue: true })
+
+    const res = await completeTask(task.id, { userId: user.id, userName: user.name, desired: true })
+    expect(res).toEqual({ completed: true })
+    const after = (await getTaskOverview()).once.find(t => t.id === task.id)
+    expect(after).toMatchObject({ completed: true, isOverdue: false })
+
+    vi.setSystemTime(new Date('2026-07-07T00:30:00+02:00'))
+    await expireOnce()
+    expect(await isActive(task.id)).toBe(false)
+    expect(await expiredLogs(task.id)).toHaveLength(0)
   })
 })
