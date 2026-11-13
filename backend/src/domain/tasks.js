@@ -494,13 +494,19 @@ export async function uncompleteLast(id) {
   return { completed: count > 0, count }
 }
 
-export async function skipTask(id) {
+// desired wie bei completeTask: true = ueberspringen, false = zurueckholen;
+// ohne Angabe (aeltere App-Version) wird umgeschaltet. Verhindert, dass ein
+// Tipp aus einer veralteten Ansicht eine schon uebersprungene Aufgabe wieder
+// zurueckholt (und sie abends doch in der Erinnerung landet).
+export async function skipTask(id, { desired } = {}) {
   const today = todayString()
   const task = await prisma.task.findUnique({ where: { id } })
   if (!task || task.type !== 'daily') throw httpError(400, 'Nur tägliche Aufgaben können übersprungen werden')
   if (!task.isActive) throw httpError(400, 'Aufgabe ist nicht aktiv')
 
   const existing = await prisma.taskLog.findFirst({ where: { taskId: id, forDate: today, status: 'skipped' } })
+  if (desired === true && existing) return { skipped: true }
+  if (desired === false && !existing) return { skipped: false }
   if (existing) {
     await prisma.taskLog.delete({ where: { id: existing.id } })
     broadcastTasksUpdated()

@@ -76,7 +76,7 @@ function UserFairness({ entry, currentUserId, onChanged }) {
       <div className="flex items-center gap-3 px-4 py-3">
         <span id={`fair-label-${entry.id}`} className="flex-1 text-sm text-ink">
           <span className="font-medium">{entry.name}</span>
-          <span className="block text-xs text-ink-muted">Fairness-Statistik sehen</span>
+          <span className="block text-xs text-ink-faint">Fairness-Statistik sehen</span>
         </span>
         <Switch checked={entry.showFairness} onChange={toggleVisibility} aria-labelledby={`fair-label-${entry.id}`} data-testid="fairness-visibility" />
       </div>
@@ -93,7 +93,7 @@ function UserFairness({ entry, currentUserId, onChanged }) {
             <div key={v.id} className="flex items-center gap-2 px-4 py-1.5" data-testid="vacation-row">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ink">{rangeLabel(v)}</p>
-                <p className="text-xs text-ink-muted">{detailLabel(v)}</p>
+                <p className="text-xs text-ink-faint">{detailLabel(v)}</p>
               </div>
               <button type="button" onClick={() => setEditing(v.id)} className="min-h-11 px-2 text-xs text-primary hover:underline" aria-label={`Urlaubszeit ${rangeLabel(v)} bearbeiten`}>Bearb.</button>
               <button type="button" onClick={() => remove(v)} className="min-h-11 px-2 text-xs text-danger hover:underline" aria-label={`Urlaubszeit ${rangeLabel(v)} löschen`}>Löschen</button>
@@ -138,7 +138,7 @@ function CountModeSetting({ countMode }) {
   return (
     <fieldset className="px-4 py-3 border-b border-outline space-y-1.5">
       <legend className="sr-only">Rangliste und Statistik zählen</legend>
-      <p className="text-sm text-ink" aria-hidden="true">Rangliste und Statistik zählen</p>
+      <p className="text-sm text-ink-muted" aria-hidden="true">Rangliste und Statistik zählen</p>
       <div className="flex gap-2">
         {COUNT_MODES.map(mode => {
           const active = countMode === mode.value
@@ -158,7 +158,7 @@ function CountModeSetting({ countMode }) {
           )
         })}
       </div>
-      <p className="text-xs text-ink-muted">
+      <p className="text-xs text-ink-faint">
         Beim Umstellen werden die Pokale aus dem gespeicherten Verlauf (2 Jahre) neu berechnet; zurückstellen stellt den alten Stand wieder her.
       </p>
     </fieldset>
@@ -187,7 +187,7 @@ export default function FairnessAdminSection({ currentUserId }) {
           <UserFairness key={entry.id} entry={entry} currentUserId={currentUserId} onChanged={load} />
         ))}
       </Card>
-      <p className="text-xs text-ink-muted">
+      <p className="text-xs text-ink-faint">
         Die Fairness-Karte in der Ruhmeshalle sehen nur freigegebene Personen. Gezählt wird trotzdem für alle.
         Urlaubstage werden herausgerechnet; der Urlaubsmodus trägt sie automatisch ein, Ein- und Ausschalttag zählen als normale Tage.
       </p>
