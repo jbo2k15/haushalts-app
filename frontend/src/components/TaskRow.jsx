@@ -102,10 +102,11 @@ const TaskRow = memo(function TaskRow({ task, onToggle }) {
     e.stopPropagation()
     if (pendingRef.current) return
     pendingRef.current = true
-    // /skip ist ein Toggle: einmal = ueberspringen, nochmal = zurueckholen.
+    // Zielzustand mitschicken (ueberspringen bzw. zurueckholen) statt blind
+    // umzuschalten - siehe handleClick.
     setOptimistic(skipped ? 'unskipped' : 'skipped')
     try {
-      await api.post(`/tasks/${task.id}/skip`, {})
+      await api.post(`/tasks/${task.id}/skip`, { skipped: !skipped })
       await onToggle()
     } finally {
       setOptimistic(null)

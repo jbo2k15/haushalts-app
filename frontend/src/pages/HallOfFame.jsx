@@ -6,9 +6,9 @@ import CountModeNote from '../components/fairness/CountModeNote.jsx' // Fairness
 import { useFairnessConfig } from '../components/fairness/useFairnessConfig.js' // Fairness-Statistik
 
 const TROPHY_TYPES = [
-  { key: 'dayTrophies',   icon: '🥉', label: 'Tagessieger',   desc: 'Meiste erledigte Aufgaben an einem abgeschlossenen Tag' },
-  { key: 'weekTrophies',  icon: '🥈', label: 'Wochensieger',  desc: 'Meiste erledigte Aufgaben in einer abgeschlossenen Woche' },
-  { key: 'monthTrophies', icon: '🥇', label: 'Monatssieger',  desc: 'Meiste erledigte Aufgaben in einem abgeschlossenen Monat' },
+  { key: 'dayTrophies',   icon: '🥉', label: 'Tagessieger',   period: 'an einem abgeschlossenen Tag' },
+  { key: 'weekTrophies',  icon: '🥈', label: 'Wochensieger',  period: 'in einer abgeschlossenen Woche' },
+  { key: 'monthTrophies', icon: '🥇', label: 'Monatssieger',  period: 'in einem abgeschlossenen Monat' },
 ]
 
 // Medaillenfarben (Bronze/Silber/Gold) sind bewusst KEINE Token-Farben - sie
@@ -59,7 +59,9 @@ export default function HallOfFame() {
           <Card className="p-4 mb-4">
             <h2 className="text-xs font-semibold text-ink-faint uppercase tracking-wide mb-3">Legende</h2>
             <div className="space-y-3">
-              {TROPHY_TYPES.map(({ icon, label, desc }) => {
+              {TROPHY_TYPES.map(({ icon, label, period }) => {
+                // Fairness-Statistik: Text passt zur eingestellten Zaehlweise.
+                const desc = `${countMode === 'weighted' ? 'Meiste Punkte' : 'Meiste erledigte Aufgaben'} ${period}`
                 const s = BADGE_STYLES[icon]
                 return (
                   <div key={label} className="flex items-start gap-3">
