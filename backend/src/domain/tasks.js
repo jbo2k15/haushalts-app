@@ -389,7 +389,13 @@ async function createCompletion({ task, forDate, userId, userName }) {
   })
 }
 
-export async function completeTask(id, { userId, userName }) {
+// desired: gewuenschter Zielzustand vom Client (true = abhaken, false =
+// zuruecknehmen). Ohne Angabe (aeltere, noch gecachte App-Version) wird wie
+// frueher umgeschaltet. Mit Angabe ist der Aufruf idempotent: Wer eine schon
+// erledigte Aufgabe aus einer veralteten Ansicht heraus "abhakt" (zweites
+// Handy, App gerade erst wieder geoeffnet), nimmt die Erledigung nicht mehr
+// versehentlich zurueck - genau so verfielen abgehakte Abfall-Termine.
+export async function completeTask(id, { userId, userName, desired }) {
   const today = todayString()
   const weekStart = currentWeekStart()
   const monthStart = currentMonthStart()
@@ -420,6 +426,9 @@ export async function completeTask(id, { userId, userName }) {
   }
 
   const existing = await prisma.taskCompletion.findFirst({ where: { taskId: id, forDate } })
+
+  if (desired === true && existing) return { completed: true }
+  if (desired === false && !existing) return { completed: false }
 
   if (existing) {
     await prisma.taskCompletion.delete({ where: { id: existing.id } })
