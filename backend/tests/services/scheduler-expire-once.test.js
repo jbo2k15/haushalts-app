@@ -94,3 +94,44 @@ describe('expireOnce — Abfall-Termine', () => {
     expect(await expiredLogs(task.id)).toHaveLength(0)
   })
 })
+
+describe('expireOnce — eigene einmalige Aufgaben', () => {
+  const createOnce = dueDate => prisma.task.create({ data: { title: 'Keller aufräumen', type: 'once', priority: 'normal', dueDate, isActive: true } })
+
+  it('blendet eine vor dem Fälligkeitstag erledigte Aufgabe beim nächsten Nachtlauf aus', async () => {
+    mockNight('2026-07-06')
+    const task = await createOnce('2026-07-20')
+    await prisma.taskCompletion.create({ data: { taskId: task.id, forDate: '2026-07-20' } })
+
+    await expireOnce()
+
+    expect(await isActive(task.id)).toBe(false)
+    expect(await expiredLogs(task.id)).toHaveLength(0)
+  })
+
+  it('lässt eine nicht erledigte Aufgabe sichtbar, auch nach dem Fälligkeitstag', async () => {
+    mockNight('2026-07-06')
+    const future = await createOnce('2026-07-20')
+    const overdue = await createOnce('2026-07-01')
+
+    await expireOnce()
+
+    expect(await isActive(future.id)).toBe(true)
+    expect(await isActive(overdue.id)).toBe(true)
+    expect(await expiredLogs(overdue.id)).toHaveLength(0)
+  })
+})
+
+describe('expireOnce — erledigte Tonne', () => {
+  it('blendet eine am Fälligkeitstag erledigte Tonne schon zum Abholtag aus', async () => {
+    mockNight('2026-07-06') // Abholtag
+    const task = await createWasteTask('2026-07-05')
+    await prisma.taskCompletion.create({ data: { taskId: task.id, forDate: '2026-07-05' } })
+
+    await expireOnce()
+
+    expect(await isActive(task.id)).toBe(false)
+    expect(await expiredLogs(task.id)).toHaveLength(0)
+  })
+})
+

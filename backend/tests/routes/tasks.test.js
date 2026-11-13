@@ -399,6 +399,21 @@ describe('POST /api/tasks/:id/skip', () => {
     expect(res.body.skipped).toBe(true)
   })
 
+  it('mit Zielzustand: zweites Überspringen aus veralteter Ansicht holt die Aufgabe nicht zurück', async () => {
+    const user = await createUser()
+    const task = await createTask({ type: 'daily' })
+    await request(app).post(`/api/tasks/${task.id}/skip`).set(authHeader(user.id)).send({ skipped: true })
+    const again = await request(app).post(`/api/tasks/${task.id}/skip`).set(authHeader(user.id)).send({ skipped: true })
+    expect(again.body).toEqual({ skipped: true })
+    expect(await prisma.taskLog.count({ where: { taskId: task.id, status: 'skipped' } })).toBe(1)
+
+    const back = await request(app).post(`/api/tasks/${task.id}/skip`).set(authHeader(user.id)).send({ skipped: false })
+    expect(back.body).toEqual({ skipped: false })
+    const noop = await request(app).post(`/api/tasks/${task.id}/skip`).set(authHeader(user.id)).send({ skipped: false })
+    expect(noop.body).toEqual({ skipped: false })
+    expect(await prisma.taskLog.count({ where: { taskId: task.id, status: 'skipped' } })).toBe(0)
+  })
+
   it('lehnt skip für nicht-tägliche Aufgabe ab', async () => {
     const user = await createUser()
     const task = await createTask({ type: 'weekly' })
