@@ -19,7 +19,8 @@ router.get('/', requireAuth, async (req, res) => {
 })
 
 router.post('/:id/complete', requireAuth, async (req, res) => {
-  res.json(await tasks.completeTask(req.params.id, { userId: req.user.id, userName: req.user.name }))
+  const desired = typeof req.body?.completed === 'boolean' ? req.body.completed : undefined
+  res.json(await tasks.completeTask(req.params.id, { userId: req.user.id, userName: req.user.name, desired }))
 })
 
 router.post('/:id/uncomplete-last', requireAuth, async (req, res) => {
