@@ -3,7 +3,8 @@ import { forwardRef } from 'react'
 // Basis-Button (Redesign, Phase 0). Vereinheitlicht die bisher pro Stelle
 // kopierten Button-Klassen. Varianten mappen auf die semantischen Tokens
 // aus index.css. forwardRef, damit z. B. ConfirmDialog den Button fokussieren
-// kann.
+// kann. active:opacity-70 gibt auf dem Touchscreen eine sichtbare Rueckmeldung
+// beim Antippen (Hover gibt es dort nicht).
 const VARIANTS = {
   primary: 'bg-primary text-on-primary',
   secondary: 'bg-transparent text-ink border border-outline-strong hover:bg-surface-container-high',
@@ -21,7 +22,7 @@ const Button = forwardRef(function Button({ variant = 'secondary', size = 'md', 
     <button
       ref={ref}
       type={type}
-      className={`rounded-control font-medium transition-colors disabled:opacity-40 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={`rounded-control font-medium transition active:opacity-70 disabled:opacity-40 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
       {...props}
     />
   )
