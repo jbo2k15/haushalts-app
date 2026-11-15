@@ -12,10 +12,12 @@ import wasteRoutes from './routes/waste.js'
 import storageRoutes from './routes/storage.js'
 import pausesRoutes from './routes/pauses.js'
 import fairnessRoutes from './routes/fairness.js' // Fairness-Statistik
+import displayRoutes from './routes/display.js' // Familien-Display
 import { requireAuth } from './middleware/auth.js'
 import { addSSEClient, removeSSEClient } from './lib/sse.js'
 import { issueTicket, consumeTicket } from './lib/sseTickets.js'
 import prisma from './lib/prisma.js'
+import { isProfile } from './lib/profiles.js'
 
 export function createApp() {
   const app = express()
@@ -66,6 +68,7 @@ export function createApp() {
   app.use('/api/storage', storageRoutes)
   app.use('/api/pauses', pausesRoutes)
   app.use('/api/fairness', fairnessRoutes) // Fairness-Statistik
+  app.use('/api/display', displayRoutes) // Familien-Display
 
   // Kurzlebiges Einmal-Ticket für die SSE-Verbindung ausgeben. requireAuth
   // stellt sicher, dass nur freigeschaltete Nutzer ohne offenen Passwortwechsel
@@ -87,7 +90,7 @@ export function createApp() {
       // 30 s vorher ausgestellt): Freischaltung könnte entzogen oder ein
       // Passwortwechsel erzwungen worden sein.
       const user = await prisma.user.findUnique({ where: { id: userId } })
-      if (!user || !user.approved) return res.status(401).end()
+      if (!user || !user.approved || isProfile(user)) return res.status(401).end()
       if (user.mustChangePassword) return res.status(403).end()
     } catch {
       return res.status(401).end()

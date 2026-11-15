@@ -8,6 +8,7 @@ import { sendPasswordResetEmail } from '../services/email.js'
 import { recordFailedLogin } from '../lib/loginMonitor.js'
 import { sendPushToAdmins } from '../services/push.js'
 import { isRegistrationEnabled } from '../lib/appSettings.js'
+import { isProfile } from '../lib/profiles.js'
 
 const router = Router()
 
@@ -129,7 +130,10 @@ router.post('/login', async (req, res) => {
   if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
     return res.status(401).json({ error: 'Ungültige Anmeldedaten' })
   }
-  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+  // Profile (ohne Anmeldung) werden wie eine unbekannte Adresse behandelt:
+  // gleiche Antwort, gleicher Zeitaufwand, kein Lockout-Zaehler.
+  const found = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+  const user = isProfile(found) ? null : found
 
   if (user?.lockedUntil && user.lockedUntil > new Date()) {
     const minutes = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000)
@@ -182,7 +186,7 @@ router.post('/refresh', async (req, res) => {
   }
 
   const user = await prisma.user.findUnique({ where: { id: stored.userId } })
-  if (!user || !user.approved) {
+  if (!user || !user.approved || isProfile(user)) {
     res.clearCookie(COOKIE_NAME, { path: '/api/auth' })
     return res.status(401).json({ error: 'Nicht autorisiert' })
   }
@@ -233,7 +237,9 @@ router.post('/forgot-password', async (req, res) => {
   const { email } = req.body
   if (!isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' })
 
-  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+  const foundUser = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+  // Profile haben kein Passwort und keine zustellbare Adresse.
+  const user = isProfile(foundUser) ? null : foundUser
   if (!user) {
     // Timing-safe: burn roughly the same time as the real path (token hashing + DB writes)
     // would take, so response time doesn't reveal whether the email is registered.

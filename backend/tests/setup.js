@@ -19,5 +19,6 @@ beforeEach(async () => {
   await prisma.vacationPeriod.deleteMany()
   await prisma.fairnessSettings.deleteMany()
   await prisma.appSettings.deleteMany()
+  await prisma.displayToken.deleteMany()
   await prisma.user.deleteMany()
 })

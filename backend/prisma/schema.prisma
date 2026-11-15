@@ -42,6 +42,14 @@ model User {
   // Fairness-Statistik (siehe domain/fairness.js): Karte in der Ruhmeshalle
   // nur fuer freigegebene Nutzer, Freigabe pro Nutzer durch einen Admin.
   showFairness       Boolean              @default(false)
+  // Familien-Display: "account" = normales Konto mit Anmeldung, "profile" =
+  // Profil ohne Anmeldung (z. B. Kinder), das nur als Erlediger gewaehlt
+  // werden kann. Profile tragen eine nicht zustellbare Platzhalter-Adresse
+  // und einen unbrauchbaren Passwort-Hash (siehe lib/profiles.js) und werden
+  // bei Anmeldung, Fairness und Erinnerungen ausgeschlossen.
+  kind               String               @default("account")
+  // Anzeigefarbe der Person (#RRGGBB), z. B. passend zum Familienkalender.
+  color              String?
   vacationPeriods    VacationPeriod[]
   pushSubscriptions  PushSubscription[]
   notificationSettings NotificationSettings?
@@ -115,6 +123,10 @@ model Task {
   weatherDependent Boolean          @default(false)
   // Fairness-Statistik: Aufwand 1 = Leicht, 2 = Mittel, 3 = Aufwaendig.
   difficulty       Int              @default(2)
+  // Familien-Display: optionale Tageszeit einer Tagesaufgabe ("morning",
+  // "noon", "evening"; null = ohne feste Tageszeit). Rein zur Gruppierung
+  // in der Anzeige, ohne Einfluss auf Faelligkeit, Erinnerungen oder Punkte.
+  timeOfDay        String?
   createdAt        DateTime         @default(now())
   completions      TaskCompletion[]
   logs             TaskLog[]
@@ -177,6 +189,10 @@ model TaskLog {
   // Feature: folgt Aenderungen am Aufwand der Aufgabe (siehe fairness.js).
   weight         Int             @default(2)
   weightFromTask Boolean         @default(false)
+  // Familien-Display: woher der Eintrag kam. "app" = angemeldete Person in
+  // der App, "display" = am Wanddisplay abgehakt (dort waehlt man die Person
+  // aus, ohne dass sie angemeldet ist - die Herkunft macht das nachvollziehbar).
+  source         String          @default("app")
   task         Task?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
   user         User?           @relation(fields: [completedBy], references: [id], onDelete: SetNull)
   // SetNull statt Cascade: Loeschen einer Aufgabe (Task -> TaskCompletion)
@@ -297,4 +313,18 @@ model StorageAlertStatus {
   id               String   @id @default("singleton")
   checkedAt        DateTime @default(now())
   notifiedItemIds  String   @default("[]")
+}
+
+// Familien-Display: langlebige Zugangsschluessel fuer ein Wanddisplay (z. B.
+// Home Assistant). Getrennt von der normalen Anmeldung: ein Schluessel gehoert
+// keiner Person, laeuft nicht ab und darf ausschliesslich die /api/display-
+// Endpunkte nutzen (siehe middleware/display.js). Gespeichert wird nur der
+// SHA-256-Hash; der Klartext wird genau einmal beim Anlegen angezeigt.
+// Widerrufen = Zeile loeschen.
+model DisplayToken {
+  id         String    @id @default(uuid())
+  name       String
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
 }

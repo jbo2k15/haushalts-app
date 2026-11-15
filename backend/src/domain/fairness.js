@@ -278,7 +278,9 @@ export async function getFairness() {
 
   const [users, logs, vacations] = await Promise.all([
     prisma.user.findMany({
-      where: { approved: true },
+      // Nur Konten: Profile (z. B. Kinder) sammeln Punkte, gehoeren aber nicht
+      // in den Vergleich der Arbeitsverteilung.
+      where: { approved: true, kind: 'account' },
       select: { id: true, name: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     }),
@@ -346,7 +348,7 @@ function withDays(v, today) {
 export async function listAdminUsers() {
   const today = todayString()
   const users = await prisma.user.findMany({
-    where: { approved: true },
+    where: { approved: true, kind: 'account' },
     orderBy: { createdAt: 'asc' },
     select: {
       id: true,

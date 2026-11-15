@@ -43,6 +43,15 @@ export const VALID_PRIORITIES = ['high', 'normal', 'low']
 // often). monthly/once tasks have a single natural due point, so multi-
 // completion isn't offered for those.
 export const MULTI_ELIGIBLE_TYPES = ['daily', 'weekly']
+// Familien-Display: optionale Tageszeit einer Tagesaufgabe (Gruppierung in der
+// Anzeige: morgens / mittags / abends). null = ohne feste Tageszeit.
+export const VALID_TIMES_OF_DAY = ['morning', 'noon', 'evening']
+
+// Normalisiert die Eingabe auf einen gueltigen Wert oder null. Leerer String
+// (Formular "keine Tageszeit") und Nicht-Tagesaufgaben ergeben null.
+function normalizeTimeOfDay(type, timeOfDay) {
+  return type === 'daily' && VALID_TIMES_OF_DAY.includes(timeOfDay) ? timeOfDay : null
+}
 
 // Effektiver Faelligkeitsmonat einer Monatsaufgabe: Liegt nextDueMonth in der
 // Vergangenheit (Aufgabe war inaktiv, ueber den Faelligkeitsmonat pausiert,
@@ -101,7 +110,7 @@ export function weeklyTaskVisible(task, todayWeekday) {
   return pos(todayWeekday) >= pos(task.fixedWeekday)
 }
 
-export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty }) {
+export function validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty, timeOfDay }) {
   if (!title || typeof title !== 'string' || title.trim().length === 0) return 'Titel ist erforderlich'
   if (title.length > 200) return 'Titel darf maximal 200 Zeichen haben'
   if (!VALID_TYPES.includes(type)) return 'Ungültiger Typ'
@@ -119,6 +128,10 @@ export function validateTaskInput({ title, type, priority, weekdays, fixedWeekda
   if (allowMultiple && !MULTI_ELIGIBLE_TYPES.includes(type)) return '"Mehrfach erledigbar" ist nur für tägliche oder wöchentliche Aufgaben verfügbar'
   if (weatherDependent && type !== 'daily') return '"Wetterabhängig" ist nur für tägliche Aufgaben verfügbar'
   if (monthlyInterval != null && type !== 'monthly') return 'Interval ist nur für Monataufgaben verfügbar'
+  if (timeOfDay != null && timeOfDay !== '') {
+    if (!VALID_TIMES_OF_DAY.includes(timeOfDay)) return 'Ungültige Tageszeit'
+    if (type !== 'daily') return 'Tageszeit ist nur für tägliche Aufgaben verfügbar'
+  }
   const pauseErr = validatePauseRange(pauseFrom, pauseTo)
   if (pauseErr) return pauseErr
   if ((pauseFrom || pauseTo) && type === 'once') return 'Pausenzeitraum ist für einmalige Aufgaben nicht verfügbar'
@@ -373,14 +386,14 @@ export async function getTaskOverview() {
   return { ...result, pauseSummary }
 }
 
-async function createCompletion({ task, forDate, userId, userName }) {
+async function createCompletion({ task, forDate, userId, userName, source = 'app' }) {
   const taskId = task.id
   return prisma.$transaction(async (tx) => {
     const completion = await tx.taskCompletion.create({ data: { taskId, completedBy: userId, forDate } })
     await tx.taskLog.create({
       data: {
         taskId, taskTitle: task.title, taskType: task.type, status: 'completed',
-        completedBy: userId, userName, forDate, completionId: completion.id,
+        completedBy: userId, userName, forDate, completionId: completion.id, source,
         ...logWeightFields(task),
       },
     })
@@ -395,7 +408,8 @@ async function createCompletion({ task, forDate, userId, userName }) {
 // erledigte Aufgabe aus einer veralteten Ansicht heraus "abhakt" (zweites
 // Handy, App gerade erst wieder geoeffnet), nimmt die Erledigung nicht mehr
 // versehentlich zurueck - genau so verfielen abgehakte Abfall-Termine.
-export async function completeTask(id, { userId, userName, desired }) {
+// source: Herkunft fuer das Log ("app" oder "display", siehe TaskLog.source).
+export async function completeTask(id, { userId, userName, desired, source = 'app' }) {
   const today = todayString()
   const weekStart = currentWeekStart()
   const monthStart = currentMonthStart()
@@ -419,7 +433,7 @@ export async function completeTask(id, { userId, userName, desired }) {
   // completion (undone separately via /uncomplete-last) — no toggle-off
   // here. Everything else keeps the original single toggle behavior below.
   if (MULTI_ELIGIBLE_TYPES.includes(task.type) && task.allowMultiple) {
-    await createCompletion({ task, forDate, userId, userName })
+    await createCompletion({ task, forDate, userId, userName, source })
     const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate } })
     broadcastTasksUpdated()
     return { completed: true, count }
@@ -446,7 +460,7 @@ export async function completeTask(id, { userId, userName, desired }) {
     return { completed: false }
   }
 
-  await createCompletion({ task, forDate, userId, userName })
+  await createCompletion({ task, forDate, userId, userName, source })
 
   // Bei monthly-Tasks mit Interval: nextDueMonth weiterzählen
   if (task.type === 'monthly' && task.monthlyInterval && task.nextDueMonth) {
@@ -590,6 +604,8 @@ export async function getStats() {
   return users.map(u => ({
     id: u.id,
     name: u.name,
+    kind: u.kind,
+    color: u.color,
     curDay: dayCounts[u.id] || 0,
     curWeek: weekCounts[u.id] || 0,
     curMonth: monthCounts[u.id] || 0,
@@ -614,7 +630,7 @@ export async function exportTasks() {
   const tasks = await prisma.task.findMany({
     where: { isAutoGenerated: false },
     orderBy: [{ sortOrder: 'asc' }],
-    select: { id: true, title: true, type: true, priority: true, weekdays: true, fixedWeekday: true, fixedDayOfMonth: true, dueDate: true, isActive: true, allowMultiple: true, weatherDependent: true, difficulty: true },
+    select: { id: true, title: true, type: true, priority: true, weekdays: true, fixedWeekday: true, fixedDayOfMonth: true, dueDate: true, isActive: true, allowMultiple: true, weatherDependent: true, difficulty: true, timeOfDay: true },
   })
   const pauseMap = await getIndividualPausesForTasks(tasks.map(t => t.id))
   const tasksByType = await prisma.task.findMany({
@@ -658,6 +674,7 @@ export async function importTasks(tasks, userId) {
       allowMultiple: MULTI_ELIGIBLE_TYPES.includes(t.type) && t.allowMultiple === true,
       weatherDependent: t.type === 'daily' && t.weatherDependent === true,
       difficulty: t.difficulty ?? DEFAULT_DIFFICULTY,
+      timeOfDay: normalizeTimeOfDay(t.type, t.timeOfDay),
       sortOrder: nextOrder + i,
     }
     if (t.type === 'monthly') {
@@ -677,8 +694,8 @@ export async function importTasks(tasks, userId) {
 }
 
 export async function createTask(body, userId) {
-  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty } = body
-  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty })
+  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty, timeOfDay } = body
+  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty, timeOfDay })
   if (err) throw httpError(400, err)
 
   const maxOrder = await prisma.task.aggregate({ _max: { sortOrder: true } })
@@ -695,6 +712,7 @@ export async function createTask(body, userId) {
     allowMultiple: MULTI_ELIGIBLE_TYPES.includes(type) && allowMultiple === true,
     weatherDependent: type === 'daily' && weatherDependent === true,
     difficulty: difficulty ?? DEFAULT_DIFFICULTY,
+    timeOfDay: normalizeTimeOfDay(type, timeOfDay),
     sortOrder: (maxOrder._max.sortOrder || 0) + 1,
   }
   if (type === 'monthly') {
@@ -711,8 +729,8 @@ export async function updateTask(id, body, userId) {
   if (!task) throw httpError(404, 'Aufgabe nicht gefunden')
   if (task.isAutoGenerated) throw httpError(403, 'Auto-generierte Aufgaben können nicht bearbeitet werden')
 
-  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty } = body
-  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty })
+  const { title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, isActive, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty, timeOfDay } = body
+  const err = validateTaskInput({ title, type, priority, weekdays, fixedWeekday, fixedDayOfMonth, monthlyInterval, dueDate, allowMultiple, weatherDependent, pauseFrom, pauseTo, difficulty, timeOfDay })
   if (err) throw httpError(400, err)
 
   const currentMonth = currentMonthStart().slice(0, 7)
@@ -728,6 +746,9 @@ export async function updateTask(id, body, userId) {
     allowMultiple: MULTI_ELIGIBLE_TYPES.includes(type) && allowMultiple === true,
     weatherDependent: type === 'daily' && weatherDependent === true,
   }
+  // Fehlt die Tageszeit im Body (aeltere, noch gecachte App-Version), bleibt
+  // sie unveraendert - ausser der Typ ist nicht mehr taeglich.
+  if (timeOfDay !== undefined || type !== 'daily') data.timeOfDay = normalizeTimeOfDay(type, timeOfDay)
   // Fehlt der Aufwand (z. B. Fairness abgeschaltet), bleibt er unveraendert.
   if (difficulty != null) data.difficulty = difficulty
   if (type === 'monthly') {
