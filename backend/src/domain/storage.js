@@ -210,6 +210,20 @@ export async function setQuantity(id, quantity) {
   return prisma.storageItem.update({ where: { id }, data: { quantity: normalizeQuantity(quantity) } })
 }
 
+// Familien-Display: Bestand um eine Menge erhoehen (z. B. nach dem Einkauf),
+// ohne den aktuellen Stand kennen zu muessen. Nur Erhoehen - Verbrauch und
+// freies Setzen bleiben der App vorbehalten (setQuantity).
+export async function restockItem(id, amount = 1) {
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0 || amount > MAX_QUANTITY) {
+    throw httpError(400, 'Menge muss eine Zahl größer 0 sein')
+  }
+  const item = await prisma.storageItem.findUnique({ where: { id } })
+  if (!item) throw httpError(404, 'Artikel nicht gefunden')
+  const quantity = normalizeQuantity(item.quantity + amount)
+  if (quantity > MAX_QUANTITY) throw httpError(400, QUANTITY_ERROR)
+  return prisma.storageItem.update({ where: { id }, data: { quantity } })
+}
+
 export async function deleteItem(id) {
   const item = await prisma.storageItem.findUnique({ where: { id } })
   if (!item) throw httpError(404, 'Artikel nicht gefunden')
