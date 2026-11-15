@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import { requireDisplay, isDisplayApiEnabled } from '../middleware/display.js'
 import * as display from '../domain/display.js'
+import { checkLowStockAlerts } from '../services/storage-alerts.js'
 
 // Familien-Display. Zwei getrennte Zugangswege in einem Router:
 //   - /tokens, /status: Verwaltung der Schluessel durch angemeldete Admins.
@@ -32,6 +33,23 @@ router.delete('/tokens/:id', requireAuth, requireAdmin, async (req, res) => {
 router.get('/overview', requireDisplay, async (req, res) => {
   res.set('Cache-Control', 'no-store')
   res.json(await display.getOverview())
+})
+
+// ── Schreibzugriffe des Displays (bewusst nur diese drei) ────────────────────
+router.post('/tasks/:id/complete', requireDisplay, async (req, res) => {
+  res.json(await display.completeFromDisplay(req.params.id, req.body ?? {}))
+})
+
+router.post('/tasks/:id/uncomplete-last', requireDisplay, async (req, res) => {
+  res.json(await display.uncompleteLastFromDisplay(req.params.id))
+})
+
+router.post('/storage/items/:id/restock', requireDisplay, async (req, res) => {
+  const item = await display.restockFromDisplay(req.params.id, req.body ?? {})
+  // Wie in routes/storage.js: Knapp-Status nachziehen, ohne die Antwort
+  // darauf warten zu lassen.
+  checkLowStockAlerts().catch(err => console.error('Vorrat: Fehler beim Knapp-Check:', err.message))
+  res.json(item)
 })
 
 export default router
