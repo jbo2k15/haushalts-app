@@ -8,7 +8,7 @@ import prisma from '../lib/prisma.js'
 import { httpError } from '../lib/httpError.js'
 import { todayString } from '../lib/dates.js'
 import { getTaskOverview, getStats, completeTask, uncompleteLast, MULTI_ELIGIBLE_TYPES } from './tasks.js'
-import { listLowStockItems, restockItem } from './storage.js'
+import { listLowStockItems, restockItem, adjustItemQuantity, listLocations, effectiveMinQuantity } from './storage.js'
 import { getCountMode } from './fairness.js'
 import { DISPLAY_TOKEN_PREFIX, hashDisplayToken } from '../middleware/display.js'
 
@@ -130,3 +130,35 @@ export async function restockFromDisplay(id, { amount } = {}) {
   return restockItem(id, amount === undefined ? 1 : amount)
 }
 
+
+// Gesamter Vorrat fuer die Uebersicht am Display: Lagerorte in ihrer
+// Reihenfolge, darunter flach die Artikel (Kategorie-Reihenfolge, dann
+// Artikel-Reihenfolge) - flach, weil das Display die Zeilen ueber ihre
+// Position anspricht. minQuantity ist die wirksame Mindestmenge (Artikel oder
+// Kategorie-Standard), low entspricht der Einkaufsliste der App.
+export async function getStorageOverview() {
+  const locations = await listLocations()
+  return {
+    generatedAt: new Date().toISOString(),
+    locations: locations.map(location => ({
+      id: location.id,
+      name: location.name,
+      items: location.categories.flatMap(category => category.items.map(item => {
+        const minQuantity = effectiveMinQuantity({ ...item, category })
+        return {
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          minQuantity,
+          low: item.quantity <= minQuantity,
+          categoryName: category.name,
+        }
+      })),
+    })),
+  }
+}
+
+export async function adjustFromDisplay(id, { delta } = {}) {
+  return adjustItemQuantity(id, delta)
+}

@@ -130,6 +130,8 @@ const MATRIX = {
   'POST /api/display/tasks/:id/complete': 'DISPLAY',
   'POST /api/display/tasks/:id/uncomplete-last': 'DISPLAY',
   'POST /api/display/storage/items/:id/restock': 'DISPLAY',
+  'GET /api/display/storage': 'DISPLAY',
+  'POST /api/display/storage/items/:id/adjust': 'DISPLAY',
 }
 
 // Muss app.js entsprechen - wird unten gegen die echte App geprüft.

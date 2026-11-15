@@ -224,6 +224,21 @@ export async function restockItem(id, amount = 1) {
   return prisma.storageItem.update({ where: { id }, data: { quantity } })
 }
 
+// Familien-Display: Bestand um delta aendern (positiv = auffuellen, negativ =
+// verbrauchen), ohne den aktuellen Stand kennen zu muessen. Faellt der Bestand
+// rechnerisch unter 0, wird er auf 0 gesetzt - ein zu haeufiger Tipp auf
+// "Minus" soll keinen Fehler ausloesen.
+export async function adjustItemQuantity(id, delta) {
+  if (typeof delta !== 'number' || !Number.isFinite(delta) || delta === 0 || Math.abs(delta) > MAX_QUANTITY) {
+    throw httpError(400, 'Änderung muss eine Zahl ungleich 0 sein')
+  }
+  const item = await prisma.storageItem.findUnique({ where: { id } })
+  if (!item) throw httpError(404, 'Artikel nicht gefunden')
+  const quantity = Math.max(0, normalizeQuantity(item.quantity + delta))
+  if (quantity > MAX_QUANTITY) throw httpError(400, QUANTITY_ERROR)
+  return prisma.storageItem.update({ where: { id }, data: { quantity } })
+}
+
 export async function deleteItem(id) {
   const item = await prisma.storageItem.findUnique({ where: { id } })
   if (!item) throw httpError(404, 'Artikel nicht gefunden')
