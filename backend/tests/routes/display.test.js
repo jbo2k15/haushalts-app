@@ -357,3 +357,126 @@ describe('POST /api/display/storage/items/:id/restock', () => {
     expect(after.body.lowStock).toEqual([])
   })
 })
+
+// Vorrats-Übersicht am Display und Sperre für Zugriffe über Cloudflare.
+describe('Display-Zugang nur im Heimnetz', () => {
+  it('weist Anfragen über Cloudflare ab, auch mit gültigem Schlüssel', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const { token } = (await createDisplayToken(admin)).body
+    for (const header of ['CF-Connecting-IP', 'CF-Ray', 'CF-IPCountry', 'CDN-Loop']) {
+      const res = await request(app).get('/api/display/overview').set(displayHeader(token)).set(header, 'x')
+      expect(res.status, header).toBe(404)
+    }
+    const write = await request(app).post('/api/display/storage/items/00000000-0000-4000-8000-000000000000/adjust')
+      .set(displayHeader(token)).set('CF-Connecting-IP', '203.0.113.7').send({ delta: 1 })
+    expect(write.status).toBe(404)
+    // Ohne die Header (direkt im Heimnetz) funktioniert derselbe Schlüssel.
+    expect((await request(app).get('/api/display/overview').set(displayHeader(token))).status).toBe(200)
+  })
+
+  it('DISPLAY_API_ALLOW_PROXIED=true hebt die Sperre auf', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const { token } = (await createDisplayToken(admin)).body
+    process.env.DISPLAY_API_ALLOW_PROXIED = 'true'
+    try {
+      const res = await request(app).get('/api/display/overview').set(displayHeader(token)).set('CF-Connecting-IP', '203.0.113.7')
+      expect(res.status).toBe(200)
+    } finally {
+      delete process.env.DISPLAY_API_ALLOW_PROXIED
+    }
+  })
+
+  it('die Sperre betrifft die App für angemeldete Nutzer nicht', async () => {
+    const admin = await createUser({ role: 'admin' })
+    const res = await request(app).get('/api/tasks').set(authHeader(admin.id)).set('CF-Connecting-IP', '203.0.113.7')
+    expect(res.status).toBe(200)
+    const tokens = await request(app).get('/api/display/tokens').set(authHeader(admin.id)).set('CF-Connecting-IP', '203.0.113.7')
+    expect(tokens.status).toBe(200)
+  })
+})
+
+describe('GET /api/display/storage', () => {
+  async function setup() {
+    const admin = await createUser({ role: 'admin' })
+    const { token } = (await createDisplayToken(admin)).body
+    const keller = await prisma.storageLocation.create({ data: { name: 'Keller', sortOrder: 1 } })
+    const kueche = await prisma.storageLocation.create({ data: { name: 'Küche', sortOrder: 0 } })
+    const getraenke = await prisma.storageCategory.create({ data: { name: 'Getränke', locationId: keller.id, defaultMinQuantity: 2, sortOrder: 1 } })
+    const konserven = await prisma.storageCategory.create({ data: { name: 'Konserven', locationId: keller.id, defaultMinQuantity: 1, sortOrder: 0 } })
+    const milch = await prisma.storageItem.create({ data: { name: 'Milch', quantity: 1, unit: 'Liter', locationId: keller.id, categoryId: getraenke.id, sortOrder: 0 } })
+    await prisma.storageItem.create({ data: { name: 'Wasser', quantity: 12, minQuantity: 6, locationId: keller.id, categoryId: getraenke.id, sortOrder: 1 } })
+    await prisma.storageItem.create({ data: { name: 'Tomaten', quantity: 4, locationId: keller.id, categoryId: konserven.id, sortOrder: 0 } })
+    return { admin, token, keller, kueche, milch }
+  }
+
+  it('liefert alle Lagerorte und Artikel in ihrer Reihenfolge', async () => {
+    const { token, keller, kueche, milch } = await setup()
+    const res = await request(app).get('/api/display/storage').set(displayHeader(token))
+    expect(res.status).toBe(200)
+    expect(res.headers['cache-control']).toBe('no-store')
+    expect(res.body.locations.map(l => l.name)).toEqual(['Küche', 'Keller'])
+    expect(res.body.locations[0]).toMatchObject({ id: kueche.id, items: [] })
+    const items = res.body.locations[1].items
+    expect(res.body.locations[1].id).toBe(keller.id)
+    expect(items.map(i => i.name)).toEqual(['Tomaten', 'Milch', 'Wasser'])
+    expect(items[1]).toEqual({ id: milch.id, name: 'Milch', quantity: 1, unit: 'Liter', minQuantity: 2, low: true, categoryName: 'Getränke' })
+    expect(items[2]).toMatchObject({ name: 'Wasser', minQuantity: 6, low: false })
+    expect(items[0]).toMatchObject({ name: 'Tomaten', minQuantity: 1, low: false, unit: null, categoryName: 'Konserven' })
+  })
+
+  it('verlangt einen Display-Schlüssel', async () => {
+    const { admin } = await setup()
+    expect((await request(app).get('/api/display/storage')).status).toBe(401)
+    expect((await request(app).get('/api/display/storage').set(authHeader(admin.id))).status).toBe(401)
+  })
+})
+
+describe('POST /api/display/storage/items/:id/adjust', () => {
+  async function setup(quantity = 2) {
+    const admin = await createUser({ role: 'admin' })
+    const { token } = (await createDisplayToken(admin)).body
+    const location = await prisma.storageLocation.create({ data: { name: 'Keller' } })
+    const category = await prisma.storageCategory.create({ data: { name: 'Getränke', locationId: location.id } })
+    const item = await prisma.storageItem.create({ data: { name: 'Milch', quantity, locationId: location.id, categoryId: category.id } })
+    return { admin, token, item, url: `/api/display/storage/items/${item.id}/adjust` }
+  }
+
+  it('erhöht und verringert den Bestand', async () => {
+    const { token, url } = await setup(2)
+    expect((await request(app).post(url).set(displayHeader(token)).send({ delta: 1 })).body.quantity).toBe(3)
+    expect((await request(app).post(url).set(displayHeader(token)).send({ delta: -2 })).body.quantity).toBe(1)
+    expect((await request(app).post(url).set(displayHeader(token)).send({ delta: 0.5 })).body.quantity).toBe(1.5)
+  })
+
+  it('fällt nie unter 0', async () => {
+    const { token, url, item } = await setup(1)
+    const res = await request(app).post(url).set(displayHeader(token)).send({ delta: -5 })
+    expect(res.status).toBe(200)
+    expect(res.body.quantity).toBe(0)
+    const again = await request(app).post(url).set(displayHeader(token)).send({ delta: -1 })
+    expect(again.body.quantity).toBe(0)
+    expect((await prisma.storageItem.findUnique({ where: { id: item.id } })).quantity).toBe(0)
+  })
+
+  it('lehnt ungültige Änderungen ab und ändert dann nichts', async () => {
+    const { token, url, item } = await setup(2)
+    for (const delta of [0, '1', null, undefined, 100001, -100001, Number.NaN]) {
+      const res = await request(app).post(url).set(displayHeader(token)).send({ delta })
+      expect(res.status, `delta=${delta}`).toBe(400)
+    }
+    expect((await prisma.storageItem.findUnique({ where: { id: item.id } })).quantity).toBe(2)
+  })
+
+  it('überschreitet die Höchstmenge nicht', async () => {
+    const { token, url, item } = await setup(2)
+    await prisma.storageItem.update({ where: { id: item.id }, data: { quantity: 99999.5 } })
+    expect((await request(app).post(url).set(displayHeader(token)).send({ delta: 1 })).status).toBe(400)
+  })
+
+  it('unbekannter Artikel: 404; ohne Schlüssel oder mit Nutzer-Token: 401', async () => {
+    const { admin, token, url } = await setup()
+    expect((await request(app).post('/api/display/storage/items/00000000-0000-4000-8000-000000000000/adjust').set(displayHeader(token)).send({ delta: 1 })).status).toBe(404)
+    expect((await request(app).post(url).send({ delta: 1 })).status).toBe(401)
+    expect((await request(app).post(url).set(authHeader(admin.id)).send({ delta: 1 })).status).toBe(401)
+  })
+})
