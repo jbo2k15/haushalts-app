@@ -310,3 +310,17 @@ model StorageAlertStatus {
   checkedAt        DateTime @default(now())
   notifiedItemIds  String   @default("[]")
 }
+
+// Familien-Display: langlebige Zugangsschluessel fuer ein Wanddisplay (z. B.
+// Home Assistant). Getrennt von der normalen Anmeldung: ein Schluessel gehoert
+// keiner Person, laeuft nicht ab und darf ausschliesslich die /api/display-
+// Endpunkte nutzen (siehe middleware/display.js). Gespeichert wird nur der
+// SHA-256-Hash; der Klartext wird genau einmal beim Anlegen angezeigt.
+// Widerrufen = Zeile loeschen.
+model DisplayToken {
+  id         String    @id @default(uuid())
+  name       String
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+}

@@ -13,6 +13,7 @@ import wasteRoutes from '../../src/routes/waste.js'
 import storageRoutes from '../../src/routes/storage.js'
 import pausesRoutes from '../../src/routes/pauses.js'
 import fairnessRoutes from '../../src/routes/fairness.js'
+import displayRoutes from '../../src/routes/display.js'
 
 // Rechte-Matrix: JEDE Route der API muss hier bewusst einer Schutzstufe
 // zugeordnet sein, und der Test prüft das tatsächliche Verhalten dagegen.
@@ -21,6 +22,8 @@ import fairnessRoutes from '../../src/routes/fairness.js'
 //   TICKET - SSE-Stream: Einmal-Ticket statt Bearer-Token
 //   USER   - jedes freigeschaltete Haushaltsmitglied
 //   ADMIN  - nur Admins
+//   DISPLAY - Wanddisplay: eigener Display-Schlüssel statt Nutzerkonto, und
+//             nur bei DISPLAY_API_ENABLED=true (sonst 404)
 //
 // Eine neue Route ohne Eintrag lässt den Test fehlschlagen ("nicht
 // klassifiziert") - so kann kein Endpunkt versehentlich ungeschützt oder mit
@@ -117,6 +120,13 @@ const MATRIX = {
   'POST /api/fairness/admin/vacations': 'ADMIN',
   'PUT /api/fairness/admin/vacations/:id': 'ADMIN',
   'DELETE /api/fairness/admin/vacations/:id': 'ADMIN',
+
+  // ── /api/display (Familien-Display) ────────────────────────────────────────
+  'GET /api/display/status': 'ADMIN',
+  'GET /api/display/tokens': 'ADMIN',
+  'POST /api/display/tokens': 'ADMIN',
+  'DELETE /api/display/tokens/:id': 'ADMIN',
+  'GET /api/display/overview': 'DISPLAY',
 }
 
 // Muss app.js entsprechen - wird unten gegen die echte App geprüft.
@@ -130,6 +140,7 @@ const MOUNTS = [
   ['/api/storage', storageRoutes],
   ['/api/pauses', pausesRoutes],
   ['/api/fairness', fairnessRoutes],
+  ['/api/display', displayRoutes],
 ]
 
 const app = createApp()
@@ -274,6 +285,22 @@ describe('Rechte-Matrix: Verhalten', () => {
     for (const r of byLevel('USER')) {
       const status = await call(r, authHeader(user.id))
       if (status === 401 || status === 403) wrong.push(`${r} → ${status}`)
+    }
+    expect(wrong).toEqual([])
+  })
+
+  it('Display-Routen: ohne Hauptschalter 404, auch für angemeldete Admins', async () => {
+    // In der Testumgebung ist DISPLAY_API_ENABLED nicht gesetzt. Das Verhalten
+    // mit eingeschaltetem Display-Zugang prüft tests/routes/display.test.js.
+    expect(process.env.DISPLAY_API_ENABLED).toBeUndefined()
+    const admin = await createUser({ role: 'admin' })
+    expect(byLevel('DISPLAY').length).toBeGreaterThan(0)
+    const wrong = []
+    for (const r of byLevel('DISPLAY')) {
+      for (const headers of [{}, authHeader(admin.id)]) {
+        const status = await call(r, headers)
+        if (status !== 404) wrong.push(`${r} → ${status}`)
+      }
     }
     expect(wrong).toEqual([])
   })

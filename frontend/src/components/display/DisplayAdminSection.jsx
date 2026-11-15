@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../../api/client.js'
 import { useDialog } from '../../context/DialogContext.jsx'
 import Card from '../ui/Card.jsx'
@@ -12,6 +12,8 @@ import { inputCls } from '../admin/constants.js'
 // - Profile: Personen ohne Anmeldung (z. B. Kinder), die am Display als
 //   Erlediger gewaehlt werden koennen und Punkte sammeln.
 // - Farben: Anzeigefarbe pro Person, passend zum Familienkalender.
+// - Display-Schluessel: Zugang fuer das Wanddisplay (z. B. Home Assistant),
+//   getrennt von den Nutzerkonten. Der Klartext wird nur einmal angezeigt.
 
 const DEFAULT_COLOR = '#4A5568'
 
@@ -25,6 +27,107 @@ function ColorInput({ id, value, onChange, label }) {
       onChange={e => onChange(e.target.value)}
       className="w-11 h-11 shrink-0 rounded-control border border-outline bg-surface-container-high p-1"
     />
+  )
+}
+
+function formatDate(str) {
+  return new Date(str).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function DisplayTokensCard() {
+  const dialog = useDialog()
+  const [enabled, setEnabled] = useState(null)
+  const [tokens, setTokens] = useState([])
+  const [name, setName] = useState('')
+  const [fresh, setFresh] = useState(null)
+  const [copied, setCopied] = useState(false)
+
+  async function load() {
+    try {
+      const [status, list] = await Promise.all([api.get('/display/status'), api.get('/display/tokens')])
+      setEnabled(status?.enabled === true)
+      setTokens(Array.isArray(list) ? list : [])
+    } catch {}
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function create(e) {
+    e.preventDefault()
+    if (!name.trim()) return
+    try {
+      const created = await api.post('/display/tokens', { name: name.trim() })
+      setFresh(created)
+      setCopied(false)
+      setName('')
+      load()
+    } catch (err) {
+      dialog.alert(err.message)
+    }
+  }
+
+  async function remove(token) {
+    if (!(await dialog.confirm({ title: 'Schlüssel löschen?', message: `"${token.name}" verliert sofort den Zugriff. Das Display zeigt dann keine Aufgaben mehr, bis du einen neuen Schlüssel einträgst.`, confirmLabel: 'Löschen', tone: 'danger' }))) return
+    try {
+      await api.delete(`/display/tokens/${token.id}`)
+      if (fresh?.id === token.id) setFresh(null)
+      load()
+    } catch (err) {
+      dialog.alert(err.message)
+    }
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(fresh.token)
+      setCopied(true)
+    } catch {
+      dialog.alert('Kopieren nicht möglich. Bitte den Schlüssel von Hand markieren und kopieren.')
+    }
+  }
+
+  return (
+    <Card className="overflow-hidden" data-testid="display-tokens-card">
+      <div className="px-4 py-3 bg-surface-container-high border-b border-outline">
+        <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Display-Schlüssel</h3>
+        <p className="text-xs text-ink-faint mt-1">Zugang für das Wanddisplay. Ein Schlüssel darf nur die Display-Daten nutzen, nicht die übrige App.</p>
+      </div>
+      <div className="p-4 space-y-3">
+        {enabled === false && (
+          <p className="text-sm text-ink-faint" data-testid="display-disabled-hint">
+            Der Display-Zugang ist am Server ausgeschaltet. Setze <code className="text-xs">DISPLAY_API_ENABLED=true</code> in der Server-Konfiguration und starte die App neu. Schlüssel kannst du schon jetzt anlegen.
+          </p>
+        )}
+        {fresh && (
+          <div className="space-y-2 rounded-control border border-outline p-3" data-testid="display-token-fresh">
+            <p className="text-sm text-ink">Neuer Schlüssel für „{fresh.name}“. Er wird nur jetzt angezeigt, kopiere ihn gleich.</p>
+            <input readOnly aria-label="Neuer Display-Schlüssel" className={`${inputCls} font-mono text-xs`} value={fresh.token}
+              onFocus={e => e.target.select()} data-testid="display-token-value" />
+            <div className="flex gap-2">
+              <Button variant="primary" onClick={copy}>{copied ? 'Kopiert' : 'Kopieren'}</Button>
+              <Button onClick={() => setFresh(null)}>Ausblenden</Button>
+            </div>
+          </div>
+        )}
+        {tokens.length === 0 && <p className="text-sm text-ink-faint">Noch kein Schlüssel angelegt.</p>}
+        {tokens.map(t => (
+          <div key={t.id} className="flex items-center gap-3" data-testid="display-token-row">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-ink truncate">{t.name}</p>
+              <p className="text-xs text-ink-faint">
+                Angelegt: {formatDate(t.createdAt)} · {t.lastUsedAt ? `zuletzt benutzt: ${formatDate(t.lastUsedAt)}` : 'noch nie benutzt'}
+              </p>
+            </div>
+            <button onClick={() => remove(t)} className="text-xs bg-danger-container text-on-danger-container px-3 py-1.5 rounded-lg font-medium shrink-0" data-testid="display-token-delete">Löschen</button>
+          </div>
+        ))}
+        <form onSubmit={create} className="flex items-center gap-2">
+          <input aria-label="Name des neuen Schlüssels" className={inputCls} maxLength={60} placeholder="z. B. Wanddisplay Flur" value={name}
+            onChange={e => setName(e.target.value)} data-testid="display-token-name" />
+          <Button type="submit" variant="primary" disabled={!name.trim()} className="shrink-0" data-testid="display-token-add">Anlegen</Button>
+        </form>
+      </div>
+    </Card>
   )
 }
 
@@ -106,6 +209,8 @@ export default function DisplayAdminSection({ users, onChanged }) {
           </div>
         </form>
       </Card>
+
+      <DisplayTokensCard />
     </section>
   )
 }
