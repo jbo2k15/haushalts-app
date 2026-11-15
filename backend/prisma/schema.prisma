@@ -115,6 +115,10 @@ model Task {
   weatherDependent Boolean          @default(false)
   // Fairness-Statistik: Aufwand 1 = Leicht, 2 = Mittel, 3 = Aufwaendig.
   difficulty       Int              @default(2)
+  // Familien-Display: optionale Tageszeit einer Tagesaufgabe ("morning",
+  // "noon", "evening"; null = ohne feste Tageszeit). Rein zur Gruppierung
+  // in der Anzeige, ohne Einfluss auf Faelligkeit, Erinnerungen oder Punkte.
+  timeOfDay        String?
   createdAt        DateTime         @default(now())
   completions      TaskCompletion[]
   logs             TaskLog[]
