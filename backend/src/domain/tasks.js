@@ -603,6 +603,8 @@ export async function getStats() {
   return users.map(u => ({
     id: u.id,
     name: u.name,
+    kind: u.kind,
+    color: u.color,
     curDay: dayCounts[u.id] || 0,
     curWeek: weekCounts[u.id] || 0,
     curMonth: monthCounts[u.id] || 0,

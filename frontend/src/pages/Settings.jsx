@@ -11,6 +11,7 @@ import Switch from '../components/ui/Switch.jsx'
 import Button from '../components/ui/Button.jsx'
 import UsersTab from '../components/admin/UsersTab.jsx'
 import FairnessAdminSection from '../components/fairness/FairnessAdminSection.jsx' // Fairness-Statistik
+import DisplayAdminSection from '../components/display/DisplayAdminSection.jsx' // Familien-Display
 import { useDialog } from '../context/DialogContext.jsx'
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
@@ -117,7 +118,7 @@ export default function Settings() {
 
   async function deleteUser(id) {
     const userRecord = users.find(u => u.id === id)
-    if (!(await dialog.confirm({ title: 'Nutzer löschen?', message: `"${userRecord.name}" (${userRecord.email}) wird dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.`, confirmLabel: 'Löschen', tone: 'danger' }))) return
+    if (!(await dialog.confirm({ title: 'Nutzer löschen?', message: `"${userRecord.name}"${userRecord.kind === 'profile' ? '' : ` (${userRecord.email})`} wird dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.`, confirmLabel: 'Löschen', tone: 'danger' }))) return
     try {
       await api.delete(`/users/${id}`)
       loadUsers()
@@ -468,6 +469,8 @@ export default function Settings() {
           )}
 
           {user?.role === 'admin' && <FairnessAdminSection currentUserId={user?.id} />}
+
+          {user?.role === 'admin' && <DisplayAdminSection users={users} onChanged={loadUsers} />}
 
           <Card className="p-4">
             <Button variant="secondary" onClick={logout} className="w-full" data-testid="logout">Abmelden</Button>

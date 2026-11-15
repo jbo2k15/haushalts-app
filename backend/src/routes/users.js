@@ -4,6 +4,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import { sendApprovalEmail } from '../services/email.js'
 import { recordVacationToggle } from '../domain/fairness.js' // Fairness-Statistik
 import { setRegistrationEnabled } from '../lib/appSettings.js'
+import { KIND_PROFILE, UNUSABLE_PASSWORD_HASH, isProfile, newProfileEmail, validateColor, normalizeColor, validateProfileName } from '../lib/profiles.js'
 
 const router = Router()
 
@@ -157,12 +158,71 @@ router.put('/registration', requireAuth, requireAdmin, async (req, res) => {
   res.json(result)
 })
 
+// ── Familien-Display: Profile (Personen ohne Anmeldung) und Farben ───────────
+// Literale Pfade (/profiles...) stehen bewusst vor den generischen /:id-Routen.
+const PROFILE_SELECT = { id: true, name: true, kind: true, color: true, approved: true, createdAt: true }
+
+router.post('/profiles', requireAuth, requireAdmin, async (req, res) => {
+  const { name, color } = req.body ?? {}
+  const err = validateProfileName(name) || validateColor(color)
+  if (err) return res.status(400).json({ error: err })
+  const profile = await prisma.user.create({
+    data: {
+      email: newProfileEmail(),
+      passwordHash: UNUSABLE_PASSWORD_HASH,
+      name: name.trim(),
+      role: 'user',
+      // Freigeschaltet, damit das Profil in Rangliste und Pokalen mitzaehlt;
+      // anmelden kann es sich trotzdem nie (siehe lib/profiles.js).
+      approved: true,
+      kind: KIND_PROFILE,
+      color: normalizeColor(color),
+    },
+    select: PROFILE_SELECT,
+  })
+  console.info(`[USERS] Profil angelegt: id=${profile.id} von userId=${req.user.id}`)
+  res.status(201).json(profile)
+})
+
+router.put('/profiles/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { name, color } = req.body ?? {}
+  const err = validateProfileName(name) || validateColor(color)
+  if (err) return res.status(400).json({ error: err })
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } })
+  if (!target || !isProfile(target)) return res.status(404).json({ error: 'Profil nicht gefunden' })
+  const updated = await prisma.user.update({
+    where: { id: target.id },
+    data: { name: name.trim(), color: normalizeColor(color) },
+    select: PROFILE_SELECT,
+  })
+  res.json(updated)
+})
+
+// Anzeigefarbe einer beliebigen Person (Konto oder Profil) setzen oder mit
+// null entfernen.
+router.put('/:id/color', requireAuth, requireAdmin, async (req, res) => {
+  const { color } = req.body ?? {}
+  const err = validateColor(color)
+  if (err) return res.status(400).json({ error: err })
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } })
+  if (!target) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+  const updated = await prisma.user.update({
+    where: { id: target.id },
+    data: { color: normalizeColor(color) },
+    select: PROFILE_SELECT,
+  })
+  res.json(updated)
+})
+
 router.post('/:id/role', requireAuth, requireAdmin, async (req, res) => {
   const { id } = req.params
   if (id === req.user.id) return res.status(400).json({ error: 'Du kannst deinen eigenen Admin-Status nicht ändern' })
 
   const target = await prisma.user.findUnique({ where: { id } })
   if (!target) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+  // Ein Profil kann sich nicht anmelden - als Admin waere es wirkungslos und
+  // wuerde die "mindestens ein Admin"-Pruefung verfaelschen.
+  if (isProfile(target)) return res.status(400).json({ error: 'Profile können keine Admins sein' })
 
   if (target.role === 'admin') {
     const adminCount = await prisma.user.count({ where: { role: 'admin' } })
@@ -179,7 +239,7 @@ router.post('/:id/role', requireAuth, requireAdmin, async (req, res) => {
 
 router.get('/', requireAuth, requireAdmin, async (req, res) => {
   const users = await prisma.user.findMany({
-    select: { id: true, email: true, name: true, role: true, approved: true, createdAt: true, lastActiveAt: true },
+    select: { id: true, email: true, name: true, role: true, approved: true, createdAt: true, lastActiveAt: true, kind: true, color: true },
     orderBy: { createdAt: 'asc' },
   })
   res.json(users)
@@ -193,6 +253,9 @@ router.post('/:id/approve', requireAuth, requireAdmin, async (req, res) => {
   if (req.params.id === req.user.id) return res.status(400).json({ error: 'Du kannst deinen eigenen Account nicht sperren' })
   const user = await prisma.user.findUnique({ where: { id: req.params.id } })
   if (!user) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+  // Profile haben keine Anmeldung, die man sperren koennte, und keine
+  // zustellbare Adresse fuer die Freischalt-Mail. Entfernt werden sie per Loeschen.
+  if (isProfile(user)) return res.status(400).json({ error: 'Profile können nicht gesperrt werden' })
 
   const wasApproved = user.approved
   const updated = await prisma.user.update({

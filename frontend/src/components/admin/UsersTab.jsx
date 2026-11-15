@@ -15,7 +15,8 @@ export default function UsersTab({ users, currentUserId, onToggleRole, onToggleA
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-ink truncate">{userRecord.name}</p>
-            <p className="text-xs text-ink-faint truncate">{userRecord.email}</p>
+            {/* Profile (Familien-Display) haben nur eine technische Platzhalter-Adresse. */}
+            <p className="text-xs text-ink-faint truncate">{userRecord.kind === 'profile' ? 'Profil ohne Anmeldung' : userRecord.email}</p>
             <p className="text-xs text-ink-faint mt-0.5">
               {userRecord.lastActiveAt
                 ? `Zuletzt aktiv: ${new Date(userRecord.lastActiveAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} Uhr`
@@ -31,7 +32,12 @@ export default function UsersTab({ users, currentUserId, onToggleRole, onToggleA
             {userRecord.id === currentUserId && (
               <Badge tone="neutral" className="px-2 py-1.5">Du</Badge>
             )}
-            {userRecord.id !== currentUserId && (
+            {userRecord.kind === 'profile' && (
+              <Badge tone="neutral" className="px-2 py-1.5">Profil</Badge>
+            )}
+            {/* Profile koennen weder Admin werden noch gesperrt werden (der Server
+                lehnt beides ab) - nur loeschen. */}
+            {userRecord.id !== currentUserId && userRecord.kind !== 'profile' && (
               <button
                 onClick={() => onToggleRole(userRecord.id)}
                 data-testid="toggle-role"
@@ -40,7 +46,7 @@ export default function UsersTab({ users, currentUserId, onToggleRole, onToggleA
                 {userRecord.role === 'admin' ? '↓ Nutzer' : '↑ Admin'}
               </button>
             )}
-            {userRecord.id !== currentUserId && (
+            {userRecord.id !== currentUserId && userRecord.kind !== 'profile' && (
               <button
                 onClick={() => onToggleApprove(userRecord.id)}
                 data-testid="toggle-approve"
