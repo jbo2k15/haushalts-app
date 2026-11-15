@@ -92,6 +92,7 @@ export default function Admin() {
       weatherDependent: form.type === 'daily' && form.weatherDependent,
       pauseFrom: form.type !== 'once' && form.pauseFrom ? form.pauseFrom : null,
       pauseTo: form.type !== 'once' && form.pauseTo ? form.pauseTo : null,
+      timeOfDay: form.type === 'daily' && form.timeOfDay ? form.timeOfDay : null,
     }
     try {
       if (editId) {
@@ -124,6 +125,7 @@ export default function Admin() {
       pauseFrom: task.pauseFrom || '',
       pauseTo: task.pauseTo || '',
       difficulty: task.difficulty ?? 2,
+      timeOfDay: task.timeOfDay || '',
     })
     setEditId(task.id)
     setShowForm(false)

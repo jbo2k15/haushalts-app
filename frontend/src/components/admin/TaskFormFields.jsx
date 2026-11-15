@@ -1,4 +1,4 @@
-import { WEEKDAY_LABELS, WEEKDAY_ORDER, inputCls } from './constants.js'
+import { WEEKDAY_LABELS, WEEKDAY_ORDER, TIME_OF_DAY_LABELS, inputCls } from './constants.js'
 import DifficultyField from '../fairness/DifficultyField.jsx' // Fairness-Statistik
 
 // Die Formularfelder für eine Aufgabe (geteilt zwischen "Neue Aufgabe" und dem
@@ -55,6 +55,16 @@ export default function TaskFormFields({ form, setForm }) {
             ))}
           </div>
         </fieldset>
+      )}
+      {form.type === 'daily' && (
+        <div>
+          <label htmlFor="task-time-of-day" className="block text-sm text-ink-muted mb-1">Tageszeit (optional)</label>
+          <select id="task-time-of-day" className={inputCls}
+            value={form.timeOfDay ?? ''} onChange={e => setForm(f => ({ ...f, timeOfDay: e.target.value }))}>
+            <option value="">Keine feste Tageszeit</option>
+            {Object.entries(TIME_OF_DAY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </div>
       )}
       {(form.type === 'daily' || form.type === 'weekly') && (
         <div className="flex items-center gap-2">
