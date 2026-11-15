@@ -90,7 +90,7 @@ function DisplayTokensCard() {
     <Card className="overflow-hidden" data-testid="display-tokens-card">
       <div className="px-4 py-3 bg-surface-container-high border-b border-outline">
         <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Display-Schlüssel</h3>
-        <p className="text-xs text-ink-faint mt-1">Zugang für das Wanddisplay. Ein Schlüssel darf nur die Display-Daten nutzen, nicht die übrige App.</p>
+        <p className="text-xs text-ink-muted mt-1">Zugang für das Wanddisplay. Ein Schlüssel darf nur die Display-Daten nutzen, nicht die übrige App.</p>
       </div>
       <div className="p-4 space-y-3">
         {enabled === false && (
@@ -171,7 +171,7 @@ export default function DisplayAdminSection({ users, onChanged }) {
       <Card className="overflow-hidden">
         <div className="px-4 py-3 bg-surface-container-high border-b border-outline">
           <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Farben</h3>
-          <p className="text-xs text-ink-faint mt-1">So erscheint jede Person auf dem Display, am besten wie im Familienkalender.</p>
+          <p className="text-xs text-ink-muted mt-1">So erscheint jede Person auf dem Display, am besten wie im Familienkalender.</p>
         </div>
         {approved.length === 0 && <p className="px-4 py-3 text-sm text-ink-faint">Noch keine Personen.</p>}
         {approved.map(u => (
