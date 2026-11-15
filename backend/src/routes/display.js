@@ -35,7 +35,12 @@ router.get('/overview', requireDisplay, async (req, res) => {
   res.json(await display.getOverview())
 })
 
-// ── Schreibzugriffe des Displays (bewusst nur diese drei) ────────────────────
+router.get('/storage', requireDisplay, async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  res.json(await display.getStorageOverview())
+})
+
+// ── Schreibzugriffe des Displays (bewusst nur diese vier) ────────────────────
 router.post('/tasks/:id/complete', requireDisplay, async (req, res) => {
   res.json(await display.completeFromDisplay(req.params.id, req.body ?? {}))
 })
@@ -48,6 +53,14 @@ router.post('/storage/items/:id/restock', requireDisplay, async (req, res) => {
   const item = await display.restockFromDisplay(req.params.id, req.body ?? {})
   // Wie in routes/storage.js: Knapp-Status nachziehen, ohne die Antwort
   // darauf warten zu lassen.
+  checkLowStockAlerts().catch(err => console.error('Vorrat: Fehler beim Knapp-Check:', err.message))
+  res.json(item)
+})
+
+// Bestand erhoehen ODER verringern (delta positiv/negativ) - fuer die
+// Vorrats-Uebersicht am Display. /restock bleibt als reines Auffuellen bestehen.
+router.post('/storage/items/:id/adjust', requireDisplay, async (req, res) => {
+  const item = await display.adjustFromDisplay(req.params.id, req.body ?? {})
   checkLowStockAlerts().catch(err => console.error('Vorrat: Fehler beim Knapp-Check:', err.message))
   res.json(item)
 })
