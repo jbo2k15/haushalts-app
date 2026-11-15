@@ -42,6 +42,14 @@ model User {
   // Fairness-Statistik (siehe domain/fairness.js): Karte in der Ruhmeshalle
   // nur fuer freigegebene Nutzer, Freigabe pro Nutzer durch einen Admin.
   showFairness       Boolean              @default(false)
+  // Familien-Display: "account" = normales Konto mit Anmeldung, "profile" =
+  // Profil ohne Anmeldung (z. B. Kinder), das nur als Erlediger gewaehlt
+  // werden kann. Profile tragen eine nicht zustellbare Platzhalter-Adresse
+  // und einen unbrauchbaren Passwort-Hash (siehe lib/profiles.js) und werden
+  // bei Anmeldung, Fairness und Erinnerungen ausgeschlossen.
+  kind               String               @default("account")
+  // Anzeigefarbe der Person (#RRGGBB), z. B. passend zum Familienkalender.
+  color              String?
   vacationPeriods    VacationPeriod[]
   pushSubscriptions  PushSubscription[]
   notificationSettings NotificationSettings?

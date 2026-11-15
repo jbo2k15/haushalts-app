@@ -16,6 +16,7 @@ import { requireAuth } from './middleware/auth.js'
 import { addSSEClient, removeSSEClient } from './lib/sse.js'
 import { issueTicket, consumeTicket } from './lib/sseTickets.js'
 import prisma from './lib/prisma.js'
+import { isProfile } from './lib/profiles.js'
 
 export function createApp() {
   const app = express()
@@ -87,7 +88,7 @@ export function createApp() {
       // 30 s vorher ausgestellt): Freischaltung könnte entzogen oder ein
       // Passwortwechsel erzwungen worden sein.
       const user = await prisma.user.findUnique({ where: { id: userId } })
-      if (!user || !user.approved) return res.status(401).end()
+      if (!user || !user.approved || isProfile(user)) return res.status(401).end()
       if (user.mustChangePassword) return res.status(403).end()
     } catch {
       return res.status(401).end()

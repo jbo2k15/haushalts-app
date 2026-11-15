@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import prisma from '../lib/prisma.js'
+import { isProfile } from '../lib/profiles.js'
 
 // While a user still has to change their password, only these endpoints are
 // reachable - everything else is blocked server-side (the frontend already
@@ -18,7 +19,9 @@ export async function requireAuth(req, res, next) {
     // Confusion). Wir signieren ausschließlich mit HS256 (siehe signAccessToken).
     const payload = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] })
     const user = await prisma.user.findUnique({ where: { id: payload.userId } })
-    if (!user || !user.approved) return res.status(401).json({ error: 'Nicht autorisiert' })
+    // Profile (ohne Anmeldung, siehe lib/profiles.js) duerfen nie als
+    // angemeldeter Nutzer auftreten - auch nicht mit einem gueltig signierten Token.
+    if (!user || !user.approved || isProfile(user)) return res.status(401).json({ error: 'Nicht autorisiert' })
     if (user.mustChangePassword && !PW_CHANGE_ALLOWED.has(req.originalUrl.split('?')[0])) {
       return res.status(403).json({ error: 'Passwort muss geändert werden', mustChangePassword: true })
     }
