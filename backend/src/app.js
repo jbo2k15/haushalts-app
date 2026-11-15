@@ -12,6 +12,7 @@ import wasteRoutes from './routes/waste.js'
 import storageRoutes from './routes/storage.js'
 import pausesRoutes from './routes/pauses.js'
 import fairnessRoutes from './routes/fairness.js' // Fairness-Statistik
+import displayRoutes from './routes/display.js' // Familien-Display
 import { requireAuth } from './middleware/auth.js'
 import { addSSEClient, removeSSEClient } from './lib/sse.js'
 import { issueTicket, consumeTicket } from './lib/sseTickets.js'
@@ -67,6 +68,7 @@ export function createApp() {
   app.use('/api/storage', storageRoutes)
   app.use('/api/pauses', pausesRoutes)
   app.use('/api/fairness', fairnessRoutes) // Fairness-Statistik
+  app.use('/api/display', displayRoutes) // Familien-Display
 
   // Kurzlebiges Einmal-Ticket für die SSE-Verbindung ausgeben. requireAuth
   // stellt sicher, dass nur freigeschaltete Nutzer ohne offenen Passwortwechsel
