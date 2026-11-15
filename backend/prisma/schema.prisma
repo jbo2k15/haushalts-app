@@ -189,6 +189,10 @@ model TaskLog {
   // Feature: folgt Aenderungen am Aufwand der Aufgabe (siehe fairness.js).
   weight         Int             @default(2)
   weightFromTask Boolean         @default(false)
+  // Familien-Display: woher der Eintrag kam. "app" = angemeldete Person in
+  // der App, "display" = am Wanddisplay abgehakt (dort waehlt man die Person
+  // aus, ohne dass sie angemeldet ist - die Herkunft macht das nachvollziehbar).
+  source         String          @default("app")
   task         Task?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
   user         User?           @relation(fields: [completedBy], references: [id], onDelete: SetNull)
   // SetNull statt Cascade: Loeschen einer Aufgabe (Task -> TaskCompletion)

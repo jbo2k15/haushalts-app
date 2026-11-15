@@ -7,8 +7,8 @@ import { randomBytes } from 'crypto'
 import prisma from '../lib/prisma.js'
 import { httpError } from '../lib/httpError.js'
 import { todayString } from '../lib/dates.js'
-import { getTaskOverview, getStats } from './tasks.js'
-import { listLowStockItems } from './storage.js'
+import { getTaskOverview, getStats, completeTask, uncompleteLast, MULTI_ELIGIBLE_TYPES } from './tasks.js'
+import { listLowStockItems, restockItem } from './storage.js'
 import { getCountMode } from './fairness.js'
 import { DISPLAY_TOKEN_PREFIX, hashDisplayToken } from '../middleware/display.js'
 
@@ -87,3 +87,46 @@ export async function getOverview() {
     lowStock,
   }
 }
+
+// ── Schreibzugriffe des Displays ─────────────────────────────────────────────
+// Am Display ist niemand angemeldet. Wer eine Aufgabe erledigt hat, wird dort
+// ausgewaehlt ("zweistufiges Abhaken") und hier als completedBy uebergeben.
+// Jede so entstandene Erledigung traegt source = "display" im Log.
+
+async function resolvePerson(completedBy) {
+  if (typeof completedBy !== 'string' || !completedBy) throw httpError(400, 'Bitte auswählen, wer die Aufgabe erledigt hat')
+  const person = await prisma.user.findUnique({ where: { id: completedBy } })
+  // Gesperrte/noch nicht freigeschaltete Konten sind nicht waehlbar - gleiche
+  // Menge wie people in getOverview.
+  if (!person || !person.approved) throw httpError(400, 'Unbekannte Person')
+  return person
+}
+
+// completed (Default true): true = abhaken, false = zuruecknehmen.
+//   - Abhaken braucht completedBy.
+//   - Zuruecknehmen braucht keine Person. Bei mehrfach erledigbaren Aufgaben
+//     wird die letzte Erledigung zurueckgenommen, sonst die eine vorhandene.
+// Beide Richtungen sind idempotent (siehe desired in completeTask): ein
+// doppelter Tipp oder eine veraltete Anzeige kehrt nichts versehentlich um.
+export async function completeFromDisplay(id, { completedBy, completed } = {}) {
+  if (completed !== undefined && typeof completed !== 'boolean') throw httpError(400, 'Ungültiger Wert')
+
+  if (completed === false) {
+    const task = await prisma.task.findUnique({ where: { id } })
+    if (!task) throw httpError(404, 'Aufgabe nicht gefunden')
+    if (MULTI_ELIGIBLE_TYPES.includes(task.type) && task.allowMultiple) return uncompleteLast(id)
+    return completeTask(id, { userId: null, userName: null, desired: false, source: 'display' })
+  }
+
+  const person = await resolvePerson(completedBy)
+  return completeTask(id, { userId: person.id, userName: person.name, desired: true, source: 'display' })
+}
+
+export async function uncompleteLastFromDisplay(id) {
+  return uncompleteLast(id)
+}
+
+export async function restockFromDisplay(id, { amount } = {}) {
+  return restockItem(id, amount === undefined ? 1 : amount)
+}
+

@@ -127,6 +127,9 @@ const MATRIX = {
   'POST /api/display/tokens': 'ADMIN',
   'DELETE /api/display/tokens/:id': 'ADMIN',
   'GET /api/display/overview': 'DISPLAY',
+  'POST /api/display/tasks/:id/complete': 'DISPLAY',
+  'POST /api/display/tasks/:id/uncomplete-last': 'DISPLAY',
+  'POST /api/display/storage/items/:id/restock': 'DISPLAY',
 }
 
 // Muss app.js entsprechen - wird unten gegen die echte App geprüft.

@@ -386,14 +386,14 @@ export async function getTaskOverview() {
   return { ...result, pauseSummary }
 }
 
-async function createCompletion({ task, forDate, userId, userName }) {
+async function createCompletion({ task, forDate, userId, userName, source = 'app' }) {
   const taskId = task.id
   return prisma.$transaction(async (tx) => {
     const completion = await tx.taskCompletion.create({ data: { taskId, completedBy: userId, forDate } })
     await tx.taskLog.create({
       data: {
         taskId, taskTitle: task.title, taskType: task.type, status: 'completed',
-        completedBy: userId, userName, forDate, completionId: completion.id,
+        completedBy: userId, userName, forDate, completionId: completion.id, source,
         ...logWeightFields(task),
       },
     })
@@ -408,7 +408,8 @@ async function createCompletion({ task, forDate, userId, userName }) {
 // erledigte Aufgabe aus einer veralteten Ansicht heraus "abhakt" (zweites
 // Handy, App gerade erst wieder geoeffnet), nimmt die Erledigung nicht mehr
 // versehentlich zurueck - genau so verfielen abgehakte Abfall-Termine.
-export async function completeTask(id, { userId, userName, desired }) {
+// source: Herkunft fuer das Log ("app" oder "display", siehe TaskLog.source).
+export async function completeTask(id, { userId, userName, desired, source = 'app' }) {
   const today = todayString()
   const weekStart = currentWeekStart()
   const monthStart = currentMonthStart()
@@ -432,7 +433,7 @@ export async function completeTask(id, { userId, userName, desired }) {
   // completion (undone separately via /uncomplete-last) — no toggle-off
   // here. Everything else keeps the original single toggle behavior below.
   if (MULTI_ELIGIBLE_TYPES.includes(task.type) && task.allowMultiple) {
-    await createCompletion({ task, forDate, userId, userName })
+    await createCompletion({ task, forDate, userId, userName, source })
     const count = await prisma.taskCompletion.count({ where: { taskId: id, forDate } })
     broadcastTasksUpdated()
     return { completed: true, count }
@@ -459,7 +460,7 @@ export async function completeTask(id, { userId, userName, desired }) {
     return { completed: false }
   }
 
-  await createCompletion({ task, forDate, userId, userName })
+  await createCompletion({ task, forDate, userId, userName, source })
 
   // Bei monthly-Tasks mit Interval: nextDueMonth weiterzählen
   if (task.type === 'monthly' && task.monthlyInterval && task.nextDueMonth) {

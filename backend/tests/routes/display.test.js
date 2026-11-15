@@ -194,3 +194,166 @@ describe('GET /api/display/overview', () => {
     expect(body).not.toContain('"role"')
   })
 })
+
+// Familien-Display, Etappe 4: Abhaken und Vorrat auffüllen am Display.
+describe('POST /api/display/tasks/:id/complete', () => {
+  async function setup() {
+    const admin = await createUser({ role: 'admin', name: 'Tobias' })
+    const profile = (await request(app).post('/api/users/profiles').set(authHeader(admin.id)).send({ name: 'Mia' })).body
+    const { token } = (await createDisplayToken(admin)).body
+    return { admin, profile, token }
+  }
+
+  it('hakt eine Aufgabe für die gewählte Person ab und vermerkt die Herkunft', async () => {
+    const { profile, token } = await setup()
+    const task = await prisma.task.create({ data: { title: 'Tisch decken', type: 'daily', difficulty: 1 } })
+
+    const res = await request(app).post(`/api/display/tasks/${task.id}/complete`).set(displayHeader(token)).send({ completedBy: profile.id })
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ completed: true })
+
+    const log = await prisma.taskLog.findFirst({ where: { taskId: task.id, status: 'completed' } })
+    expect(log).toMatchObject({ completedBy: profile.id, userName: 'Mia', source: 'display', weight: 1 })
+
+    const overview = await request(app).get('/api/display/overview').set(displayHeader(token))
+    expect(overview.body.tasks.daily[0]).toMatchObject({ completed: true, completedBy: 'Mia' })
+    expect(overview.body.people.find(p => p.id === profile.id).curDay).toBe(1)
+  })
+
+  it('Erledigungen aus der App behalten die Herkunft "app"', async () => {
+    const { admin } = await setup()
+    const task = await prisma.task.create({ data: { title: 'Müll rausbringen', type: 'daily' } })
+    await request(app).post(`/api/tasks/${task.id}/complete`).set(authHeader(admin.id)).send({ completed: true })
+    const log = await prisma.taskLog.findFirst({ where: { taskId: task.id } })
+    expect(log.source).toBe('app')
+  })
+
+  it('verlangt beim Abhaken eine bekannte, freigeschaltete Person', async () => {
+    const { token } = await setup()
+    const task = await prisma.task.create({ data: { title: 'Aufgabe', type: 'daily' } })
+    const blocked = await createUser({ approved: false })
+    const url = `/api/display/tasks/${task.id}/complete`
+    expect((await request(app).post(url).set(displayHeader(token)).send({})).status).toBe(400)
+    expect((await request(app).post(url).set(displayHeader(token)).send({ completedBy: 42 })).status).toBe(400)
+    expect((await request(app).post(url).set(displayHeader(token)).send({ completedBy: '00000000-0000-4000-8000-000000000000' })).status).toBe(400)
+    expect((await request(app).post(url).set(displayHeader(token)).send({ completedBy: blocked.id })).status).toBe(400)
+    expect((await request(app).post(url).set(displayHeader(token)).send({ completedBy: blocked.id, completed: 'ja' })).status).toBe(400)
+    expect(await prisma.taskCompletion.count()).toBe(0)
+  })
+
+  it('ist idempotent: doppeltes Abhaken legt keine zweite Erledigung an', async () => {
+    const { admin, profile, token } = await setup()
+    const task = await prisma.task.create({ data: { title: 'Einmal', type: 'daily' } })
+    const url = `/api/display/tasks/${task.id}/complete`
+    await request(app).post(url).set(displayHeader(token)).send({ completedBy: profile.id })
+    const second = await request(app).post(url).set(displayHeader(token)).send({ completedBy: admin.id })
+    expect(second.body).toEqual({ completed: true })
+    expect(await prisma.taskCompletion.count({ where: { taskId: task.id } })).toBe(1)
+    // Die erste Person behält die Erledigung.
+    expect((await prisma.taskLog.findFirst({ where: { taskId: task.id } })).completedBy).toBe(profile.id)
+  })
+
+  it('nimmt eine Erledigung ohne Personenangabe zurück', async () => {
+    const { profile, token } = await setup()
+    const task = await prisma.task.create({ data: { title: 'Zurück', type: 'daily' } })
+    const url = `/api/display/tasks/${task.id}/complete`
+    await request(app).post(url).set(displayHeader(token)).send({ completedBy: profile.id })
+
+    const undo = await request(app).post(url).set(displayHeader(token)).send({ completed: false })
+    expect(undo.status).toBe(200)
+    expect(undo.body).toEqual({ completed: false })
+    expect(await prisma.taskCompletion.count({ where: { taskId: task.id } })).toBe(0)
+    expect(await prisma.taskLog.count({ where: { taskId: task.id, status: 'completed' } })).toBe(0)
+
+    // Erneutes Zurücknehmen ändert nichts.
+    const again = await request(app).post(url).set(displayHeader(token)).send({ completed: false })
+    expect(again.body).toEqual({ completed: false })
+  })
+
+  it('mehrfach erledigbare Aufgaben zählen hoch und einzeln wieder herunter', async () => {
+    const { admin, profile, token } = await setup()
+    const task = await prisma.task.create({ data: { title: 'Wäsche', type: 'daily', allowMultiple: true } })
+    const url = `/api/display/tasks/${task.id}/complete`
+    await request(app).post(url).set(displayHeader(token)).send({ completedBy: profile.id })
+    const second = await request(app).post(url).set(displayHeader(token)).send({ completedBy: admin.id })
+    expect(second.body).toEqual({ completed: true, count: 2 })
+
+    const undo = await request(app).post(url).set(displayHeader(token)).send({ completed: false })
+    expect(undo.body).toEqual({ completed: true, count: 1 })
+    const last = await request(app).post(`/api/display/tasks/${task.id}/uncomplete-last`).set(displayHeader(token))
+    expect(last.body).toEqual({ completed: false, count: 0 })
+  })
+
+  it('unbekannte Aufgabe: 404', async () => {
+    const { profile, token } = await setup()
+    const url = '/api/display/tasks/00000000-0000-4000-8000-000000000000/complete'
+    expect((await request(app).post(url).set(displayHeader(token)).send({ completedBy: profile.id })).status).toBe(404)
+    expect((await request(app).post(url).set(displayHeader(token)).send({ completed: false })).status).toBe(404)
+  })
+
+  it('ohne Display-Schlüssel oder mit Nutzer-Token: 401, nichts wird geschrieben', async () => {
+    const { admin, profile } = await setup()
+    const task = await prisma.task.create({ data: { title: 'Geschützt', type: 'daily' } })
+    const url = `/api/display/tasks/${task.id}/complete`
+    expect((await request(app).post(url).send({ completedBy: profile.id })).status).toBe(401)
+    expect((await request(app).post(url).set(authHeader(admin.id)).send({ completedBy: profile.id })).status).toBe(401)
+    expect((await request(app).post(`/api/display/tasks/${task.id}/uncomplete-last`).set(authHeader(admin.id))).status).toBe(401)
+    expect(await prisma.taskCompletion.count()).toBe(0)
+  })
+})
+
+describe('POST /api/display/storage/items/:id/restock', () => {
+  async function setup() {
+    const admin = await createUser({ role: 'admin' })
+    const { token } = (await createDisplayToken(admin)).body
+    const location = await prisma.storageLocation.create({ data: { name: 'Keller' } })
+    const category = await prisma.storageCategory.create({ data: { name: 'Getränke', locationId: location.id, defaultMinQuantity: 2 } })
+    const item = await prisma.storageItem.create({ data: { name: 'Milch', quantity: 1, locationId: location.id, categoryId: category.id } })
+    return { admin, token, item }
+  }
+
+  it('erhöht den Bestand standardmäßig um 1', async () => {
+    const { token, item } = await setup()
+    const res = await request(app).post(`/api/display/storage/items/${item.id}/restock`).set(displayHeader(token)).send({})
+    expect(res.status).toBe(200)
+    expect(res.body.quantity).toBe(2)
+  })
+
+  it('erhöht um die angegebene Menge, auch mit Nachkommastellen', async () => {
+    const { token, item } = await setup()
+    const res = await request(app).post(`/api/display/storage/items/${item.id}/restock`).set(displayHeader(token)).send({ amount: 2.5 })
+    expect(res.body.quantity).toBe(3.5)
+  })
+
+  it('lehnt ungültige Mengen ab und ändert dann nichts', async () => {
+    const { token, item } = await setup()
+    const url = `/api/display/storage/items/${item.id}/restock`
+    for (const amount of [0, -1, '3', null, 100001, Number.NaN]) {
+      const res = await request(app).post(url).set(displayHeader(token)).send({ amount })
+      expect(res.status, `amount=${amount}`).toBe(400)
+    }
+    expect((await prisma.storageItem.findUnique({ where: { id: item.id } })).quantity).toBe(1)
+  })
+
+  it('überschreitet die Höchstmenge nicht', async () => {
+    const { token, item } = await setup()
+    await prisma.storageItem.update({ where: { id: item.id }, data: { quantity: 99999.5 } })
+    const res = await request(app).post(`/api/display/storage/items/${item.id}/restock`).set(displayHeader(token)).send({ amount: 1 })
+    expect(res.status).toBe(400)
+  })
+
+  it('unbekannter Artikel: 404; ohne Schlüssel: 401', async () => {
+    const { admin, token, item } = await setup()
+    expect((await request(app).post('/api/display/storage/items/00000000-0000-4000-8000-000000000000/restock').set(displayHeader(token)).send({})).status).toBe(404)
+    expect((await request(app).post(`/api/display/storage/items/${item.id}/restock`).set(authHeader(admin.id)).send({})).status).toBe(401)
+  })
+
+  it('aufgefüllte Artikel verschwinden aus der Knapp-Liste', async () => {
+    const { token, item } = await setup()
+    const before = await request(app).get('/api/display/overview').set(displayHeader(token))
+    expect(before.body.lowStock.map(i => i.name)).toEqual(['Milch'])
+    await request(app).post(`/api/display/storage/items/${item.id}/restock`).set(displayHeader(token)).send({ amount: 5 })
+    const after = await request(app).get('/api/display/overview').set(displayHeader(token))
+    expect(after.body.lowStock).toEqual([])
+  })
+})
