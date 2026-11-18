@@ -5,7 +5,7 @@
 // Das Feature ist bewusst in diesem Modul (plus routes/fairness.js und den
 // Frontend-Dateien unter components/fairness/) gebuendelt, damit es sich
 // sauber abschalten (FAIRNESS_ENABLED=false) oder ganz entfernen laesst -
-// siehe docs/fairness-entfernen.md. Die wenigen Stellen im restlichen Code,
+// siehe FAIRNESS-ENTFERNEN.md. Die wenigen Stellen im restlichen Code,
 // die hierher rufen, sind dort aufgelistet.
 import prisma from '../lib/prisma.js'
 import { httpError } from '../lib/httpError.js'
