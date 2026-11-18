@@ -4,12 +4,13 @@ Mobile-first PWA für gemeinsames Haushaltsaufgaben-Management.
 
 ## Funktionen
 
-- **Aufgaben** — Jede Aufgabe hat einen Aufwand (Leicht/Mittel/Aufwändig, Standard Mittel), der in Fairness-Statistik und optional in Rangliste und Statistik zählt. Tägliche, wöchentliche (optional an einem festen Wochentag), monatliche (konfigurierbar alle 1–12 Monate, optional an einem festen Tag im Monat — bei 29.–31. in kürzeren Monaten am Monatsletzten) und einmalige Aufgaben (mit Fälligkeitsdatum); Aufgaben mit festem Wochen- bzw. Monatstag erscheinen erst ab diesem Tag; Drag & Drop zum Sortieren; tägliche Aufgaben können für den Tag übersprungen werden — sie bleiben dann ausgegraut sichtbar und lassen sich zurückholen; an bestimmte Wochentage gebundene Aufgaben bleiben nach einem verpassten Tag noch als überfällig sichtbar; nicht erledigte Monatsaufgaben verfallen zum Monatswechsel, danach gilt der nächste reguläre Termin (eine Änderung des Turnus berechnet den nächsten Termin neu)
+- **Aufgaben** — Jede Aufgabe hat einen Aufwand (Leicht/Mittel/Aufwändig, Standard Mittel), der in Fairness-Statistik und optional in Rangliste und Statistik zählt. Tagesaufgaben können optional eine Tageszeit (morgens/mittags/abends) bekommen; sie dient nur der Gruppierung am Familien-Display und ändert nichts an Fälligkeit, Erinnerungen oder Punkten. Tägliche, wöchentliche (optional an einem festen Wochentag), monatliche (konfigurierbar alle 1–12 Monate, optional an einem festen Tag im Monat — bei 29.–31. in kürzeren Monaten am Monatsletzten) und einmalige Aufgaben (mit Fälligkeitsdatum); Aufgaben mit festem Wochen- bzw. Monatstag erscheinen erst ab diesem Tag; Drag & Drop zum Sortieren; tägliche Aufgaben können für den Tag übersprungen werden — sie bleiben dann ausgegraut sichtbar und lassen sich zurückholen; an bestimmte Wochentage gebundene Aufgaben bleiben nach einem verpassten Tag noch als überfällig sichtbar; nicht erledigte Monatsaufgaben verfallen zum Monatswechsel, danach gilt der nächste reguläre Termin (eine Änderung des Turnus berechnet den nächsten Termin neu)
 - **Mehrfach erledigbare Aufgaben** — Tägliche und wöchentliche Aufgaben können bei Bedarf per Verwaltung so konfiguriert werden, dass sie mehrmals pro Tag/Woche erledigt werden können, mit Zähler und der Möglichkeit, die letzte Erledigung zurückzunehmen
 - **Aufgabenlog** — Protokoll aller erledigten, abgelaufenen, übersprungenen und gelöschten Aufgaben (bis 100 Einträge); wird eine Aufgabe gelöscht, bleiben ihre bisherigen Erledigungen in Log, Statistik und Pokalen erhalten
 - **Statistiken** — Erledigte Aufgaben pro Nutzer für heute, die laufende Woche und den laufenden Monat — wahlweise als Anzahl oder als Aufwands-Punkte (Admin-Einstellung „Zählweise“)
 - **Ruhmeshalle** — Gesamtranking mit Trophäen für Tages-, Wochen- und Monatssieger (nach Anzahl oder Aufwands-Punkten, je nach Zählweise; beim Umstellen werden die Pokale aus dem gespeicherten Verlauf neu berechnet); per Wisch-Geste (links/rechts, Touch oder Maus) direkt von der Startseite erreichbar
-- **Fairness-Statistik** — Karte in der Ruhmeshalle mit dem Anteil jeder Person an den erledigten Aufgaben der letzten 30 Tage, gewichtet nach Aufwand (Leicht/Mittel/Aufwändig pro Aufgabe), mit Trend und 4-Wochen-Verlauf; Urlaubszeiten (aus dem Urlaubsmodus oder vom Admin nachgetragen) werden herausgerechnet. Ein Admin kann einstellen, ob Rangliste (Pokale) und Statistik nach Anzahl oder nach Aufwands-Punkten zählen. Nur für Nutzer sichtbar, die ein Admin freigibt; komplett abschaltbar per `FAIRNESS_ENABLED=false` (Entfernen: `docs/fairness-entfernen.md`)
+- **Fairness-Statistik** — Karte in der Ruhmeshalle mit dem Anteil jeder Person an den erledigten Aufgaben der letzten 30 Tage, gewichtet nach Aufwand (Leicht/Mittel/Aufwändig pro Aufgabe), mit Trend und 4-Wochen-Verlauf; Urlaubszeiten (aus dem Urlaubsmodus oder vom Admin nachgetragen) werden herausgerechnet. Ein Admin kann einstellen, ob Rangliste (Pokale) und Statistik nach Anzahl oder nach Aufwands-Punkten zählen. Nur für Nutzer sichtbar, die ein Admin freigibt; komplett abschaltbar per `FAIRNESS_ENABLED=false` (Entfernen: `FAIRNESS-ENTFERNEN.md`)
+- **Familien-Display** — Anbindung eines Wanddisplays (z. B. über Home Assistant) über einen eigenen Display-Schlüssel statt über ein Nutzerkonto: Aufgaben, Personen mit Anzeigefarbe und Punktestand sowie der Vorrat lassen sich abrufen; schreiben darf das Display nur Abhaken/Zurücknehmen für eine gewählte Person und Bestandsänderungen im Vorrat. Der Zugang ist standardmäßig aus (`DISPLAY_API_ENABLED`) und nur im Heimnetz nutzbar (Anfragen über Cloudflare werden abgewiesen). **Profile ohne Anmeldung** (z. B. für Kinder) können am Display als Erlediger gewählt werden und sammeln Punkte, können sich aber nie anmelden; jede Person bekommt eine Anzeigefarbe. Verwaltung (Schlüssel, Farben, Profile) in den Einstellungen unter „Familien-Display“ (nur Admins); Details im Abschnitt [Familien-Display anbinden](#familien-display-anbinden)
 - **Navigation** — Bottom-Navigation (unten) mit direktem Zugriff auf Aufgaben, Vorrat, Ruhmeshalle, Einstellungen und (für Admins) Verwaltung; zwischen Aufgaben und Ruhmeshalle zusätzlich per Wisch-Geste (links/rechts, Touch oder Maus). Der Browser-/System-Zurück-Pfeil verlässt Einstellungen/Verwaltung/Vorrat zuverlässig, auf der Startseite fragt er erst nach, ob die App wirklich geschlossen werden soll (abschaltbar)
 - **Vorratsschrank** — Lagerorte (z.B. Kühlschrank, Vorratsschrank; für Admins über ein eigenes Verwalten-Menü anlegbar/umbenennbar/sortierbar) als horizontal wechselbare Auswahl, damit immer nur ein Ort auf einmal angezeigt wird; darin frei anlegbare Kategorien (mit klebenbleibendem Header beim Scrollen) und Artikel (Menge — auch mit Komma, z. B. 1,5 kg —, Einheit, optionale eigene Mindestmenge je Artikel oder Kategorie-Standardwert), jeweils per Drag & Drop sortierbar, wahlweise umschaltbar auf eine Sortierung nach dringlichstem Nachkaufbedarf. Artikel bei/unter der Mindestmenge erscheinen automatisch in einer Einkaufsliste, lösen einen Hinweis auf der Startseite aus und eine einmalige Push-Benachrichtigung, sobald sie neu knapp werden
 - **Erscheinungsbild** — Hell/Dunkel/System-Design sowie eine stufenweise anpassbare Textgröße (Zoom), beides unter Einstellungen konfigurierbar und geräteweise gespeichert
@@ -84,6 +85,8 @@ Alle Werte in `.env` ausfüllen:
 | `WEATHER_LAT` / `WEATHER_LON` | Koordinaten des Haushalts für die Regenmessung (optional — ohne diese Werte bleibt die Wetterabhängigkeit inaktiv) |
 | `WEATHER_RAIN_THRESHOLD_MM` | Regenmenge in mm seit Mitternacht, ab der wetterabhängige Aufgaben automatisch erledigt werden (optional, Default `5`) |
 | `FAIRNESS_ENABLED` | `false` schaltet die Fairness-Statistik komplett ab (Karte, Aufwand-Auswahl, Urlaubszeiten); optional, Default an |
+| `DISPLAY_API_ENABLED` | `true` schaltet den Zugang für das Familien-Display (`/api/display`) frei; optional, Default aus (alle Display-Endpunkte antworten dann mit 404) |
+| `DISPLAY_API_ALLOW_PROXIED` | `true` erlaubt den Display-Zugang auch über die öffentliche Adresse (Cloudflare); optional, Default aus — der Zugang funktioniert dann nur im Heimnetz |
 
 **Registrierung:** Die Selbst-Registrierung ist standardmäßig **aus** (`POST /api/auth/register` antwortet mit 404, der Link auf der Anmeldeseite entfällt). Um ein neues Mitglied aufzunehmen, schaltet ein Admin sie unter *Einstellungen → Nutzerverwaltung → Registrierung erlauben* ein, lässt das Konto anlegen, schaltet es frei und schaltet die Registrierung wieder aus. Admins bekommen bei jeder neuen Registrierung eine Push-Nachricht; nie freigeschaltete Registrierungen werden nach 10 Tagen automatisch gelöscht.
 
@@ -205,6 +208,27 @@ Der Workflow `.github/workflows/trivy.yml` scannt montags auf dem self-hosted Ru
 5. `FRONTEND_URL` in `.env` entsprechend setzen und Container neu starten
 
 Echte Client-IP: Läuft `cloudflared` auf dem Docker-Host (oder in einem Docker-Netz), übernimmt nginx die Besucher-IP aus dem Header `CF-Connecting-IP` (`set_real_ip_from 172.16.0.0/12` in `frontend/nginx.conf`). Rate-Limiting und Login-Protokoll arbeiten dadurch pro echter IP. Läuft der Tunnel auf einer anderen Maschine im LAN, muss deren Adresse dort zusätzlich eingetragen werden — sonst greift das Rate-Limit für alle Besucher gemeinsam.
+
+---
+
+## Familien-Display anbinden
+
+Ein Wanddisplay (z. B. ein Home-Assistant-Dashboard) greift über `/api/display` auf die App zu — mit einem eigenen Schlüssel, getrennt von den Nutzerkonten.
+
+1. In `.env` `DISPLAY_API_ENABLED=true` setzen und den Backend-Container neu starten.
+2. In der App unter **Einstellungen → Familien-Display** einen Display-Schlüssel anlegen. Der Schlüssel (beginnt mit `hd_`) wird nur einmal angezeigt; gespeichert wird nur sein Hash.
+3. Das Display ruft die App **direkt im Heimnetz** auf (z. B. `http://<server>/api/display/overview`) und schickt den Schlüssel als `Authorization: Bearer hd_…`. Über die öffentliche Adresse (Cloudflare) wird der Zugang abgewiesen, auch mit gültigem Schlüssel — es sei denn, `DISPLAY_API_ALLOW_PROXIED=true` ist gesetzt.
+
+| Endpunkt | Zweck |
+|---|---|
+| `GET /api/display/overview` | Aufgaben, Personen (Farbe, Punktestand) und knapper Vorrat in einer Antwort |
+| `GET /api/display/storage` | Alle Lagerorte mit ihren Artikeln (Menge, Einheit, Mindestmenge, knapp ja/nein) |
+| `POST /api/display/tasks/:id/complete` | Aufgabe für eine gewählte Person abhaken oder mit `completed: false` zurücknehmen (idempotent) |
+| `POST /api/display/tasks/:id/uncomplete-last` | Letzte Erledigung einer mehrfach erledigbaren Aufgabe zurücknehmen |
+| `POST /api/display/storage/items/:id/restock` | Bestand eines Artikels erhöhen |
+| `POST /api/display/storage/items/:id/adjust` | Bestand um `delta` erhöhen oder verringern (nie unter 0) |
+
+Ein Display-Schlüssel gilt ausschließlich für diese Endpunkte, nicht für die übrige App. Bei jeder Erledigung wird gespeichert, ob sie aus der App oder vom Display kam (`TaskLog.source`), weil am Display jede Person ohne Anmeldung gewählt werden kann.
 
 ---
 
