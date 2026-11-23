@@ -42,6 +42,7 @@
     "@prisma/engines": true
   },
   "overrides": {
-    "@prisma/dev": "^0.24.14"
+    "@prisma/dev": "^0.24.14",
+    "effect": "^3.22.5"
   }
 }
