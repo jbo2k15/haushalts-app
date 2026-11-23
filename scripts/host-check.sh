@@ -34,6 +34,9 @@ if [ "$HOST_ROLE" = "proxmox" ]; then
 else
   ALLOWED_PORTS="${ALLOWED_PORTS:-22 80}"
 fi
+# Prozesse, deren UDP-Sockets nicht als "lauschender Port" zählen (ausgehende
+# QUIC-Verbindungen mit zufälligen Ports). Durch Leerzeichen getrennt; leer = alle werten.
+UDP_CLIENT_PROCS="${UDP_CLIENT_PROCS-cloudflared}"
 
 QUIET=false
 [ "${1:-}" = "--quiet" ] && QUIET=true
@@ -103,8 +106,18 @@ if have ss; then
   OPEN="$(ss -Hltnup 2>/dev/null | awk '{print $1, $5, $7}' \
     | grep -v -E ' (127\.[0-9.]+|\[::1\]):' || true)"
   UNEXPECTED=""
+  IGNORED_UDP=0
   while IFS= read -r line; do
     [ -z "$line" ] && continue
+    # Ausgehende UDP-Sockets bekannter Clients (z.B. QUIC-Verbindungen des
+    # Tunnels) haben zufällige, bei jedem Start wechselnde Ports - sie lassen
+    # sich nicht über ALLOWED_PORTS freigeben. Nur UDP, nur exakter Prozessname.
+    if [ "${line%% *}" = "udp" ]; then
+      proc="$(printf '%s' "$line" | sed -n -E 's/.*users:\(\("([^"]+)".*/\1/p')"
+      case " $UDP_CLIENT_PROCS " in
+        *" ${proc:-?} "*) IGNORED_UDP=$((IGNORED_UDP + 1)); continue ;;
+      esac
+    fi
     port="$(printf '%s' "$line" | awk '{print $2}' | sed -E 's/.*:([0-9]+)$/\1/')"
     case " $ALLOWED_PORTS " in
       *" $port "*) ;;
@@ -118,6 +131,7 @@ if have ss; then
   else
     ok "Nur erwartete Ports lauschen außerhalb von localhost ($ALLOWED_PORTS)."
   fi
+  [ "$IGNORED_UDP" -gt 0 ] && info "$IGNORED_UDP UDP-Sockets bekannter Clients ($UDP_CLIENT_PROCS) nicht gewertet (ausgehende Verbindungen)."
 else
   info "'ss' nicht gefunden — Port-Prüfung übersprungen."
 fi
