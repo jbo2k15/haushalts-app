@@ -18,10 +18,10 @@ describe('Dienstplan-Kalender: echtes Abo-Format', () => {
   it('macht aus den Terminen Aufgaben mit Berliner Datum und Uhrzeit, ohne Emojis', () => {
     const duties = events.map(e => dutyFromEvent(e, { label: 'Hühner' }))
     expect(duties).toEqual([
-      { title: 'Hühner: Futter runterlassen (09:00)', dueDate: '2026-12-01', minutes: 540, timeOfDay: 'morning' },
-      { title: 'Hühner: Futter hochziehen (17:00)', dueDate: '2026-12-01', minutes: 1020, timeOfDay: 'evening' },
+      { title: 'Hühner: Futter runterlassen', dueDate: '2026-12-01', minutes: 540, timeOfDay: 'morning' },
+      { title: 'Hühner: Futter hochziehen', dueDate: '2026-12-01', minutes: 1020, timeOfDay: 'evening' },
       // Sommerzeit: 07:00Z ist 09:00 Uhr in Berlin
-      { title: 'Hühner: Futter runterlassen (09:00)', dueDate: '2027-07-04', minutes: 540, timeOfDay: 'morning' },
+      { title: 'Hühner: Futter runterlassen', dueDate: '2027-07-04', minutes: 540, timeOfDay: 'morning' },
     ])
   })
 
