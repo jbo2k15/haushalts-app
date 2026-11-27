@@ -45,9 +45,9 @@ afterEach(() => {
 })
 
 describe('dutyFromEvent', () => {
-  it('bildet Titel mit Vorsatz und Uhrzeit, Berliner Datum und Tageszeit', () => {
+  it('bildet Titel mit Vorsatz, Berliner Datum und Tageszeit', () => {
     expect(dutyFromEvent(morning('2026-12-01'), { label: 'Hühner' })).toEqual({
-      title: 'Hühner: Futter runterlassen', dueDate: '2026-12-01', minutes: 540, timeOfDay: 'morning',
+      title: 'Hühner: Futter runterlassen', dueDate: '2026-12-01', minutes: 540, timeOfDay: 'morning', uid: null, done: null,
     })
     expect(dutyFromEvent(evening('2026-12-01'))).toMatchObject({ title: 'Futter hochziehen', timeOfDay: 'evening' })
   })
@@ -66,7 +66,7 @@ describe('dutyFromEvent', () => {
 
   it('ganztägige Termine bekommen keine Uhrzeit', () => {
     const allDay = { type: 'VEVENT', summary: 'Stall ausmisten', start: new Date(2026, 11, 5), datetype: 'date' }
-    expect(dutyFromEvent(allDay)).toEqual({ title: 'Stall ausmisten', dueDate: '2026-12-05', minutes: null, timeOfDay: null })
+    expect(dutyFromEvent(allDay)).toEqual({ title: 'Stall ausmisten', dueDate: '2026-12-05', minutes: null, timeOfDay: null, uid: null, done: null })
   })
 
   it('ignoriert Einträge ohne Titel oder mit kaputtem Datum', () => {
