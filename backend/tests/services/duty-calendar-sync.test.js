@@ -45,9 +45,9 @@ afterEach(() => {
 })
 
 describe('dutyFromEvent', () => {
-  it('bildet Titel mit Vorsatz und Uhrzeit, Berliner Datum und Tageszeit', () => {
+  it('bildet Titel mit Vorsatz, Berliner Datum und Tageszeit', () => {
     expect(dutyFromEvent(morning('2026-12-01'), { label: 'Hühner' })).toEqual({
-      title: 'Hühner: Futter runterlassen', dueDate: '2026-12-01', minutes: 540, timeOfDay: 'morning',
+      title: 'Hühner: Futter runterlassen', dueDate: '2026-12-01', minutes: 540, timeOfDay: 'morning', uid: null, done: null,
     })
     expect(dutyFromEvent(evening('2026-12-01'))).toMatchObject({ title: 'Futter hochziehen', timeOfDay: 'evening' })
   })
