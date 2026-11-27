@@ -25,6 +25,7 @@ import {
 } from './pauses.js'
 // Fairness-Statistik: Aufwand pro Aufgabe und Punkte pro Erledigung.
 import { validateDifficulty, logWeightFields, syncLegacyWeights, DEFAULT_DIFFICULTY, getCountMode } from './fairness.js'
+import { markDutyPending, pushDutyState } from '../services/duty-done.js'
 
 export const LOG_LIMIT = 100
 
@@ -410,6 +411,18 @@ async function createCompletion({ task, forDate, userId, userName, source = 'app
   })
 }
 
+// Dienst aus dem Dienstplan-Kalender abgehakt/zurueckgenommen: der Quelle
+// melden (services/duty-done.js). Laeuft nebenher - der Haken haengt nicht
+// daran, Fehlschlaege werden vom Scheduler nachgeholt.
+async function reportDutyState(task) {
+  if (task.autoSource !== 'duty') return
+  try {
+    if (await markDutyPending(task)) pushDutyState(task.id).catch(() => {})
+  } catch (err) {
+    console.error('Dienstplan: Rueckmeldung konnte nicht vorgemerkt werden:', err.message)
+  }
+}
+
 // desired: gewuenschter Zielzustand vom Client (true = abhaken, false =
 // zuruecknehmen). Ohne Angabe (aeltere, noch gecachte App-Version) wird wie
 // frueher umgeschaltet. Mit Angabe ist der Aufruf idempotent: Wer eine schon
@@ -466,11 +479,13 @@ export async function completeTask(id, { userId, userName, desired, source = 'ap
         await prisma.task.update({ where: { id }, data: { nextDueMonth: previousDue } })
       }
     }
+    await reportDutyState(task)
     broadcastTasksUpdated()
     return { completed: false }
   }
 
   await createCompletion({ task, forDate, userId, userName, source })
+  await reportDutyState(task)
 
   // Bei monthly-Tasks mit Interval: nextDueMonth weiterzählen
   if (task.type === 'monthly' && task.monthlyInterval && task.nextDueMonth) {
