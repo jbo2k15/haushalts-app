@@ -66,7 +66,7 @@ describe('dutyFromEvent', () => {
 
   it('ganztägige Termine bekommen keine Uhrzeit', () => {
     const allDay = { type: 'VEVENT', summary: 'Stall ausmisten', start: new Date(2026, 11, 5), datetype: 'date' }
-    expect(dutyFromEvent(allDay)).toEqual({ title: 'Stall ausmisten', dueDate: '2026-12-05', minutes: null, timeOfDay: null })
+    expect(dutyFromEvent(allDay)).toEqual({ title: 'Stall ausmisten', dueDate: '2026-12-05', minutes: null, timeOfDay: null, uid: null, done: null })
   })
 
   it('ignoriert Einträge ohne Titel oder mit kaputtem Datum', () => {
