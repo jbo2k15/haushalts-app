@@ -43,14 +43,21 @@ function timeOfDayFor(minutes) {
 // passt. Exportiert, damit die Zuordnung ohne iCal-Abruf testbar ist.
 export function dutyFromEvent(event, { filter = '', label = '' } = {}) {
   if (!event || event.type !== 'VEVENT') return null
-  const summary = textOf(event.summary).trim()
+  const rawSummary = textOf(event.summary)
+  // Emojis aus dem Kalendertitel entfernen ("Futter runterlassen 🌾🔻"): die
+  // Aufgabentitel der App sind reiner Text, und der Titel landet auch in der
+  // Push-Erinnerung.
+  const summary = rawSummary
+    .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{1F3FB}-\u{1F3FF}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
   if (!summary) return null
 
   if (filter) {
     // Ganztext-Suche über die üblichen Felder: je nach Abo steht die Familie
     // im Titel, in der Beschreibung oder bei den Teilnehmern.
     const haystack = [
-      summary,
+      rawSummary,
       textOf(event.description),
       textOf(event.location),
       JSON.stringify(event.attendee ?? ''),
