@@ -123,6 +123,23 @@ describe('syncDutyCalendar', () => {
     expect((await getTaskOverview()).once[0].completed).toBe(true)
   })
 
+  it('zeigt den Dienst am Vortag als Vorschau, die sich nicht abhaken lässt, und früher gar nicht', async () => {
+    const user = await prisma.user.create({ data: { email: 'huhn2@test.com', passwordHash: 'x', name: 'Tobias', approved: true } })
+    mockToday('2026-12-02')
+    ical.async.fromURL.mockResolvedValue({ e: morning('2026-12-04'), f: evening('2026-12-04') })
+    await syncDutyCalendar()
+    expect((await getTaskOverview()).once).toHaveLength(0) // zwei Tage vorher
+
+    vi.setSystemTime(new Date('2026-12-03T06:30:00Z')) // Vortag
+    const preview = (await getTaskOverview()).once
+    expect(preview.map(t => t.title)).toEqual(['Hühner: Futter runterlassen (09:00)', 'Hühner: Futter hochziehen (17:00)'])
+    expect(preview.every(t => t.infoOnly && !t.completed && !t.isOverdue)).toBe(true)
+    await expect(completeTask(preview[0].id, { userId: user.id, userName: user.name, desired: true })).rejects.toThrow()
+
+    vi.setSystemTime(new Date('2026-12-04T06:30:00Z')) // Diensttag
+    expect((await getTaskOverview()).once.every(t => !t.infoOnly)).toBe(true)
+  })
+
   it('entfernt einen getauschten Dienst, behält aber einen schon abgehakten', async () => {
     mockToday('2026-12-01')
     ical.async.fromURL.mockResolvedValue({ c: morning('2026-12-01'), d: evening('2026-12-01'), e: morning('2026-12-04') })
