@@ -39,6 +39,15 @@ function timeOfDayFor(minutes) {
   return 'evening'
 }
 
+// Frühere Versionen hängten die Uhrzeit an den Titel ("… (09:00)"). Beim
+// Abgleich zählt der Titel ohne diesen Zusatz, damit vorgemerkte Dienste
+// umbenannt statt doppelt angelegt werden (und ihr Haken erhalten bleibt).
+const LEGACY_TIME_SUFFIX = / \(\d{2}:\d{2}\)$/
+
+function dutyKey(title, dueDate, minutes) {
+  return `${title.replace(LEGACY_TIME_SUFFIX, '')}|${dueDate}|${minutes ?? 0}`
+}
+
 // Macht aus einem Kalendereintrag eine Dienst-Aufgabe oder null, wenn er nicht
 // passt. Exportiert, damit die Zuordnung ohne iCal-Abruf testbar ist.
 export function dutyFromEvent(event, { filter = '', label = '' } = {}) {
@@ -73,7 +82,6 @@ export function dutyFromEvent(event, { filter = '', label = '' } = {}) {
   // das Kalenderdatum, nicht die Berliner Uhrzeit.
   const dateOnly = event.datetype === 'date' || event.start?.dateOnly === true
   let dueDate
-  let time = null
   let minutes = null
   if (dateOnly) {
     dueDate = toDateString(start)
@@ -85,12 +93,13 @@ export function dutyFromEvent(event, { filter = '', label = '' } = {}) {
     )
     const hour = Number(parts.hour) % 24
     const minute = Number(parts.minute)
-    time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
     minutes = hour * 60 + minute
   }
 
   const name = summary.length > MAX_SUMMARY_LENGTH ? `${summary.slice(0, MAX_SUMMARY_LENGTH - 1)}…` : summary
-  const title = `${label ? `${label}: ` : ''}${name}${time ? ` (${time})` : ''}`
+  // Ohne Uhrzeit im Titel: die Tageszeit (morgens/mittags/abends) zeigt die
+  // App als Kennzeichen an, die genaue Minute steckt nur in der Sortierung.
+  const title = `${label ? `${label}: ` : ''}${name}`
   return { title, dueDate, minutes, timeOfDay: timeOfDayFor(minutes) }
 }
 
@@ -119,25 +128,31 @@ export async function syncDutyCalendar() {
   const horizon = addDaysToDateString(today, BANK_LEAD_DAYS)
   const allEvents = Object.values(events).filter(e => e?.type === 'VEVENT')
 
-  const wanted = new Map() // "titel|datum" -> Dienst
+  const wanted = new Map() // "titel|datum|minuten" -> Dienst
   let recurring = 0
   for (const event of allEvents) {
     if (event.rrule) recurring++
     const duty = dutyFromEvent(event, options)
     if (!duty || duty.dueDate < today || duty.dueDate > horizon) continue
-    wanted.set(`${duty.title}|${duty.dueDate}`, duty)
+    wanted.set(dutyKey(duty.title, duty.dueDate, duty.minutes), duty)
   }
   if (recurring > 0) {
     console.warn(`Dienstplan: ${recurring} Serientermin(e) im Abo - nur der erste Termin einer Serie wird berücksichtigt. Das Abo sollte Einzeltermine liefern.`)
   }
 
   const existing = await prisma.task.findMany({ where: { autoSource: DUTY_SOURCE, dueDate: { gte: today } } })
-  const existingByKey = new Map(existing.map(t => [`${t.title}|${t.dueDate}`, t]))
+  const existingByKey = new Map(existing.map(t => [dutyKey(t.title, t.dueDate, t.sortOrder), t]))
 
   let created = 0
+  let renamed = 0
   for (const [key, duty] of wanted) {
-    if (existingByKey.has(key)) {
+    const known = existingByKey.get(key)
+    if (known) {
       existingByKey.delete(key)
+      if (known.title !== duty.title || known.timeOfDay !== duty.timeOfDay) {
+        await prisma.task.update({ where: { id: known.id }, data: { title: duty.title, timeOfDay: duty.timeOfDay } })
+        renamed++
+      }
       continue
     }
     await prisma.task.create({
@@ -174,8 +189,8 @@ export async function syncDutyCalendar() {
     }
   }
 
-  if (created > 0 || removed > 0) {
-    console.log(`Dienstplan: ${created} Aufgabe(n) angelegt, ${removed} entfernt`)
+  if (created > 0 || removed > 0 || renamed > 0) {
+    console.log(`Dienstplan: ${created} Aufgabe(n) angelegt, ${removed} entfernt${renamed > 0 ? `, ${renamed} umbenannt` : ''}`)
     broadcastTasksUpdated()
   }
 }
