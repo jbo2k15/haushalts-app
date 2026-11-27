@@ -13,7 +13,7 @@ import { TYPE_LABELS } from './constants.js'
 // je Typ und der (schreibgeschützte) Abfallkalender-Abschnitt. Präsentations-
 // Component; State/Handler liegen in Admin.jsx.
 export default function TasksTab({
-  tasks, wasteTasks, sensors, onDragEnd,
+  tasks, wasteTasks, dutyTasks = [], sensors, onDragEnd,
   showForm, onToggleForm, onExport, onImport,
   onSubmit, form, setForm, onEdit, onDelete,
 }) {
@@ -88,6 +88,34 @@ export default function TasksTab({
           Diese Termine werden automatisch über den Abfallkalender-Sync verwaltet. Abgelaufene Einträge können manuell gelöscht werden und werden nach 7 Tagen automatisch entfernt.
         </p>
       </Card>
+
+      {dutyTasks.length > 0 && (
+        <Card className="overflow-hidden mb-3" data-testid="duty-tasks-card">
+          <div className="px-4 py-3 bg-surface-container-high border-b border-outline">
+            <h2 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Dienstplan</h2>
+          </div>
+          {dutyTasks.map(task => (
+            <div key={task.id} className="flex items-center gap-3 px-4 py-3 border-b border-outline last:border-b-0">
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-ink truncate">{task.title}</span>
+                <div className="text-xs text-ink-faint mt-0.5">
+                  {task.dueDate?.split('-').reverse().join('.')}
+                  {' · '}
+                  {task.isActive
+                    ? <span className="text-primary">Vorgemerkt</span>
+                    : <span className="text-ink-faint">Abgelaufen</span>}
+                </div>
+              </div>
+              {!task.isActive && (
+                <button onClick={() => onDelete(task.id)} className="min-h-11 px-2 -mr-2 text-xs text-danger hover:underline shrink-0" aria-label={`Löschen ${task.title}`}>Löschen</button>
+              )}
+            </div>
+          ))}
+          <p className="text-xs text-ink-faint p-3">
+            Diese Dienste kommen automatisch aus dem Dienstplan-Kalender und erscheinen nur an ihrem Diensttag in der Aufgabenliste. Abgelaufene Einträge werden nach 7 Tagen automatisch entfernt.
+          </p>
+        </Card>
+      )}
 
       <Card className="overflow-hidden">
         <div className="px-4 py-3 bg-surface-container-high border-b border-outline">
