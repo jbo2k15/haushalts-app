@@ -1,0 +1,208 @@
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
+import prisma from '../../src/lib/prisma.js'
+
+vi.mock('node-ical', () => ({
+  default: { async: { fromURL: vi.fn() } },
+}))
+vi.mock('../../src/services/push.js', () => ({
+  sendPushToUser: vi.fn(),
+}))
+
+const ical = (await import('node-ical')).default
+const { syncDutyCalendar, dutyFromEvent } = await import('../../src/services/duty-calendar.js')
+const { syncWasteCalendar } = await import('../../src/services/waste-calendar.js')
+const { expireOnce } = await import('../../src/services/scheduler.js')
+const { getTaskOverview, completeTask } = await import('../../src/domain/tasks.js')
+
+const ORIGINAL = { url: process.env.DUTY_ICAL_URL, filter: process.env.DUTY_ICAL_FILTER, label: process.env.DUTY_ICAL_LABEL, waste: process.env.WASTE_ICAL_URL }
+const SECRET_URL = 'https://example.com/huhn/kalender.ics?key=geheim123'
+
+// 09:00 bzw. 17:00 Berliner Winterzeit = 08:00Z / 16:00Z
+const morning = day => ({ type: 'VEVENT', summary: 'Futter runterlassen', start: new Date(`${day}T08:00:00Z`) })
+const evening = day => ({ type: 'VEVENT', summary: 'Futter hochziehen', start: new Date(`${day}T16:00:00Z`) })
+
+function mockToday(day) {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(`${day}T06:30:00Z`))
+}
+
+const dutyTasks = () => prisma.task.findMany({ where: { autoSource: 'duty' }, orderBy: [{ dueDate: 'asc' }, { sortOrder: 'asc' }] })
+
+beforeEach(() => {
+  process.env.DUTY_ICAL_URL = SECRET_URL
+  process.env.DUTY_ICAL_LABEL = 'Hühner'
+  delete process.env.DUTY_ICAL_FILTER
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+  for (const [key, env] of [['url', 'DUTY_ICAL_URL'], ['filter', 'DUTY_ICAL_FILTER'], ['label', 'DUTY_ICAL_LABEL'], ['waste', 'WASTE_ICAL_URL']]) {
+    if (ORIGINAL[key] === undefined) delete process.env[env]
+    else process.env[env] = ORIGINAL[key]
+  }
+  vi.mocked(ical.async.fromURL).mockReset()
+})
+
+describe('dutyFromEvent', () => {
+  it('bildet Titel mit Vorsatz und Uhrzeit, Berliner Datum und Tageszeit', () => {
+    expect(dutyFromEvent(morning('2026-12-01'), { label: 'Hühner' })).toEqual({
+      title: 'Hühner: Futter runterlassen (09:00)', dueDate: '2026-12-01', minutes: 540, timeOfDay: 'morning',
+    })
+    expect(dutyFromEvent(evening('2026-12-01'))).toMatchObject({ title: 'Futter hochziehen (17:00)', timeOfDay: 'evening' })
+  })
+
+  it('rechnet einen späten UTC-Termin auf den Berliner Tag um', () => {
+    const late = { type: 'VEVENT', summary: 'Stall zu', start: new Date('2026-12-01T23:30:00Z') }
+    expect(dutyFromEvent(late)).toMatchObject({ dueDate: '2026-12-02', title: 'Stall zu (00:30)' })
+  })
+
+  it('filtert nach Text in Titel, Beschreibung oder Teilnehmern', () => {
+    const other = { ...morning('2026-12-02'), description: 'Beispiel · Robin, Sam' }
+    const ours = { ...morning('2026-12-01'), description: 'Muster · Alex, Kim' }
+    expect(dutyFromEvent(other, { filter: 'muster' })).toBeNull()
+    expect(dutyFromEvent(ours, { filter: 'muster' })).not.toBeNull()
+  })
+
+  it('ganztägige Termine bekommen keine Uhrzeit', () => {
+    const allDay = { type: 'VEVENT', summary: 'Stall ausmisten', start: new Date(2026, 11, 5), datetype: 'date' }
+    expect(dutyFromEvent(allDay)).toEqual({ title: 'Stall ausmisten', dueDate: '2026-12-05', minutes: null, timeOfDay: null })
+  })
+
+  it('ignoriert Einträge ohne Titel oder mit kaputtem Datum', () => {
+    expect(dutyFromEvent({ type: 'VEVENT', summary: '  ', start: new Date() })).toBeNull()
+    expect(dutyFromEvent({ type: 'VEVENT', summary: 'X', start: 'kaputt' })).toBeNull()
+    expect(dutyFromEvent({ type: 'VTIMEZONE' })).toBeNull()
+  })
+})
+
+describe('syncDutyCalendar', () => {
+  it('tut nichts ohne DUTY_ICAL_URL und lehnt http-Links ab', async () => {
+    delete process.env.DUTY_ICAL_URL
+    await syncDutyCalendar()
+    process.env.DUTY_ICAL_URL = 'http://example.com/unsicher.ics'
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    await syncDutyCalendar()
+    expect(ical.async.fromURL).not.toHaveBeenCalled()
+    expect(await dutyTasks()).toHaveLength(0)
+  })
+
+  it('legt Dienste von heute bis 7 Tage im Voraus an, nicht darüber hinaus und keine vergangenen', async () => {
+    mockToday('2026-12-01')
+    ical.async.fromURL.mockResolvedValue({
+      a: morning('2026-11-28'), b: evening('2026-11-28'),
+      c: morning('2026-12-01'), d: evening('2026-12-01'),
+      e: morning('2026-12-04'), f: evening('2026-12-04'),
+      g: morning('2026-12-10'),
+    })
+
+    await syncDutyCalendar()
+    await syncDutyCalendar() // idempotent
+
+    const tasks = await dutyTasks()
+    expect(tasks.map(t => `${t.dueDate} ${t.title}`)).toEqual([
+      '2026-12-01 Hühner: Futter runterlassen (09:00)',
+      '2026-12-01 Hühner: Futter hochziehen (17:00)',
+      '2026-12-04 Hühner: Futter runterlassen (09:00)',
+      '2026-12-04 Hühner: Futter hochziehen (17:00)',
+    ])
+    expect(tasks[0]).toMatchObject({ type: 'once', isAutoGenerated: true, isActive: true, timeOfDay: 'morning' })
+  })
+
+  it('zeigt nur die Dienste von heute an, und sie lassen sich abhaken', async () => {
+    mockToday('2026-12-01')
+    const user = await prisma.user.create({ data: { email: 'huhn@test.com', passwordHash: 'x', name: 'Tobias', approved: true } })
+    ical.async.fromURL.mockResolvedValue({ c: morning('2026-12-01'), d: evening('2026-12-01'), e: morning('2026-12-04') })
+    await syncDutyCalendar()
+
+    const once = (await getTaskOverview()).once
+    expect(once.map(t => t.title)).toEqual(['Hühner: Futter runterlassen (09:00)', 'Hühner: Futter hochziehen (17:00)'])
+    expect(once[0]).toMatchObject({ infoOnly: false, completed: false, isOverdue: false })
+
+    expect(await completeTask(once[0].id, { userId: user.id, userName: user.name, desired: true })).toEqual({ completed: true })
+    expect((await getTaskOverview()).once[0].completed).toBe(true)
+  })
+
+  it('entfernt einen getauschten Dienst, behält aber einen schon abgehakten', async () => {
+    mockToday('2026-12-01')
+    ical.async.fromURL.mockResolvedValue({ c: morning('2026-12-01'), d: evening('2026-12-01'), e: morning('2026-12-04') })
+    await syncDutyCalendar()
+    const [done] = await dutyTasks()
+    await prisma.taskCompletion.create({ data: { taskId: done.id, forDate: '2026-12-01' } })
+
+    // Familie hat getauscht: alle bisherigen Dienste fehlen, neuer am 03.12.
+    ical.async.fromURL.mockResolvedValue({ x: morning('2026-12-03') })
+    await syncDutyCalendar()
+
+    expect((await dutyTasks()).map(t => `${t.dueDate} ${t.title}`)).toEqual([
+      '2026-12-01 Hühner: Futter runterlassen (09:00)',
+      '2026-12-03 Hühner: Futter runterlassen (09:00)',
+    ])
+  })
+
+  it('räumt bei leerem Abo oder fehlgeschlagenem Abruf nichts weg und loggt den Link nicht', async () => {
+    mockToday('2026-12-01')
+    ical.async.fromURL.mockResolvedValue({ c: morning('2026-12-01'), e: morning('2026-12-04') })
+    await syncDutyCalendar()
+
+    ical.async.fromURL.mockResolvedValue({})
+    await syncDutyCalendar()
+    expect(await dutyTasks()).toHaveLength(2)
+
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    ical.async.fromURL.mockRejectedValue(new Error(`Request to ${SECRET_URL} failed: 503`))
+    vi.useRealTimers()
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-12-01T06:30:00Z'))
+    const run = syncDutyCalendar()
+    await vi.advanceTimersByTimeAsync(60000)
+    await run
+    expect(await dutyTasks()).toHaveLength(2)
+    expect(JSON.stringify(errors.mock.calls)).not.toContain('geheim123')
+  })
+
+  it('berücksichtigt DUTY_ICAL_FILTER für ein Abo mit allen Familien', async () => {
+    mockToday('2026-12-01')
+    process.env.DUTY_ICAL_FILTER = 'Muster'
+    ical.async.fromURL.mockResolvedValue({
+      a: { ...morning('2026-12-01'), description: 'Muster · Alex, Kim' },
+      b: { ...morning('2026-12-02'), description: 'Beispiel · Robin, Sam' },
+    })
+    await syncDutyCalendar()
+    expect((await dutyTasks()).map(t => t.dueDate)).toEqual(['2026-12-01'])
+  })
+})
+
+describe('Dienste und die übrige Aufgabenlogik', () => {
+  it('nicht erledigte Dienste verfallen in der Nacht danach, erledigte ohne Log-Eintrag', async () => {
+    mockToday('2026-12-01')
+    ical.async.fromURL.mockResolvedValue({ c: morning('2026-12-01'), d: evening('2026-12-01') })
+    await syncDutyCalendar()
+    const [early, late] = await dutyTasks()
+    await prisma.taskCompletion.create({ data: { taskId: early.id, forDate: '2026-12-01' } })
+
+    await expireOnce() // noch am Diensttag: nichts passiert
+    expect((await dutyTasks()).every(t => t.isActive)).toBe(true)
+
+    vi.setSystemTime(new Date('2026-12-01T23:30:00Z')) // 00:30 am 02.12.
+    await expireOnce()
+
+    expect((await dutyTasks()).every(t => !t.isActive)).toBe(true)
+    const expired = await prisma.taskLog.findMany({ where: { status: 'expired' } })
+    expect(expired.map(l => l.taskId)).toEqual([late.id])
+  })
+
+  it('der Abfallkalender-Sync lässt Dienste unangetastet', async () => {
+    mockToday('2026-12-01')
+    ical.async.fromURL.mockResolvedValue({ e: morning('2026-12-04') })
+    await syncDutyCalendar()
+
+    process.env.WASTE_ICAL_URL = 'https://example.com/waste.ics'
+    ical.async.fromURL.mockResolvedValue({ w: { type: 'VEVENT', summary: 'Gelbe Tonne', start: new Date('2026-12-03T00:00:00Z') } })
+    await syncWasteCalendar()
+
+    expect(await dutyTasks()).toHaveLength(1)
+    expect(await prisma.task.count({ where: { isAutoGenerated: true, autoSource: null } })).toBe(1)
+  })
+})
