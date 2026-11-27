@@ -97,8 +97,8 @@ export function dutyFromEvent(event, { filter = '', label = '' } = {}) {
   }
 
   const name = summary.length > MAX_SUMMARY_LENGTH ? `${summary.slice(0, MAX_SUMMARY_LENGTH - 1)}…` : summary
-  // Ohne Uhrzeit im Titel: die Tageszeit (morgens/mittags/abends) zeigt die
-  // App als Kennzeichen an, die genaue Minute steckt nur in der Sortierung.
+  // Ohne Uhrzeit im Titel: aus ihr wird nur das Feld Tageszeit gefüllt
+  // (morgens/mittags/abends), die genaue Minute steckt in der Sortierung.
   const title = `${label ? `${label}: ` : ''}${name}`
   return { title, dueDate, minutes, timeOfDay: timeOfDayFor(minutes) }
 }
