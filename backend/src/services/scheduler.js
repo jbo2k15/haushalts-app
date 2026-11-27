@@ -3,6 +3,7 @@ import prisma from '../lib/prisma.js'
 import { sendPushToUser } from './push.js'
 import { syncWasteCalendar } from './waste-calendar.js'
 import { syncDutyCalendar } from './duty-calendar.js'
+import { retryPendingDutyPushes } from './duty-done.js'
 import { checkWeatherDependentTasks } from './weather.js'
 import { todayString, twoDaysAgoString, currentWeekStart, currentMonthStart, dateToISO, dateStringInBerlin, addDaysToDateString, mondayOnOrBefore, addMonthsToMonthString, compareMonthStrings } from '../lib/dates.js'
 import { calculateTrophies } from '../lib/trophies.js'
@@ -566,6 +567,12 @@ export function startScheduler() {
       await checkWeatherDependentTasks()
     } catch (err) {
       console.error('[Scheduler] Fehler bei checkWeatherDependentTasks:', err.message)
+    }
+    // Dienstplan: nicht zugestellte Erledigt-Meldungen nachholen (duty-done.js).
+    try {
+      await retryPendingDutyPushes()
+    } catch (err) {
+      console.error('[Scheduler] Fehler bei retryPendingDutyPushes:', err.message)
     }
   }, { timezone: 'Europe/Berlin' })
 

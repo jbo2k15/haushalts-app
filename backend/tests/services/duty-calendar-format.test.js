@@ -15,13 +15,14 @@ describe('Dienstplan-Kalender: echtes Abo-Format', () => {
     expect(events).toHaveLength(3)
   })
 
-  it('macht aus den Terminen Aufgaben mit Berliner Datum und Uhrzeit, ohne Emojis', () => {
+  it('macht aus den Terminen Aufgaben mit Berliner Datum, Termin-UID und Erledigt-Status, ohne Emojis', () => {
     const duties = events.map(e => dutyFromEvent(e, { label: 'Hühner' }))
     expect(duties).toEqual([
-      { title: 'Hühner: Futter runterlassen', dueDate: '2026-12-01', minutes: 540, timeOfDay: 'morning' },
-      { title: 'Hühner: Futter hochziehen', dueDate: '2026-12-01', minutes: 1020, timeOfDay: 'evening' },
+      { title: 'Hühner: Futter runterlassen', dueDate: '2026-12-01', minutes: 540, timeOfDay: 'morning', uid: '0000000000000000000000000000000000000000000000000000000000000001@example.org', done: true },
+      { title: 'Hühner: Futter hochziehen', dueDate: '2026-12-01', minutes: 1020, timeOfDay: 'evening', uid: '0000000000000000000000000000000000000000000000000000000000000002@example.org', done: false },
       // Sommerzeit: 07:00Z ist 09:00 Uhr in Berlin
-      { title: 'Hühner: Futter runterlassen', dueDate: '2027-07-04', minutes: 540, timeOfDay: 'morning' },
+      // ohne X-HUHN-ERLEDIGT: Status unbekannt
+      { title: 'Hühner: Futter runterlassen', dueDate: '2027-07-04', minutes: 540, timeOfDay: 'morning', uid: '0000000000000000000000000000000000000000000000000000000000000003@example.org', done: null },
     ])
   })
 
