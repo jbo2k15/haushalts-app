@@ -1,7 +1,8 @@
 import prisma from '../lib/prisma.js'
 import { addDaysToDateString } from '../lib/dates.js'
 import { broadcastTasksUpdated } from '../lib/sse.js'
-import { fetchIcalWithRetry, toDateString } from './waste-calendar.js'
+import { toDateString } from './waste-calendar.js'
+import { fetchDutyFeed } from './duty-feed.js'
 import { retryPendingDutyPushes, PUSH_SETTLE_MS } from './duty-done.js'
 
 // Dienstplan-Kalender: holt Dienste aus einem iCal-Abo (z. B. Hühnerstall-
@@ -179,12 +180,13 @@ export async function syncDutyCalendar() {
 
   let events
   try {
-    events = await fetchIcalWithRetry(url, { label: 'Dienstplan' })
+    events = await fetchDutyFeed(url)
   } catch (err) {
     // Der Link enthält den geheimen Schlüssel - nie ins Log schreiben.
     console.error('Dienstplan: Sync fehlgeschlagen:', String(err.message).replaceAll(url, '<URL>'))
     return
   }
+  if (!events) return // Quelle bat um eine Abrufpause (duty-feed.js)
 
   const today = todayBerlin()
   const horizon = addDaysToDateString(today, BANK_LEAD_DAYS)
