@@ -16,6 +16,14 @@ const backendEnv = {
   NODE_ENV: 'test',
   FRONTEND_URL: 'http://localhost:4173',
   PORT: '3101',
+  // Werte aus einer lokalen backend/.env neutralisieren (dotenv überschreibt
+  // gesetzte Variablen nicht): keine Abrufe echter Kalender-/Wetterdaten und
+  // keine echten Inhalte in den Aufnahmen.
+  WASTE_ICAL_URL: '',
+  DUTY_ICAL_URL: '',
+  DUTY_DONE_URL: '',
+  WEATHER_LAT: '',
+  WEATHER_LON: '',
   // Wegwerf-Dummy-Werte, s. playwright.config.js — Push/Mail werden hier
   // nicht ausgeübt.
   VAPID_EMAIL: 'mailto:screenshot@example.com',
@@ -36,6 +44,11 @@ export default defineConfig({
     // Schmales Telefon-Format für die "narrow"-Screenshots im Manifest.
     viewport: { width: 412, height: 900 },
     deviceScaleFactor: 2,
+    // Deutsche Darstellung der Datumsfelder (tt.mm.jjjj statt mm/dd/yyyy).
+    locale: 'de-DE',
+    timezoneId: 'Europe/Berlin',
+    // Die Platzhalter leerer Datumsfelder folgen der Browser-Sprache, nicht `locale`.
+    launchOptions: { args: ['--lang=de-DE'] },
     // Embla liest prefers-reduced-motion und macht das scrollTo dann instant —
     // sonst würde der Ruhmeshalle-Screenshot mitten in der Wisch-Animation
     // aufgenommen (halb Home, halb Ruhmeshalle).
@@ -48,7 +61,8 @@ export default defineConfig({
       port: 3101,
       env: backendEnv,
       reuseExistingServer: false,
-      timeout: 30_000,
+      // Reset + Seed brauchen lokal allein rund 10 s, parallel zum Frontend-Build mehr.
+      timeout: 120_000,
     },
     {
       command: 'npm run build && npm run preview -- --port 4173',

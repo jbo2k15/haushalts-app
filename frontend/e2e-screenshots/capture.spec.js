@@ -3,7 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { login } from '../e2e/helpers.js'
 
-// Nimmt die vier PWA-Install-Screenshots (manifest.screenshots) im neuen
+// Nimmt die sechs PWA-Install-Screenshots (manifest.screenshots) im neuen
 // Design auf und legt sie in public/screenshots ab. Kein Test im engeren Sinn,
 // sondern ein reproduzierbarer Aufnahme-Lauf — daher eigenes testDir +
 // eigene Config (playwright.screenshots.config.js), außerhalb des CI-E2E-Laufs.
@@ -33,17 +33,37 @@ test('Screenshots aufnehmen', async ({ page }) => {
   await expect(page.locator('[data-testid="nav-home"]')).toHaveAttribute('aria-current', 'page')
   await page.screenshot({ path: path.join(outDir, 'home.png') })
 
-  // 3) Ruhmeshalle
+  // 3) Vorrat
+  await page.locator('[data-testid="nav-storage"]').click()
+  await expect(page).toHaveURL('/storage')
+  await expect(page.getByRole('heading', { name: 'Vorrat' })).toBeVisible()
+  await expect(page.getByText('Fischstäbchen').first()).toBeVisible()
+  await page.screenshot({ path: path.join(outDir, 'storage.png') })
+  await page.locator('[data-testid="nav-home"]').click()
+  await expect(page.locator('[data-testid="nav-home"]')).toHaveAttribute('aria-current', 'page')
+
+  // 4) Ruhmeshalle
   await page.locator('[data-testid="nav-hall-of-fame"]').click()
   await expect(page.getByRole('heading', { name: 'Ruhmeshalle' })).toBeVisible()
   await expect(page.getByText('Anna').first()).toBeVisible()
   await expect(page.locator('[data-testid="nav-hall-of-fame"]')).toHaveAttribute('aria-current', 'page')
+  // Direkt laden statt nur wischen: nach dem Tab-Wechsel bleibt das Karussell
+  // sonst um einige Pixel versetzt stehen (linker Rand der Startseite im Bild).
+  await page.goto('/hall-of-fame')
+  await expect(page.getByRole('heading', { name: 'Ruhmeshalle' })).toBeVisible()
+  await expect(page.getByText('Anna').first()).toBeVisible()
   await page.waitForTimeout(400) // Carousel-Position settlen lassen
   await page.screenshot({ path: path.join(outDir, 'halloffame.png') })
 
-  // 4) Verwaltung (Anna ist Admin)
+  // 5) Verwaltung (Anna ist Admin)
   await page.locator('[data-testid="nav-admin"]').click()
   await expect(page).toHaveURL('/admin')
   await expect(page.getByRole('button', { name: '+ Neue Aufgabe' })).toBeVisible()
   await page.screenshot({ path: path.join(outDir, 'admin.png') })
+
+  // 6) Einstellungen
+  await page.locator('[data-testid="nav-settings"]').click()
+  await expect(page).toHaveURL('/settings')
+  await expect(page.getByRole('heading', { name: 'Einstellungen' })).toBeVisible()
+  await page.screenshot({ path: path.join(outDir, 'settings.png') })
 })
