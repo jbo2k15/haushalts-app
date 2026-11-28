@@ -4,11 +4,16 @@ import prisma from '../../src/lib/prisma.js'
 vi.mock('node-ical', () => ({
   default: { async: { fromURL: vi.fn() } },
 }))
+vi.mock('../../src/services/duty-feed.js', async (original) => ({
+  ...(await original()),
+  fetchDutyFeed: vi.fn(),
+}))
 vi.mock('../../src/services/push.js', () => ({
   sendPushToUser: vi.fn(),
 }))
 
 const ical = (await import('node-ical')).default
+const feedMock = (await import('../../src/services/duty-feed.js')).fetchDutyFeed
 const { syncDutyCalendar } = await import('../../src/services/duty-calendar.js')
 const { pushDutyState, retryPendingDutyPushes } = await import('../../src/services/duty-done.js')
 const { completeTask } = await import('../../src/domain/tasks.js')
@@ -45,7 +50,7 @@ beforeEach(async () => {
   vi.stubGlobal('fetch', fetchMock)
   respond(200)
   user = await prisma.user.create({ data: { email: `stall-${Math.random()}@test.com`, passwordHash: 'x', name: 'Tobias', approved: true } })
-  ical.async.fromURL.mockResolvedValue(feed())
+  feedMock.mockResolvedValue(feed())
   await syncDutyCalendar()
 })
 
@@ -58,6 +63,7 @@ afterEach(() => {
     else process.env[key] = ORIGINAL[key]
   }
   vi.mocked(ical.async.fromURL).mockReset()
+  vi.mocked(feedMock).mockReset()
 })
 
 describe('Dienstplan: Rückmeldung an die Quelle', () => {
@@ -127,13 +133,13 @@ describe('Dienstplan: Rückmeldung an die Quelle', () => {
 
 describe('Dienstplan: Erledigt-Status aus dem Abo', () => {
   it('übernimmt einen in der Quelle gesetzten Haken, ohne ihn zurückzumelden', async () => {
-    ical.async.fromURL.mockResolvedValue(feed({ 'HUHN-ERLEDIGT': 'TRUE' }))
+    feedMock.mockResolvedValue(feed({ 'HUHN-ERLEDIGT': 'TRUE' }))
     await syncDutyCalendar()
     expect(await isTicked()).toBe(true)
     expect(fetchMock).not.toHaveBeenCalled()
 
     // In der Quelle wieder entfernt: hier auch
-    ical.async.fromURL.mockResolvedValue(feed({ 'X-HUHN-ERLEDIGT': 'false' }))
+    feedMock.mockResolvedValue(feed({ 'X-HUHN-ERLEDIGT': 'false' }))
     await syncDutyCalendar()
     expect(await isTicked()).toBe(false)
   })
@@ -141,7 +147,7 @@ describe('Dienstplan: Erledigt-Status aus dem Abo', () => {
   it('entfernt keinen Haken, der die Quelle nie erreicht hat', async () => {
     delete process.env.DUTY_DONE_URL
     await tick()
-    ical.async.fromURL.mockResolvedValue(feed({ 'HUHN-ERLEDIGT': 'FALSE' }))
+    feedMock.mockResolvedValue(feed({ 'HUHN-ERLEDIGT': 'FALSE' }))
     await syncDutyCalendar()
     expect(await isTicked()).toBe(true)
   })
@@ -149,7 +155,7 @@ describe('Dienstplan: Erledigt-Status aus dem Abo', () => {
   it('lässt den eigenen Stand gewinnen, solange das Abo hinterherhinken kann', async () => {
     await tick()
     await waitForSync('synced')
-    ical.async.fromURL.mockResolvedValue(feed({ 'HUHN-ERLEDIGT': 'FALSE' }))
+    feedMock.mockResolvedValue(feed({ 'HUHN-ERLEDIGT': 'FALSE' }))
     await syncDutyCalendar() // direkt nach der Meldung: Abo noch alt
     expect(await isTicked()).toBe(true)
 
