@@ -417,7 +417,7 @@ async function createCompletion({ task, forDate, userId, userName, source = 'app
 async function reportDutyState(task) {
   if (task.autoSource !== 'duty') return
   try {
-    if (await markDutyPending(task)) pushDutyState(task.id).catch(() => {})
+    if (await markDutyPending(task)) pushDutyState(task.id, { immediate: true }).catch(() => {})
   } catch (err) {
     console.error('Dienstplan: Rueckmeldung konnte nicht vorgemerkt werden:', err.message)
   }
