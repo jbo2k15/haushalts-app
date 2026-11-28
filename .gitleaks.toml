@@ -3,7 +3,7 @@
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Bekannte, ungefährliche Platzhalter und Beispieldateien"
 # Beispiel-/Dokumentationsdateien enthalten nur Platzhalter, keine echten Secrets.
 paths = [
@@ -14,4 +14,22 @@ paths = [
 regexes = [
   '''change-this-to-a-random-secret''',
   '''your-(gmail-app-password|vapid-(public|private)-key)''',
+]
+
+# Bekannte Altfunde in der History (akzeptiert 2026-11-28): Die Ausnahme gilt nur
+# fuer genau diese Commits UND diese beiden Dateien. Ein neuer Schluessel in den
+# Testkonfigurationen wird weiterhin gemeldet.
+# - 91a79f1 / 46b9236: frueherer VAPID-Schluessel, am 2026-07-07 rotiert, ungueltig.
+# - 4df5c0d: Wegwerf-Schluesselpaare, nur fuer die Testkonfiguration erzeugt.
+[[allowlists]]
+description = "Rotierter VAPID-Schluessel und Wegwerf-Testschluessel in alten Commits"
+condition = "AND"
+commits = [
+  "91a79f13ef363187b3fd80bcfa5a07c82fe31f5e",
+  "46b92369bfa748107ecbed4bc9702ce93b2b467c",
+  "4df5c0d187383715d11aae9a042e81ffd086deba",
+]
+paths = [
+  '''^backend/vitest.config.js$''',
+  '''^frontend/playwright.config.js$''',
 ]
