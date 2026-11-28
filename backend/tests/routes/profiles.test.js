@@ -27,7 +27,7 @@ function authHeader(userId) {
   return { Authorization: `Bearer ${jwt.sign({ userId }, JWT_SECRET, { expiresIn: '15m' })}` }
 }
 
-async function createProfile(admin, body = { name: 'Erik', color: '#128a75' }) {
+async function createProfile(admin, body = { name: 'Mia', color: '#128a75' }) {
   return request(app).post('/api/users/profiles').set(authHeader(admin.id)).send(body)
 }
 
@@ -36,7 +36,7 @@ describe('POST /api/users/profiles', () => {
     const admin = await createUser({ role: 'admin' })
     const res = await createProfile(admin)
     expect(res.status).toBe(201)
-    expect(res.body).toMatchObject({ name: 'Erik', kind: 'profile', color: '#128A75', approved: true })
+    expect(res.body).toMatchObject({ name: 'Mia', kind: 'profile', color: '#128A75', approved: true })
     expect(res.body.email).toBeUndefined()
     expect(res.body.passwordHash).toBeUndefined()
 
@@ -47,7 +47,7 @@ describe('POST /api/users/profiles', () => {
 
   it('erlaubt ein Profil ohne Farbe', async () => {
     const admin = await createUser({ role: 'admin' })
-    const res = await createProfile(admin, { name: 'David' })
+    const res = await createProfile(admin, { name: 'Ben' })
     expect(res.status).toBe(201)
     expect(res.body.color).toBeNull()
   })
@@ -56,14 +56,14 @@ describe('POST /api/users/profiles', () => {
     const admin = await createUser({ role: 'admin' })
     expect((await createProfile(admin, { name: '  ' })).status).toBe(400)
     expect((await createProfile(admin, { name: 'x'.repeat(101) })).status).toBe(400)
-    expect((await createProfile(admin, { name: 'Erik', color: 'grün' })).status).toBe(400)
-    expect((await createProfile(admin, { name: 'Erik', color: '#12' })).status).toBe(400)
+    expect((await createProfile(admin, { name: 'Mia', color: 'grün' })).status).toBe(400)
+    expect((await createProfile(admin, { name: 'Mia', color: '#12' })).status).toBe(400)
     expect((await createProfile(admin, { name: { a: 1 } })).status).toBe(400)
   })
 
   it('ist Admins vorbehalten', async () => {
     const user = await createUser()
-    const res = await request(app).post('/api/users/profiles').set(authHeader(user.id)).send({ name: 'Erik' })
+    const res = await request(app).post('/api/users/profiles').set(authHeader(user.id)).send({ name: 'Mia' })
     expect(res.status).toBe(403)
   })
 })
@@ -116,7 +116,7 @@ describe('Profile in der Nutzerverwaltung', () => {
     await createProfile(admin)
     const res = await request(app).get('/api/users').set(authHeader(admin.id))
     expect(res.status).toBe(200)
-    expect(res.body.find(u => u.name === 'Erik')).toMatchObject({ kind: 'profile', color: '#128A75' })
+    expect(res.body.find(u => u.name === 'Mia')).toMatchObject({ kind: 'profile', color: '#128A75' })
     expect(res.body.find(u => u.id === admin.id)).toMatchObject({ kind: 'account', color: null })
   })
 
@@ -133,9 +133,9 @@ describe('Profile in der Nutzerverwaltung', () => {
   it('ein Profil kann umbenannt und gelöscht werden', async () => {
     const admin = await createUser({ role: 'admin' })
     const profile = (await createProfile(admin)).body
-    const renamed = await request(app).put(`/api/users/profiles/${profile.id}`).set(authHeader(admin.id)).send({ name: 'Erik B.', color: '#8A4CC2' })
+    const renamed = await request(app).put(`/api/users/profiles/${profile.id}`).set(authHeader(admin.id)).send({ name: 'Mia S.', color: '#8A4CC2' })
     expect(renamed.status).toBe(200)
-    expect(renamed.body).toMatchObject({ name: 'Erik B.', color: '#8A4CC2' })
+    expect(renamed.body).toMatchObject({ name: 'Mia S.', color: '#8A4CC2' })
 
     const deleted = await request(app).delete(`/api/users/${profile.id}`).set(authHeader(admin.id))
     expect(deleted.status).toBe(200)
@@ -187,7 +187,7 @@ describe('Profile in Statistik und Fairness', () => {
     const admin = await createUser({ role: 'admin', name: 'Admin' })
     const profile = (await createProfile(admin)).body
     await prisma.taskLog.create({
-      data: { taskTitle: 'Tisch decken', taskType: 'daily', status: 'completed', completedBy: profile.id, userName: 'Erik', forDate: '2026-11-15' },
+      data: { taskTitle: 'Tisch decken', taskType: 'daily', status: 'completed', completedBy: profile.id, userName: 'Mia', forDate: '2026-11-15' },
     })
     const fairness = await getFairness()
     expect(JSON.stringify(fairness)).not.toContain(profile.id)

@@ -154,7 +154,7 @@ describe('Display-Zugang: Sicherheitsgrenze', () => {
 describe('GET /api/display/overview', () => {
   it('liefert Aufgaben, Personen und knappen Vorrat in einer Antwort', async () => {
     const admin = await createUser({ role: 'admin', name: 'Tobias', color: '#2F6FDE' })
-    const profile = (await request(app).post('/api/users/profiles').set(authHeader(admin.id)).send({ name: 'Erik', color: '#128A75' })).body
+    const profile = (await request(app).post('/api/users/profiles').set(authHeader(admin.id)).send({ name: 'Mia', color: '#128A75' })).body
     const { token } = (await createDisplayToken(admin)).body
 
     await prisma.task.create({ data: { title: 'Betten machen', type: 'daily', timeOfDay: 'morning', difficulty: 1 } })
@@ -178,7 +178,7 @@ describe('GET /api/display/overview', () => {
     expect(res.body.tasks.once).toEqual([])
 
     expect(res.body.people.find(p => p.id === admin.id)).toMatchObject({ name: 'Tobias', kind: 'account', color: '#2F6FDE', curDay: 0 })
-    expect(res.body.people.find(p => p.id === profile.id)).toMatchObject({ name: 'Erik', kind: 'profile', color: '#128A75' })
+    expect(res.body.people.find(p => p.id === profile.id)).toMatchObject({ name: 'Mia', kind: 'profile', color: '#128A75' })
 
     expect(res.body.lowStock.map(i => i.name)).toEqual(['Milch'])
   })
@@ -199,7 +199,7 @@ describe('GET /api/display/overview', () => {
 describe('POST /api/display/tasks/:id/complete', () => {
   async function setup() {
     const admin = await createUser({ role: 'admin', name: 'Tobias' })
-    const profile = (await request(app).post('/api/users/profiles').set(authHeader(admin.id)).send({ name: 'Erik' })).body
+    const profile = (await request(app).post('/api/users/profiles').set(authHeader(admin.id)).send({ name: 'Mia' })).body
     const { token } = (await createDisplayToken(admin)).body
     return { admin, profile, token }
   }
@@ -213,10 +213,10 @@ describe('POST /api/display/tasks/:id/complete', () => {
     expect(res.body).toEqual({ completed: true })
 
     const log = await prisma.taskLog.findFirst({ where: { taskId: task.id, status: 'completed' } })
-    expect(log).toMatchObject({ completedBy: profile.id, userName: 'Erik', source: 'display', weight: 1 })
+    expect(log).toMatchObject({ completedBy: profile.id, userName: 'Mia', source: 'display', weight: 1 })
 
     const overview = await request(app).get('/api/display/overview').set(displayHeader(token))
-    expect(overview.body.tasks.daily[0]).toMatchObject({ completed: true, completedBy: 'Erik' })
+    expect(overview.body.tasks.daily[0]).toMatchObject({ completed: true, completedBy: 'Mia' })
     expect(overview.body.people.find(p => p.id === profile.id).curDay).toBe(1)
   })
 

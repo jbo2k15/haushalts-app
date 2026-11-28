@@ -1,6 +1,6 @@
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//bohl.it//Mein Huehnerstall//DE
+PRODID:-//example.org//Huehnerstall-Beispiel//DE
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 X-WR-CALNAME:Mein Hühnerstall – meine Dienste
