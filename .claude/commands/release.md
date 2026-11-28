@@ -115,7 +115,7 @@ ist.
   dann `gh run watch <id> --repo jbo2k15/haushalts-app --exit-status` (Timeout ~10 min),
   dann `gh run view <id> --repo jbo2k15/haushalts-app --json jobs --jq ".jobs[] | {name, conclusion}"`.
 - Alle vier Jobs müssen `success` sein, danach
-  `curl.exe -s -o NUL -w "%{http_code}" https://haushalt-braun.org/api/health` → `200`.
+  `curl.exe -s -o NUL -w "%{http_code}" https://<öffentliche-domain>/api/health` → `200`.
 - Ein Job rot: NICHT taggen. Fehlerausgabe holen
   (`gh run view <id> --repo jbo2k15/haushalts-app --log-failed`), dem Nutzer
   melden. Schlägt nur der Smoke-Test fehl, laufen die neuen Container bereits —
