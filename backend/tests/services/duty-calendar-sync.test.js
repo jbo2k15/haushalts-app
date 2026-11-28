@@ -64,10 +64,10 @@ describe('dutyFromEvent', () => {
   })
 
   it('filtert nach Text in Titel, Beschreibung oder Teilnehmern', () => {
-    const other = { ...morning('2026-12-02'), description: 'Krassa · Alena, Benny' }
-    const ours = { ...morning('2026-12-01'), description: 'Braun · Antje, Tobias' }
-    expect(dutyFromEvent(other, { filter: 'braun' })).toBeNull()
-    expect(dutyFromEvent(ours, { filter: 'braun' })).not.toBeNull()
+    const other = { ...morning('2026-12-02'), description: 'Beispiel · Robin, Sam' }
+    const ours = { ...morning('2026-12-01'), description: 'Muster · Alex, Kim' }
+    expect(dutyFromEvent(other, { filter: 'muster' })).toBeNull()
+    expect(dutyFromEvent(ours, { filter: 'muster' })).not.toBeNull()
   })
 
   it('ganztägige Termine bekommen keine Uhrzeit', () => {
@@ -204,10 +204,10 @@ describe('syncDutyCalendar', () => {
 
   it('berücksichtigt DUTY_ICAL_FILTER für ein Abo mit allen Familien', async () => {
     mockToday('2026-12-01')
-    process.env.DUTY_ICAL_FILTER = 'Braun'
+    process.env.DUTY_ICAL_FILTER = 'Muster'
     feedMock.mockResolvedValue({
-      a: { ...morning('2026-12-01'), description: 'Braun · Antje, Tobias' },
-      b: { ...morning('2026-12-02'), description: 'Krassa · Alena, Benny' },
+      a: { ...morning('2026-12-01'), description: 'Muster · Alex, Kim' },
+      b: { ...morning('2026-12-02'), description: 'Beispiel · Robin, Sam' },
     })
     await syncDutyCalendar()
     expect((await dutyTasks()).map(t => t.dueDate)).toEqual(['2026-12-01'])
