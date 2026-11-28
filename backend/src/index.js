@@ -15,12 +15,14 @@ if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
 
 const _origLog = console.log.bind(console)
 const _origError = console.error.bind(console)
+const _origWarn = console.warn.bind(console)
 function ts() {
   const d = new Date()
   return `[${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}]`
 }
 console.log = (...a) => _origLog(ts(), ...a)
 console.error = (...a) => _origError(ts(), ...a)
+console.warn = (...a) => _origWarn(ts(), ...a)
 
 import { createApp } from './app.js'
 import { startScheduler } from './services/scheduler.js'
