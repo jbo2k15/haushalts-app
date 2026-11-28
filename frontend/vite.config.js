@@ -45,8 +45,10 @@ export default defineConfig({
         screenshots: [
           { src: '/screenshots/login.png',     type: 'image/png', form_factor: 'narrow', label: 'Anmeldung' },
           { src: '/screenshots/home.png',      type: 'image/png', form_factor: 'narrow', label: 'Aufgaben-Übersicht' },
+          { src: '/screenshots/storage.png',   type: 'image/png', form_factor: 'narrow', label: 'Vorrat' },
           { src: '/screenshots/admin.png',     type: 'image/png', form_factor: 'narrow', label: 'Verwaltung' },
           { src: '/screenshots/halloffame.png',type: 'image/png', form_factor: 'narrow', label: 'Ruhmeshalle' },
+          { src: '/screenshots/settings.png',  type: 'image/png', form_factor: 'narrow', label: 'Einstellungen' },
         ],
       },
       injectManifest: {
