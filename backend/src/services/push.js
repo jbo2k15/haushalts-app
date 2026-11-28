@@ -1,7 +1,8 @@
-import webpush from 'web-push'
+// web-push ist seit v4 ESM-only und hat keinen Default-Export mehr.
+import { setVapidDetails, sendNotification } from 'web-push'
 import prisma from '../lib/prisma.js'
 
-webpush.setVapidDetails(
+setVapidDetails(
   process.env.VAPID_EMAIL,
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
@@ -15,7 +16,7 @@ export async function sendPushToUser(userId, payload) {
   }
   for (const sub of subs) {
     try {
-      await webpush.sendNotification(
+      await sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         JSON.stringify(payload)
       )

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import webpush from 'web-push'
+import { sendNotification } from 'web-push'
 import prisma from '../../src/lib/prisma.js'
 import { sendPushToUser } from '../../src/services/push.js'
 
@@ -16,13 +16,21 @@ async function createUser(overrides = {}) {
   })
 }
 
+// web-push v4 ist ESM-only: die Exporte eines ESM-Namespace lassen sich nicht
+// per vi.spyOn ersetzen. Daher nur sendNotification mocken; setVapidDetails
+// bleibt echt und prueft beim Import von push.js weiter die Test-VAPID-Keys.
+vi.mock('web-push', async (importOriginal) => ({
+  ...(await importOriginal()),
+  sendNotification: vi.fn(),
+}))
+
 afterEach(() => {
-  vi.restoreAllMocks()
+  vi.mocked(sendNotification).mockReset()
 })
 
 describe('sendPushToUser', () => {
   it('sendet erfolgreich und behält die Subscription', async () => {
-    vi.spyOn(webpush, 'sendNotification').mockResolvedValue({})
+    vi.mocked(sendNotification).mockResolvedValue({})
     const user = await createUser()
     await prisma.pushSubscription.create({ data: { userId: user.id, endpoint: 'https://push.example.com/ok', p256dh: 'k', auth: 'a' } })
 
@@ -33,7 +41,7 @@ describe('sendPushToUser', () => {
   })
 
   it.each([401, 403, 404, 410])('entfernt die Subscription bei HTTP %i (dauerhaft ungültig)', async (statusCode) => {
-    vi.spyOn(webpush, 'sendNotification').mockRejectedValue({ statusCode, message: 'fail' })
+    vi.mocked(sendNotification).mockRejectedValue({ statusCode, message: 'fail' })
     const user = await createUser({ email: `push-${statusCode}@example.com` })
     await prisma.pushSubscription.create({ data: { userId: user.id, endpoint: `https://push.example.com/${statusCode}`, p256dh: 'k', auth: 'a' } })
 
@@ -44,7 +52,7 @@ describe('sendPushToUser', () => {
   })
 
   it('behält die Subscription bei einem transienten Fehler (z.B. 500 vom Push-Dienst)', async () => {
-    vi.spyOn(webpush, 'sendNotification').mockRejectedValue({ statusCode: 500, message: 'server error' })
+    vi.mocked(sendNotification).mockRejectedValue({ statusCode: 500, message: 'server error' })
     const user = await createUser({ email: 'push-500@example.com' })
     await prisma.pushSubscription.create({ data: { userId: user.id, endpoint: 'https://push.example.com/500', p256dh: 'k', auth: 'a' } })
 
@@ -55,11 +63,10 @@ describe('sendPushToUser', () => {
   })
 
   it('macht nichts, wenn der Nutzer keine Subscriptions hat', async () => {
-    vi.spyOn(webpush, 'sendNotification')
     const user = await createUser({ email: 'push-none@example.com' })
 
     await sendPushToUser(user.id, { title: 'Test' })
 
-    expect(webpush.sendNotification).not.toHaveBeenCalled()
+    expect(sendNotification).not.toHaveBeenCalled()
   })
 })
