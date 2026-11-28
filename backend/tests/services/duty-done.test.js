@@ -15,7 +15,7 @@ vi.mock('../../src/services/push.js', () => ({
 const ical = (await import('node-ical')).default
 const feedMock = (await import('../../src/services/duty-feed.js')).fetchDutyFeed
 const { syncDutyCalendar } = await import('../../src/services/duty-calendar.js')
-const { pushDutyState, retryPendingDutyPushes } = await import('../../src/services/duty-done.js')
+const { pushDutyState, retryPendingDutyPushes, resetDutyDoneState } = await import('../../src/services/duty-done.js')
 const { completeTask } = await import('../../src/domain/tasks.js')
 
 const ENV_KEYS = ['DUTY_ICAL_URL', 'DUTY_ICAL_LABEL', 'DUTY_ICAL_FILTER', 'DUTY_DONE_URL', 'DUTY_DONE_KEY']
@@ -31,7 +31,10 @@ const feed = (extraMorning = {}) => ({ a: event('uid-morgens', 8, extraMorning),
 
 let fetchMock
 let user
-const respond = status => fetchMock.mockResolvedValue({ status, ok: status === 200 })
+const respond = (status, headers = {}) => fetchMock.mockResolvedValue({
+  status, ok: status === 200, headers: { get: name => headers[name.toLowerCase()] ?? null },
+})
+const later = minutes => vi.setSystemTime(new Date(Date.now() + minutes * 60000))
 const morningTask = () => prisma.task.findFirst({ where: { externalUid: 'uid-morgens' } })
 const isTicked = async () => !!(await prisma.taskCompletion.findFirst({ where: { taskId: (await morningTask()).id } }))
 const tick = async (desired = true) => completeTask((await morningTask()).id, { userId: user.id, userName: user.name, desired })
@@ -46,6 +49,7 @@ beforeEach(async () => {
   process.env.DUTY_DONE_URL = DONE_URL
   delete process.env.DUTY_ICAL_FILTER
   delete process.env.DUTY_DONE_KEY
+  resetDutyDoneState()
   fetchMock = vi.fn()
   vi.stubGlobal('fetch', fetchMock)
   respond(200)
@@ -97,21 +101,64 @@ describe('Dienstplan: Rückmeldung an die Quelle', () => {
     expect((await morningTask()).externalSync).toBeNull()
   })
 
-  it('lässt den Haken bei 503 stehen und holt die Meldung später nach', async () => {
+  it('lässt den Haken bei 503 stehen und holt die Meldung mit wachsendem Abstand nach', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     respond(503)
     await tick()
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
     expect(await isTicked()).toBe(true)
     expect((await morningTask()).externalSync).toBe('pending')
 
-    fetchMock.mockRejectedValue(new Error('Netz weg'))
+    // Sofort danach: noch kein neuer Versuch
     await retryPendingDutyPushes()
-    expect((await morningTask()).externalSync).toBe('pending')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    // Nach 15 Minuten der zweite Versuch (Netzfehler), der dritte erst nach 30
+    fetchMock.mockRejectedValue(new Error('Netz weg'))
+    later(15)
+    await retryPendingDutyPushes()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    later(15)
+    await retryPendingDutyPushes()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
 
     respond(200)
+    later(15)
     await retryPendingDutyPushes()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
     expect((await morningTask()).externalSync).toBe('synced')
     expect(lastBody()).toMatchObject({ uid: 'uid-morgens', erledigt: true })
+  })
+
+  it('hält bei 429 die verlangte Pause ein, auch für frisch geänderte Dienste', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    respond(429, { 'retry-after': '1800' })
+    await tick()
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+
+    respond(200)
+    later(20)
+    await retryPendingDutyPushes()
+    await tick(false) // Änderung während der Pause: bleibt vorgemerkt
+    await tick()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect((await morningTask()).externalSync).toBe('pending')
+
+    later(11) // Pause vorbei
+    await retryPendingDutyPushes()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect((await morningTask()).externalSync).toBe('synced')
+  })
+
+  it('schreibt erfolgreiche Meldungen ins Log, ohne Schlüssel oder Adresse', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await tick()
+    await waitForSync('synced')
+    await vi.waitFor(() => expect(JSON.stringify(log.mock.calls)).toContain('bestätigt (HTTP 200'))
+    const text = JSON.stringify(log.mock.calls)
+    expect(text).toContain('erledigt=true')
+    expect(text).not.toContain('geheim123')
+    expect(text).not.toContain('example.com')
   })
 
   it('gibt bei 404 auf, ohne den Haken anzufassen oder den Schlüssel zu loggen', async () => {
